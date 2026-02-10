@@ -1,12 +1,14 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { GlassContext, type GlassRegionHandle, type RegisteredRegion } from '../context/GlassContext';
 import { initEngine, type EngineModule } from '../wasm/loader';
+import { useAccessibilityPreferences } from '../hooks/useAccessibilityPreferences';
 
 export function GlassProvider({ children }: { children: React.ReactNode }) {
   const [ready, setReady] = useState(false);
   const moduleRef = useRef<EngineModule | null>(null);
   const regionsRef = useRef(new Map<number, RegisteredRegion>());
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const prefs = useAccessibilityPreferences();
 
   // Initialize WASM engine
   useEffect(() => {
@@ -64,6 +66,13 @@ export function GlassProvider({ children }: { children: React.ReactNode }) {
     return () => observer.disconnect();
   }, [ready]);
 
+  // Sync reduced-motion preference to engine
+  useEffect(() => {
+    const engine = moduleRef.current?.getEngine();
+    if (!engine) return;
+    engine.setPaused(prefs.reducedMotion);
+  }, [prefs.reducedMotion, ready]);
+
   // rAF position sync loop
   useEffect(() => {
     if (!ready) return;
@@ -111,7 +120,8 @@ export function GlassProvider({ children }: { children: React.ReactNode }) {
     registerRegion,
     unregisterRegion,
     ready,
-  }), [registerRegion, unregisterRegion, ready]);
+    preferences: prefs,
+  }), [registerRegion, unregisterRegion, ready, prefs]);
 
   return (
     <GlassContext value={contextValue}>

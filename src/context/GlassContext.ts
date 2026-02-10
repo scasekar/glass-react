@@ -1,4 +1,5 @@
 import { createContext } from 'react';
+import type { AccessibilityPreferences } from '../components/types';
 
 export interface GlassRegionHandle {
   id: number;
@@ -17,6 +18,7 @@ export interface GlassContextValue {
   registerRegion(element: HTMLElement): GlassRegionHandle | null;
   unregisterRegion(id: number): void;
   ready: boolean;
+  preferences: AccessibilityPreferences;
 }
 
 export const GlassContext = createContext<GlassContextValue | null>(null);

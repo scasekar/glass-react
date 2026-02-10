@@ -1,3 +1,13 @@
+/** OS-level accessibility and theme preferences detected via matchMedia */
+export interface AccessibilityPreferences {
+  /** true when OS has prefers-reduced-motion: reduce */
+  reducedMotion: boolean;
+  /** true when OS has prefers-reduced-transparency: reduce (progressive enhancement, ~72% browser support) */
+  reducedTransparency: boolean;
+  /** true when OS has prefers-color-scheme: dark */
+  darkMode: boolean;
+}
+
 /** RGB color as a tuple of three numbers in [0, 1] range */
 export type GlassColor = [r: number, g: number, b: number];
 
