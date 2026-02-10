@@ -9,6 +9,19 @@ struct Uniforms {
     float resolutionY;
 };
 
+struct GlassUniforms {
+    float rectX, rectY, rectW, rectH;           // offset 0-15 (vec4f)
+    float cornerRadius;                          // offset 16
+    float blurIntensity;                         // offset 20
+    float opacity;                               // offset 24
+    float refractionStrength;                    // offset 28
+    float tintR, tintG, tintB;                   // offset 32-40
+    float _pad;                                  // offset 44
+    float resolutionX, resolutionY;              // offset 48-52
+    float _pad2, _pad3;                          // offset 56-60
+};
+// Total: 64 bytes (4 x vec4f aligned)
+
 class BackgroundEngine {
 public:
     BackgroundEngine();
@@ -17,12 +30,17 @@ public:
     void update(float deltaTime);
     void render();
     void resize(uint32_t newWidth, uint32_t newHeight);
+
+    void setGlassRect(float x, float y, float w, float h);
+    void setGlassParams(float cornerRadius, float blur, float opacity, float refraction);
+    void setGlassTint(float r, float g, float b);
+
 private:
     void createNoisePipeline();
     void createUniforms();
     void createOffscreenTexture();
-    void createBlitPipeline();
-    void createBlitBindGroup();
+    void createGlassPipeline();
+    void createGlassBindGroup();
 
     wgpu::Device device;
     wgpu::Surface surface;
@@ -42,10 +60,12 @@ private:
     wgpu::Texture offscreenTexture;
     wgpu::TextureView offscreenTextureView;
 
-    // Blit pass (Pass 2: blit offscreen texture to surface)
-    wgpu::Sampler blitSampler;
-    wgpu::ShaderModule blitShaderModule;
-    wgpu::RenderPipeline blitPipeline;
-    wgpu::BindGroupLayout blitBindGroupLayout;
-    wgpu::BindGroup blitBindGroup;
+    // Glass pass (Pass 2: glass effect from offscreen texture to surface)
+    wgpu::Sampler glassSampler;
+    wgpu::ShaderModule glassShaderModule;
+    wgpu::RenderPipeline glassPipeline;
+    wgpu::BindGroupLayout glassBindGroupLayout;
+    wgpu::BindGroup glassBindGroup;
+    wgpu::Buffer glassUniformBuffer;
+    GlassUniforms glassUniforms{};
 };

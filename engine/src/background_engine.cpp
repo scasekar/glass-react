@@ -1,6 +1,6 @@
 #include "background_engine.h"
 #include "shaders/noise.wgsl.h"
-#include "shaders/blit.wgsl.h"
+#include "shaders/glass.wgsl.h"
 #include <iostream>
 #include <string_view>
 
@@ -16,8 +16,17 @@ void BackgroundEngine::init(wgpu::Device dev, wgpu::Surface surf,
     height = h;
     createNoisePipeline();
     createUniforms();
-    createBlitPipeline();
+    createGlassPipeline();
     createOffscreenTexture();
+
+    // Initialize default glass uniform values
+    glassUniforms.rectX = 0.25f;  glassUniforms.rectY = 0.25f;
+    glassUniforms.rectW = 0.5f;   glassUniforms.rectH = 0.5f;
+    glassUniforms.cornerRadius = 20.0f;
+    glassUniforms.blurIntensity = 0.5f;
+    glassUniforms.opacity = 0.15f;
+    glassUniforms.refractionStrength = 0.02f;
+    glassUniforms.tintR = 1.0f; glassUniforms.tintG = 1.0f; glassUniforms.tintB = 1.0f;
 }
 
 void BackgroundEngine::createNoisePipeline() {
@@ -113,21 +122,21 @@ void BackgroundEngine::createOffscreenTexture() {
     offscreenTexture = device.CreateTexture(&texDesc);
     offscreenTextureView = offscreenTexture.CreateView();
 
-    // Recreate blit bind group (references the new texture view)
-    createBlitBindGroup();
+    // Recreate glass bind group (references the new texture view)
+    createGlassBindGroup();
 }
 
-void BackgroundEngine::createBlitPipeline() {
-    // Blit shader module
+void BackgroundEngine::createGlassPipeline() {
+    // Glass shader module
     wgpu::ShaderSourceWGSL wgslSource{};
-    wgslSource.code = blitShaderCode;
+    wgslSource.code = glassShaderCode;
 
     wgpu::ShaderModuleDescriptor shaderDesc{};
     shaderDesc.nextInChain = &wgslSource;
-    blitShaderModule = device.CreateShaderModule(&shaderDesc);
+    glassShaderModule = device.CreateShaderModule(&shaderDesc);
 
-    // Bind group layout: sampler at binding 0, texture at binding 1
-    wgpu::BindGroupLayoutEntry entries[2]{};
+    // Bind group layout: sampler(0), texture(1), uniform(2)
+    wgpu::BindGroupLayoutEntry entries[3]{};
 
     // Sampler
     entries[0].binding = 0;
@@ -140,34 +149,46 @@ void BackgroundEngine::createBlitPipeline() {
     entries[1].texture.sampleType = wgpu::TextureSampleType::Float;
     entries[1].texture.viewDimension = wgpu::TextureViewDimension::e2D;
 
+    // Uniform buffer
+    entries[2].binding = 2;
+    entries[2].visibility = wgpu::ShaderStage::Fragment;
+    entries[2].buffer.type = wgpu::BufferBindingType::Uniform;
+    entries[2].buffer.minBindingSize = sizeof(GlassUniforms);
+
     wgpu::BindGroupLayoutDescriptor bglDesc{};
-    bglDesc.entryCount = 2;
+    bglDesc.entryCount = 3;
     bglDesc.entries = entries;
-    blitBindGroupLayout = device.CreateBindGroupLayout(&bglDesc);
+    glassBindGroupLayout = device.CreateBindGroupLayout(&bglDesc);
 
     // Pipeline layout
     wgpu::PipelineLayoutDescriptor plDesc{};
     plDesc.bindGroupLayoutCount = 1;
-    plDesc.bindGroupLayouts = &blitBindGroupLayout;
+    plDesc.bindGroupLayouts = &glassBindGroupLayout;
     wgpu::PipelineLayout pipelineLayout = device.CreatePipelineLayout(&plDesc);
 
     // Sampler (linear filtering, clamp to edge)
     wgpu::SamplerDescriptor samplerDesc{};
-    samplerDesc.label = "Blit sampler";
+    samplerDesc.label = "Glass sampler";
     samplerDesc.addressModeU = wgpu::AddressMode::ClampToEdge;
     samplerDesc.addressModeV = wgpu::AddressMode::ClampToEdge;
     samplerDesc.magFilter = wgpu::FilterMode::Linear;
     samplerDesc.minFilter = wgpu::FilterMode::Linear;
-    blitSampler = device.CreateSampler(&samplerDesc);
+    glassSampler = device.CreateSampler(&samplerDesc);
 
-    // Color target matching surface format
+    // Glass uniform buffer
+    wgpu::BufferDescriptor bufDesc{};
+    bufDesc.size = sizeof(GlassUniforms);
+    bufDesc.usage = wgpu::BufferUsage::CopyDst | wgpu::BufferUsage::Uniform;
+    glassUniformBuffer = device.CreateBuffer(&bufDesc);
+
+    // Color target matching surface format (no blend -- shader does compositing)
     wgpu::ColorTargetState colorTarget{};
     colorTarget.format = surfaceFormat;
     colorTarget.writeMask = wgpu::ColorWriteMask::All;
 
     // Fragment state
     wgpu::FragmentState fragmentState{};
-    fragmentState.module = blitShaderModule;
+    fragmentState.module = glassShaderModule;
     fragmentState.entryPoint = "fs_main";
     fragmentState.targetCount = 1;
     fragmentState.targets = &colorTarget;
@@ -175,33 +196,39 @@ void BackgroundEngine::createBlitPipeline() {
     // Render pipeline descriptor
     wgpu::RenderPipelineDescriptor pipelineDesc{};
     pipelineDesc.layout = pipelineLayout;
-    pipelineDesc.vertex.module = blitShaderModule;
+    pipelineDesc.vertex.module = glassShaderModule;
     pipelineDesc.vertex.entryPoint = "vs_main";
     pipelineDesc.fragment = &fragmentState;
     pipelineDesc.primitive.topology = wgpu::PrimitiveTopology::TriangleList;
     pipelineDesc.multisample.count = 1;
     pipelineDesc.multisample.mask = ~0u;
 
-    blitPipeline = device.CreateRenderPipeline(&pipelineDesc);
+    glassPipeline = device.CreateRenderPipeline(&pipelineDesc);
 }
 
-void BackgroundEngine::createBlitBindGroup() {
-    wgpu::BindGroupEntry entries[2]{};
+void BackgroundEngine::createGlassBindGroup() {
+    wgpu::BindGroupEntry entries[3]{};
 
     // Sampler at binding 0
     entries[0].binding = 0;
-    entries[0].sampler = blitSampler;
+    entries[0].sampler = glassSampler;
 
     // Texture view at binding 1
     entries[1].binding = 1;
     entries[1].textureView = offscreenTextureView;
 
+    // Uniform buffer at binding 2
+    entries[2].binding = 2;
+    entries[2].buffer = glassUniformBuffer;
+    entries[2].offset = 0;
+    entries[2].size = sizeof(GlassUniforms);
+
     wgpu::BindGroupDescriptor bgDesc{};
-    bgDesc.label = "Blit bind group";
-    bgDesc.layout = blitBindGroupLayout;
-    bgDesc.entryCount = 2;
+    bgDesc.label = "Glass bind group";
+    bgDesc.layout = glassBindGroupLayout;
+    bgDesc.entryCount = 3;
     bgDesc.entries = entries;
-    blitBindGroup = device.CreateBindGroup(&bgDesc);
+    glassBindGroup = device.CreateBindGroup(&bgDesc);
 }
 
 void BackgroundEngine::update(float deltaTime) {
@@ -238,8 +265,13 @@ void BackgroundEngine::render() {
         pass.End();
     }
 
-    // === PASS 2: Blit offscreen texture to surface ===
+    // === PASS 2: Glass pass -- offscreen texture to surface ===
     {
+        // Update glass uniforms with current resolution
+        glassUniforms.resolutionX = static_cast<float>(width);
+        glassUniforms.resolutionY = static_cast<float>(height);
+        device.GetQueue().WriteBuffer(glassUniformBuffer, 0, &glassUniforms, sizeof(GlassUniforms));
+
         wgpu::SurfaceTexture surfaceTexture;
         surface.GetCurrentTexture(&surfaceTexture);
 
@@ -254,8 +286,8 @@ void BackgroundEngine::render() {
         passDesc.colorAttachments = &attachment;
 
         wgpu::RenderPassEncoder pass = encoder.BeginRenderPass(&passDesc);
-        pass.SetPipeline(blitPipeline);
-        pass.SetBindGroup(0, blitBindGroup);
+        pass.SetPipeline(glassPipeline);
+        pass.SetBindGroup(0, glassBindGroup);
         pass.Draw(3);
         pass.End();
     }
@@ -279,6 +311,22 @@ void BackgroundEngine::resize(uint32_t newWidth, uint32_t newHeight) {
     config.height = height;
     surface.Configure(&config);
 
-    // Recreate offscreen texture at new size (also recreates blit bind group)
+    // Recreate offscreen texture at new size (also recreates glass bind group)
     createOffscreenTexture();
+}
+
+void BackgroundEngine::setGlassRect(float x, float y, float w, float h) {
+    glassUniforms.rectX = x; glassUniforms.rectY = y;
+    glassUniforms.rectW = w; glassUniforms.rectH = h;
+}
+
+void BackgroundEngine::setGlassParams(float cornerRadius, float blur, float opacity, float refraction) {
+    glassUniforms.cornerRadius = cornerRadius;
+    glassUniforms.blurIntensity = blur;
+    glassUniforms.opacity = opacity;
+    glassUniforms.refractionStrength = refraction;
+}
+
+void BackgroundEngine::setGlassTint(float r, float g, float b) {
+    glassUniforms.tintR = r; glassUniforms.tintG = g; glassUniforms.tintB = b;
 }
