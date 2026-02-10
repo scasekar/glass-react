@@ -4,6 +4,7 @@ set(CMAKE_CXX_STANDARD 20)
 
 add_executable(engine
     src/main.cpp
+    src/background_engine.cpp
 )
 
 if(EMSCRIPTEN)

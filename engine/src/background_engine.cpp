@@ -125,7 +125,8 @@ void BackgroundEngine::render() {
     pass.Draw(3);  // 3 vertices = fullscreen triangle
     pass.End();
 
-    device.GetQueue().Submit(1, &encoder.Finish());
+    wgpu::CommandBuffer commands = encoder.Finish();
+    device.GetQueue().Submit(1, &commands);
 }
 
 void BackgroundEngine::resize(uint32_t newWidth, uint32_t newHeight) {
