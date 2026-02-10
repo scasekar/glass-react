@@ -14,7 +14,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Engine Foundation** - Emscripten build pipeline and proof-of-concept GPU device sharing between C++ and JavaScript
 - [x] **Phase 2: Background Rendering** - Procedural noise simulation running in C++ at 60FPS as a full-canvas animated background
-- [ ] **Phase 3: GPU Texture Bridge** - Zero-copy texture sharing and synchronized render pipeline between WASM engine and React
+- [x] **Phase 3: GPU Texture Bridge** - Zero-copy texture sharing and synchronized render pipeline between WASM engine and React
 - [ ] **Phase 4: Glass Shader Core** - WGSL refraction and frosted glass shaders that sample the background texture through glass UI regions
 - [ ] **Phase 5: React Component API** - GlassPanel, GlassButton, GlassCard components with configurable props and GlassProvider context
 - [ ] **Phase 6: Accessibility & Theming** - Reduced-motion, reduced-transparency, WCAG contrast, and dark/light mode adaptation
@@ -67,8 +67,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 03-01-PLAN.md -- Two-pass C++ render architecture (noise to offscreen texture, blit to surface)
-- [ ] 03-02-PLAN.md -- React lifecycle management with destroyEngine and human verification
+- [x] 03-01-PLAN.md -- Two-pass C++ render architecture (noise to offscreen texture, blit to surface)
+- [x] 03-02-PLAN.md -- React lifecycle management with destroyEngine and human verification
 
 ### Phase 4: Glass Shader Core
 **Goal**: WGSL shaders produce a convincing glass refraction effect by sampling the background texture at distorted UVs with configurable blur, opacity, and rounded corners
