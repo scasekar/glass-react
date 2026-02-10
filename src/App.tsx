@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
-import { initEngine } from './wasm/loader';
+import { initEngine, type EngineModule } from './wasm/loader';
 
 export default function App() {
   const [status, setStatus] = useState<'loading' | 'running' | 'error'>('loading');
   const [error, setError] = useState<string | null>(null);
   const observerRef = useRef<ResizeObserver | null>(null);
+  const moduleRef = useRef<EngineModule | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -12,6 +13,7 @@ export default function App() {
     initEngine()
       .then((module) => {
         if (cancelled) return;
+        moduleRef.current = module;
 
         const canvas = document.getElementById('gpu-canvas') as HTMLCanvasElement | null;
         if (!canvas) {
@@ -57,6 +59,10 @@ export default function App() {
     return () => {
       cancelled = true;
       observerRef.current?.disconnect();
+      if (moduleRef.current) {
+        moduleRef.current.destroyEngine();
+        moduleRef.current = null;
+      }
     };
   }, []);
 

@@ -1,5 +1,6 @@
-interface EngineModule {
-  getEngine(): { resize(w: number, h: number): void };
+export interface EngineModule {
+  getEngine(): { resize(w: number, h: number): void } | null;
+  destroyEngine(): void;
 }
 
 export async function initEngine(): Promise<EngineModule> {

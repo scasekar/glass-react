@@ -108,8 +108,16 @@ int main() {
 #ifdef __EMSCRIPTEN__
 BackgroundEngine* getEngine() { return g_engine; }
 
+void destroyEngine() {
+    if (g_engine) {
+        delete g_engine;
+        g_engine = nullptr;
+    }
+}
+
 EMSCRIPTEN_BINDINGS(background_engine) {
     emscripten::function("getEngine", &getEngine, emscripten::allow_raw_pointers());
+    emscripten::function("destroyEngine", &destroyEngine);
     emscripten::class_<BackgroundEngine>("BackgroundEngine")
         .function("resize", &BackgroundEngine::resize);
 }
