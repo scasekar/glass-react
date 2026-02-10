@@ -110,6 +110,7 @@ export function GlassProvider({ children }: { children: React.ReactNode }) {
       updateSpecular: (intensity) => engine.setRegionSpecular(id, intensity),
       updateRim: (intensity) => engine.setRegionRim(id, intensity),
       updateMode: (mode) => engine.setRegionMode(id, mode),
+      updateMorphSpeed: (speed) => engine.setRegionMorphSpeed(id, speed),
       remove: () => engine.removeGlassRegion(id),
     };
     regionsRef.current.set(id, { element, handle });

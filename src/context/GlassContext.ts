@@ -10,6 +10,7 @@ export interface GlassRegionHandle {
   updateSpecular(intensity: number): void;
   updateRim(intensity: number): void;
   updateMode(mode: number): void;
+  updateMorphSpeed(speed: number): void;
   remove(): void;
 }
 

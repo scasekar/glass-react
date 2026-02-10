@@ -3,6 +3,7 @@
 #include "shaders/glass.wgsl.h"
 #include <iostream>
 #include <string_view>
+#include <cmath>
 
 namespace {
 inline uint32_t ceilToNextMultiple(uint32_t value, uint32_t alignment) {
@@ -248,13 +249,40 @@ void BackgroundEngine::createGlassBindGroup() {
     glassBindGroup = device.CreateBindGroup(&bgDesc);
 }
 
+void BackgroundEngine::lerpUniforms(GlassUniforms& current, const GlassUniforms& target, float t) {
+    // Visual parameters only -- rect and resolution are set directly
+    current.cornerRadius += (target.cornerRadius - current.cornerRadius) * t;
+    current.blurIntensity += (target.blurIntensity - current.blurIntensity) * t;
+    current.opacity += (target.opacity - current.opacity) * t;
+    current.refractionStrength += (target.refractionStrength - current.refractionStrength) * t;
+    current.tintR += (target.tintR - current.tintR) * t;
+    current.tintG += (target.tintG - current.tintG) * t;
+    current.tintB += (target.tintB - current.tintB) * t;
+    current.aberration += (target.aberration - current.aberration) * t;
+    current.specularIntensity += (target.specularIntensity - current.specularIntensity) * t;
+    current.rimIntensity += (target.rimIntensity - current.rimIntensity) * t;
+    current.mode += (target.mode - current.mode) * t;
+}
+
 void BackgroundEngine::update(float deltaTime) {
-    if (paused_) return;
-    // Cap deltaTime to prevent huge jumps on tab switch
-    if (deltaTime > 0.1f) {
-        deltaTime = 0.1f;
+    if (deltaTime > 0.1f) deltaTime = 0.1f;
+
+    // Time update (only when not paused)
+    if (!paused_) {
+        currentTime += deltaTime;
     }
-    currentTime += deltaTime;
+
+    // Morph interpolation (always runs -- morphing should happen even when background is frozen)
+    for (uint32_t i = 0; i < MAX_GLASS_REGIONS; i++) {
+        if (!regions[i].active) continue;
+        if (regions[i].morphSpeed <= 0.0f) {
+            // Instant mode: copy target visual params to current
+            lerpUniforms(regions[i].current, regions[i].target, 1.0f);
+        } else {
+            float t = 1.0f - expf(-regions[i].morphSpeed * deltaTime);
+            lerpUniforms(regions[i].current, regions[i].target, t);
+        }
+    }
 }
 
 void BackgroundEngine::setPaused(bool paused) {
@@ -329,10 +357,10 @@ void BackgroundEngine::render() {
         // overwrites the background; surrounding pixels are preserved.
         for (uint32_t i = 0; i < MAX_GLASS_REGIONS; i++) {
             if (!regions[i].active) continue;
-            regions[i].uniforms.resolutionX = static_cast<float>(width);
-            regions[i].uniforms.resolutionY = static_cast<float>(height);
+            regions[i].current.resolutionX = static_cast<float>(width);
+            regions[i].current.resolutionY = static_cast<float>(height);
             device.GetQueue().WriteBuffer(glassUniformBuffer, i * uniformStride,
-                                          &regions[i].uniforms, sizeof(GlassUniforms));
+                                          &regions[i].current, sizeof(GlassUniforms));
             uint32_t dynamicOffset = i * uniformStride;
             pass.SetBindGroup(0, glassBindGroup, 1, &dynamicOffset);
             pass.Draw(3);
@@ -368,19 +396,21 @@ int BackgroundEngine::addGlassRegion() {
     for (uint32_t i = 0; i < MAX_GLASS_REGIONS; i++) {
         if (!regions[i].active) {
             regions[i].active = true;
-            // Set sensible defaults
-            regions[i].uniforms = {};
-            regions[i].uniforms.cornerRadius = 24.0f;
-            regions[i].uniforms.blurIntensity = 0.5f;
-            regions[i].uniforms.opacity = 0.05f;
-            regions[i].uniforms.refractionStrength = 0.15f;
-            regions[i].uniforms.tintR = 1.0f;
-            regions[i].uniforms.tintG = 1.0f;
-            regions[i].uniforms.tintB = 1.0f;
-            regions[i].uniforms.aberration = 3.0f;
-            regions[i].uniforms.specularIntensity = 0.2f;
-            regions[i].uniforms.rimIntensity = 0.15f;
-            regions[i].uniforms.mode = 0.0f;
+            GlassUniforms defaults{};
+            defaults.cornerRadius = 24.0f;
+            defaults.blurIntensity = 0.5f;
+            defaults.opacity = 0.05f;
+            defaults.refractionStrength = 0.15f;
+            defaults.tintR = 1.0f;
+            defaults.tintG = 1.0f;
+            defaults.tintB = 1.0f;
+            defaults.aberration = 3.0f;
+            defaults.specularIntensity = 0.2f;
+            defaults.rimIntensity = 0.15f;
+            defaults.mode = 0.0f;
+            regions[i].current = defaults;
+            regions[i].target = defaults;
+            regions[i].morphSpeed = 8.0f;
             return static_cast<int>(i);
         }
     }
@@ -394,43 +424,49 @@ void BackgroundEngine::removeGlassRegion(int id) {
 
 void BackgroundEngine::setRegionRect(int id, float x, float y, float w, float h) {
     if (id < 0 || id >= static_cast<int>(MAX_GLASS_REGIONS)) return;
-    regions[id].uniforms.rectX = x;
-    regions[id].uniforms.rectY = y;
-    regions[id].uniforms.rectW = w;
-    regions[id].uniforms.rectH = h;
+    // Write to BOTH current and target -- position tracks DOM instantly, no lerp
+    regions[id].current.rectX = x; regions[id].target.rectX = x;
+    regions[id].current.rectY = y; regions[id].target.rectY = y;
+    regions[id].current.rectW = w; regions[id].target.rectW = w;
+    regions[id].current.rectH = h; regions[id].target.rectH = h;
 }
 
 void BackgroundEngine::setRegionParams(int id, float cornerRadius, float blur, float opacity, float refraction) {
     if (id < 0 || id >= static_cast<int>(MAX_GLASS_REGIONS)) return;
-    regions[id].uniforms.cornerRadius = cornerRadius;
-    regions[id].uniforms.blurIntensity = blur;
-    regions[id].uniforms.opacity = opacity;
-    regions[id].uniforms.refractionStrength = refraction;
+    regions[id].target.cornerRadius = cornerRadius;
+    regions[id].target.blurIntensity = blur;
+    regions[id].target.opacity = opacity;
+    regions[id].target.refractionStrength = refraction;
 }
 
 void BackgroundEngine::setRegionTint(int id, float r, float g, float b) {
     if (id < 0 || id >= static_cast<int>(MAX_GLASS_REGIONS)) return;
-    regions[id].uniforms.tintR = r;
-    regions[id].uniforms.tintG = g;
-    regions[id].uniforms.tintB = b;
+    regions[id].target.tintR = r;
+    regions[id].target.tintG = g;
+    regions[id].target.tintB = b;
 }
 
 void BackgroundEngine::setRegionAberration(int id, float aberration) {
     if (id < 0 || id >= static_cast<int>(MAX_GLASS_REGIONS)) return;
-    regions[id].uniforms.aberration = aberration;
+    regions[id].target.aberration = aberration;
 }
 
 void BackgroundEngine::setRegionSpecular(int id, float intensity) {
     if (id < 0 || id >= static_cast<int>(MAX_GLASS_REGIONS)) return;
-    regions[id].uniforms.specularIntensity = intensity;
+    regions[id].target.specularIntensity = intensity;
 }
 
 void BackgroundEngine::setRegionRim(int id, float intensity) {
     if (id < 0 || id >= static_cast<int>(MAX_GLASS_REGIONS)) return;
-    regions[id].uniforms.rimIntensity = intensity;
+    regions[id].target.rimIntensity = intensity;
 }
 
 void BackgroundEngine::setRegionMode(int id, float mode) {
     if (id < 0 || id >= static_cast<int>(MAX_GLASS_REGIONS)) return;
-    regions[id].uniforms.mode = mode;
+    regions[id].target.mode = mode;
+}
+
+void BackgroundEngine::setRegionMorphSpeed(int id, float speed) {
+    if (id < 0 || id >= static_cast<int>(MAX_GLASS_REGIONS)) return;
+    regions[id].morphSpeed = speed;
 }

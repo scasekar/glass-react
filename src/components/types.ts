@@ -31,6 +31,8 @@ export interface GlassStyleProps {
   rim?: number;
   /** Refraction mode: 'standard' for subtle glass, 'prominent' for enhanced glass with stronger effects. Default: 'standard' */
   refractionMode?: 'standard' | 'prominent';
+  /** Morph transition speed (0 = instant snap, 8 = smooth ~0.4s). Default: 8 */
+  morphSpeed?: number;
 }
 
 /** Props for GlassPanel (<div> wrapper) */

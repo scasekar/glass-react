@@ -129,6 +129,7 @@ EMSCRIPTEN_BINDINGS(background_engine) {
         .function("setRegionSpecular", &BackgroundEngine::setRegionSpecular)
         .function("setRegionRim", &BackgroundEngine::setRegionRim)
         .function("setRegionMode", &BackgroundEngine::setRegionMode)
+        .function("setRegionMorphSpeed", &BackgroundEngine::setRegionMorphSpeed)
         .function("setPaused", &BackgroundEngine::setPaused)
         .function("setReducedTransparency", &BackgroundEngine::setReducedTransparency);
 }

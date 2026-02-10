@@ -29,7 +29,9 @@ struct GlassUniforms {
 static constexpr uint32_t MAX_GLASS_REGIONS = 16;
 
 struct GlassRegion {
-    GlassUniforms uniforms{};
+    GlassUniforms current{};   // What the shader reads this frame
+    GlassUniforms target{};    // Where parameters are heading
+    float morphSpeed = 8.0f;   // Lerp speed (0=instant, 8=default ~0.4s to 95%)
     bool active = false;
 };
 
@@ -51,11 +53,13 @@ public:
     void setRegionSpecular(int id, float intensity);
     void setRegionRim(int id, float intensity);
     void setRegionMode(int id, float mode);
+    void setRegionMorphSpeed(int id, float speed);
 
     void setPaused(bool paused);
     void setReducedTransparency(bool enabled);
 
 private:
+    static void lerpUniforms(GlassUniforms& current, const GlassUniforms& target, float t);
     void createNoisePipeline();
     void createUniforms();
     void createOffscreenTexture();

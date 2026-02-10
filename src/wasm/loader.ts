@@ -10,6 +10,7 @@ export interface EngineModule {
     setRegionSpecular(id: number, intensity: number): void;
     setRegionRim(id: number, intensity: number): void;
     setRegionMode(id: number, mode: number): void;
+    setRegionMorphSpeed(id: number, speed: number): void;
     setPaused(paused: boolean): void;
     setReducedTransparency(enabled: boolean): void;
   } | null;
