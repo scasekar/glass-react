@@ -1,7 +1,7 @@
 # Requirements: LiquidGlass-React-WASM
 
 **Defined:** 2026-02-10
-**Core Value:** Glass components that look and feel like Apple's Liquid Glass — refraction of a dynamic background through UI elements must be visually convincing at 60FPS.
+**Core Value:** Glass components that look and feel like Apple's Liquid Glass -- refraction of a dynamic background through UI elements must be visually convincing at 60FPS.
 
 ## v1 Requirements
 
@@ -23,7 +23,7 @@
 ### GPU Texture Bridge
 
 - [ ] **BRIDGE-01**: Single shared GPUDevice between C++ engine and React UI
-- [ ] **BRIDGE-02**: Zero-copy texture sharing — C++ renders, JS samples same GPUTexture
+- [ ] **BRIDGE-02**: Zero-copy texture sharing -- C++ renders, JS samples same GPUTexture
 - [ ] **BRIDGE-03**: Proper GPU resource lifecycle (no leaks, clean teardown)
 - [ ] **BRIDGE-04**: Render pipeline synchronization at 60FPS
 
@@ -127,10 +127,10 @@
 | DEMO-03 | Phase 8 | Pending |
 
 **Coverage:**
-- v1 requirements: 33 total
-- Mapped to phases: 33
-- Unmapped: 0 ✓
+- v1 requirements: 35 total
+- Mapped to phases: 35
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-02-10*
-*Last updated: 2026-02-10 after initial definition*
+*Last updated: 2026-02-10 after roadmap creation*
