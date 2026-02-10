@@ -12,7 +12,7 @@ This roadmap delivers a React component library implementing Apple's Liquid Glas
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Engine Foundation** - Emscripten build pipeline and proof-of-concept GPU device sharing between C++ and JavaScript
+- [x] **Phase 1: Engine Foundation** - Emscripten build pipeline and proof-of-concept GPU device sharing between C++ and JavaScript
 - [ ] **Phase 2: Background Rendering** - Procedural noise simulation running in C++ at 60FPS as a full-canvas animated background
 - [ ] **Phase 3: GPU Texture Bridge** - Zero-copy texture sharing and synchronized render pipeline between WASM engine and React
 - [ ] **Phase 4: Glass Shader Core** - WGSL refraction and frosted glass shaders that sample the background texture through glass UI regions
@@ -148,7 +148,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Engine Foundation | 0/2 | Planned | - |
+| 1. Engine Foundation | 2/2 | Complete | 2026-02-10 |
 | 2. Background Rendering | 0/TBD | Not started | - |
 | 3. GPU Texture Bridge | 0/TBD | Not started | - |
 | 4. Glass Shader Core | 0/TBD | Not started | - |

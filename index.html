@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Glass Engine - Phase 1 Proof</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #111;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      color: #eee;
+    }
+    #gpu-canvas {
+      width: 512px;
+      height: 512px;
+      border-radius: 8px;
+    }
+    #root {
+      margin-top: 16px;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="gpu-canvas" width="512" height="512"></canvas>
+  <div id="root"></div>
+  <script type="module" src="/src/main.tsx"></script>
+</body>
+</html>
