@@ -64,10 +64,11 @@ Plans:
   1. A React component can bind the C++ engine's background texture as a sampled texture in its own render pipeline without copying data between CPU and GPU
   2. Unmounting and remounting the React app (or navigating away and back) cleans up all GPU resources without memory leaks -- verified via WebGPU error scoping and DevTools memory timeline
   3. The background animation and React UI rendering stay synchronized at 60FPS with no visible tearing or frame-skip artifacts
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 03-01: TBD
+- [ ] 03-01-PLAN.md -- Two-pass C++ render architecture (noise to offscreen texture, blit to surface)
+- [ ] 03-02-PLAN.md -- React lifecycle management with destroyEngine and human verification
 
 ### Phase 4: Glass Shader Core
 **Goal**: WGSL shaders produce a convincing glass refraction effect by sampling the background texture at distorted UVs with configurable blur, opacity, and rounded corners
@@ -151,7 +152,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8
 |-------|----------------|--------|-----------|
 | 1. Engine Foundation | 2/2 | Complete | 2026-02-10 |
 | 2. Background Rendering | 2/2 | Complete | 2026-02-10 |
-| 3. GPU Texture Bridge | 0/TBD | Not started | - |
+| 3. GPU Texture Bridge | 0/2 | Planned | - |
 | 4. Glass Shader Core | 0/TBD | Not started | - |
 | 5. React Component API | 0/TBD | Not started | - |
 | 6. Accessibility & Theming | 0/TBD | Not started | - |
