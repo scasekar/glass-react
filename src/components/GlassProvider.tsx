@@ -11,8 +11,14 @@ export function GlassProvider({ children }: { children: React.ReactNode }) {
   // Initialize WASM engine
   useEffect(() => {
     let cancelled = false;
-    initEngine().then(module => {
+    initEngine().then(async module => {
       if (cancelled) return;
+      // The C++ main() fires RequestAdapter → RequestDevice asynchronously.
+      // Poll until getEngine() returns non-null (device acquired, engine created).
+      while (!module.getEngine()) {
+        if (cancelled) return;
+        await new Promise(r => setTimeout(r, 50));
+      }
       moduleRef.current = module;
       setReady(true);
     }).catch(err => {

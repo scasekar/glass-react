@@ -23,5 +23,6 @@ if(EMSCRIPTEN)
         "-sMODULARIZE=1"
         "-sEXPORT_ES6=1"
         "-sEXPORT_NAME=createEngineModule"
+        "-sASSERTIONS=1"
     )
 endif()

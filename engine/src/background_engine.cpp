@@ -181,16 +181,27 @@ void BackgroundEngine::createGlassPipeline() {
     samplerDesc.minFilter = wgpu::FilterMode::Linear;
     glassSampler = device.CreateSampler(&samplerDesc);
 
-    // Glass uniform buffer (sized for all regions with aligned stride)
+    // Glass uniform buffer: one slot per region + one extra for background blit passthrough.
+    // Slot MAX_GLASS_REGIONS is reserved for the passthrough (no active region uses it).
     wgpu::BufferDescriptor bufDesc{};
-    bufDesc.size = uniformStride * MAX_GLASS_REGIONS;
+    bufDesc.size = uniformStride * (MAX_GLASS_REGIONS + 1);
     bufDesc.usage = wgpu::BufferUsage::CopyDst | wgpu::BufferUsage::Uniform;
     glassUniformBuffer = device.CreateBuffer(&bufDesc);
 
-    // Color target matching surface format (no blend -- shader does compositing)
+    // Color target with alpha blending for multi-region compositing.
+    // Each region draws only within its mask; alpha blending preserves other regions.
+    wgpu::BlendState blend{};
+    blend.color.operation = wgpu::BlendOperation::Add;
+    blend.color.srcFactor = wgpu::BlendFactor::SrcAlpha;
+    blend.color.dstFactor = wgpu::BlendFactor::OneMinusSrcAlpha;
+    blend.alpha.operation = wgpu::BlendOperation::Add;
+    blend.alpha.srcFactor = wgpu::BlendFactor::One;
+    blend.alpha.dstFactor = wgpu::BlendFactor::OneMinusSrcAlpha;
+
     wgpu::ColorTargetState colorTarget{};
     colorTarget.format = surfaceFormat;
     colorTarget.writeMask = wgpu::ColorWriteMask::All;
+    colorTarget.blend = &blend;
 
     // Fragment state
     wgpu::FragmentState fragmentState{};
@@ -289,8 +300,24 @@ void BackgroundEngine::render() {
         wgpu::RenderPassEncoder pass = encoder.BeginRenderPass(&passDesc);
         pass.SetPipeline(glassPipeline);
 
-        // Count active regions to detect the zero-region fallback case
-        bool anyDrawn = false;
+        // Step 1: Always draw a background blit first (rectW=0 → shader outputs
+        // bgColor with alpha=1, writing clean background over the cleared surface).
+        // Uses slot MAX_GLASS_REGIONS (reserved, no active region writes here)
+        // to avoid being overwritten by region WriteBuffer calls below.
+        {
+            GlassUniforms passthrough{};
+            passthrough.resolutionX = static_cast<float>(width);
+            passthrough.resolutionY = static_cast<float>(height);
+            uint32_t blitOffset = MAX_GLASS_REGIONS * uniformStride;
+            device.GetQueue().WriteBuffer(glassUniformBuffer, blitOffset,
+                                          &passthrough, sizeof(GlassUniforms));
+            pass.SetBindGroup(0, glassBindGroup, 1, &blitOffset);
+            pass.Draw(3);
+        }
+
+        // Step 2: Composite each active glass region on top via alpha blending.
+        // The shader outputs glassColor with alpha=mask, so only the glass area
+        // overwrites the background; surrounding pixels are preserved.
         for (uint32_t i = 0; i < MAX_GLASS_REGIONS; i++) {
             if (!regions[i].active) continue;
             regions[i].uniforms.resolutionX = static_cast<float>(width);
@@ -299,20 +326,6 @@ void BackgroundEngine::render() {
                                           &regions[i].uniforms, sizeof(GlassUniforms));
             uint32_t dynamicOffset = i * uniformStride;
             pass.SetBindGroup(0, glassBindGroup, 1, &dynamicOffset);
-            pass.Draw(3);
-            anyDrawn = true;
-        }
-
-        // Fallback: if no active regions, draw a passthrough (rectW=0 means mask=0, pure background)
-        if (!anyDrawn) {
-            GlassUniforms passthrough{};
-            passthrough.resolutionX = static_cast<float>(width);
-            passthrough.resolutionY = static_cast<float>(height);
-            // rectW=0, rectH=0 -> SDF negative everywhere -> mask=0 -> pure passthrough
-            device.GetQueue().WriteBuffer(glassUniformBuffer, 0,
-                                          &passthrough, sizeof(GlassUniforms));
-            uint32_t zeroOffset = 0;
-            pass.SetBindGroup(0, glassBindGroup, 1, &zeroOffset);
             pass.Draw(3);
         }
 

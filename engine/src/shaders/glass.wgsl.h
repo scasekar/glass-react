@@ -148,8 +148,14 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
     let specular = coolSpec * coolColor + warmSpec * warmColor + vec3f(rimGlow);
 
     // --- Final composite ---
-    let glassColor = vec4f(clamp(tinted + specular, vec3f(0.0), vec3f(1.0)), 1.0);
-    return mix(bgColor, glassColor, mask);
+    // For background blit (rectW=0): mask=0, isBlit=true → output bgColor with alpha=1.
+    // For glass regions: output glass color with alpha=mask so alpha blending
+    // composites only the glass area over the previously drawn background.
+    let isBlit = glass.rect.z <= 0.0;
+    let glassRgb = clamp(tinted + specular, vec3f(0.0), vec3f(1.0));
+    let outColor = select(glassRgb, bgColor.rgb, isBlit);
+    let outAlpha = select(mask, 1.0, isBlit);
+    return vec4f(outColor, outAlpha);
 }
 
 )";
