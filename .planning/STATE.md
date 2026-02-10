@@ -5,22 +5,22 @@
 See: .planning/PROJECT.md (updated 2026-02-10)
 
 **Core value:** Glass components that look and feel like Apple's Liquid Glass -- refraction of a dynamic background through UI elements must be visually convincing at 60FPS.
-**Current focus:** Phase 2 complete -- ready for Phase 3
+**Current focus:** Phase 3 in progress -- GPU Texture Bridge
 
 ## Current Position
 
-Phase: 2 of 8 (Background Rendering) -- COMPLETE
-Plan: 2 of 2 in current phase
-Status: Phase 2 complete, all plans executed and human-verified
-Last activity: 2026-02-10 -- Full-viewport canvas with ResizeObserver, 60FPS noise background verified
+Phase: 3 of 8 (GPU Texture Bridge) -- IN PROGRESS
+Plan: 1 of 2 in current phase (Plan 1 complete)
+Status: Plan 03-01 complete, Plan 03-02 pending
+Last activity: 2026-02-10 -- Two-pass render architecture with offscreen texture and blit pipeline
 
-Progress: [###.......] 25%
+Progress: [####......] 31%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 4
-- Average duration: ~5 min
+- Total plans completed: 5
+- Average duration: ~4 min
 - Total execution time: ~0.3 hours
 
 **By Phase:**
@@ -29,10 +29,11 @@ Progress: [###.......] 25%
 |-------|-------|-------|----------|
 | 01-engine-foundation | 2 | ~10 min | ~5 min |
 | 02-background-rendering | 2 | ~8 min | ~4 min |
+| 03-gpu-texture-bridge | 1/2 | ~2 min | ~2 min |
 
 **Recent Trend:**
-- Last 5 plans: 01-01, 01-02, 02-01, 02-02
-- Trend: Stable
+- Last 5 plans: 01-02, 02-01, 02-02, 03-01
+- Trend: Accelerating
 
 *Updated after each plan completion*
 
@@ -53,6 +54,10 @@ Recent decisions affecting current work:
 - [02-02]: No visible UI text when running -- the noise background IS the visual confirmation
 - [02-02]: Engine lifetime managed by C++ global pointer, JS only accesses via getEngine()
 - [02-02]: ResizeObserver uses device-pixel-content-box for DPR correctness
+- [03-01]: Keep all rendering in C++ (no JS-side GPU pipelines needed)
+- [03-01]: Use same surfaceFormat for offscreen texture to avoid format conversion
+- [03-01]: Renamed pipeline members to noise-prefixed for clarity (noisePipeline, noiseBindGroup, etc.)
+- [03-01]: Linear filtering sampler with ClampToEdge for blit pass
 
 ### Pending Todos
 
@@ -66,5 +71,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-10
-Stopped at: Completed Phase 2 (all plans)
+Stopped at: Completed 03-01-PLAN.md
 Resume file: None
