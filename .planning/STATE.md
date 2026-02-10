@@ -5,22 +5,22 @@
 See: .planning/PROJECT.md (updated 2026-02-10)
 
 **Core value:** Glass components that look and feel like Apple's Liquid Glass -- refraction of a dynamic background through UI elements must be visually convincing at 60FPS.
-**Current focus:** Phase 5 in progress. Plan 01 complete, Plan 02 pending.
+**Current focus:** Phase 5 complete (pending visual verification checkpoint). Plan 02 auto tasks done.
 
 ## Current Position
 
 Phase: 5 of 8 (React Component API)
-Plan: 1 of 2 complete
-Status: Executing Phase 05
-Last activity: 2026-02-10 -- Plan 05-01 complete (multi-region engine)
+Plan: 2 of 2 complete (awaiting checkpoint verification)
+Status: Checkpoint -- human verification pending
+Last activity: 2026-02-10 -- Plan 05-02 auto tasks complete (React component API)
 
-Progress: [######....] 56%
+Progress: [######....] 62%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 8
-- Average duration: ~3.5 min
+- Total plans completed: 9
+- Average duration: ~3.3 min
 - Total execution time: ~0.5 hours
 
 **By Phase:**
@@ -31,11 +31,11 @@ Progress: [######....] 56%
 | 02-background-rendering | 2 | ~8 min | ~4 min |
 | 03-gpu-texture-bridge | 2/2 | ~5 min | ~2.5 min |
 | 04-glass-shader-core | 2/2 | ~18 min | ~9 min |
-| 05-react-component-api | 1/2 | ~4 min | ~4 min |
+| 05-react-component-api | 2/2 | ~6.5 min | ~3.2 min |
 
 **Recent Trend:**
-- Last 5 plans: 03-02, 04-01, 04-02, 05-01
-- Trend: Stable
+- Last 5 plans: 04-01, 04-02, 05-01, 05-02
+- Trend: Accelerating (05-02 in 2.5 min)
 
 *Updated after each plan completion*
 
@@ -69,6 +69,9 @@ Recent decisions affecting current work:
 - [05-01]: Use wgpu::Limits (not SupportedLimits) for emdawnwebgpu device limit queries
 - [05-01]: Passthrough fallback with rectW=0 when no regions active (mask=0 everywhere, pure background)
 - [05-01]: Remove old single-region API entirely (no backward compatibility wrapper)
+- [05-02]: GlassProvider owns the canvas element (removed from index.html)
+- [05-02]: useMergedRef as shared utility for internal + external ref merging
+- [05-02]: GlassButton cornerRadius default 16px (smaller than panel's 24px)
 
 ### Pending Todos
 
@@ -82,5 +85,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-10
-Stopped at: Completed 05-01-PLAN.md
+Stopped at: 05-02-PLAN.md Task 3 checkpoint (human-verify) -- dev server running on port 5177
 Resume file: None
