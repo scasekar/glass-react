@@ -17,7 +17,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 3: GPU Texture Bridge** - Zero-copy texture sharing and synchronized render pipeline between WASM engine and React
 - [x] **Phase 4: Glass Shader Core** - WGSL refraction and frosted glass shaders that sample the background texture through glass UI regions
 - [x] **Phase 5: React Component API** - GlassPanel, GlassButton, GlassCard components with configurable props and GlassProvider context
-- [ ] **Phase 6: Accessibility & Theming** - Reduced-motion, reduced-transparency, WCAG contrast, and dark/light mode adaptation
+- [x] **Phase 6: Accessibility & Theming** - Reduced-motion, reduced-transparency, WCAG contrast, and dark/light mode adaptation
 - [ ] **Phase 7: Visual Polish** - Chromatic aberration, specular highlights, rim lighting, refraction modes, and morphing transitions
 - [ ] **Phase 8: Library Packaging & Demo** - npm-publishable package with demo page and API documentation
 
@@ -112,8 +112,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 06-01-PLAN.md -- C++ engine setPaused/setReducedTransparency methods, useAccessibilityPreferences hook, and GlassContext/Provider a11y wiring
-- [ ] 06-02-PLAN.md -- Dark/light mode tint adaptation, reduced-transparency overrides, contrast-safe text styles, and visual verification
+- [x] 06-01-PLAN.md -- C++ engine setPaused/setReducedTransparency methods, useAccessibilityPreferences hook, and GlassContext/Provider a11y wiring
+- [x] 06-02-PLAN.md -- Dark/light mode tint adaptation, reduced-transparency overrides, contrast-safe text styles, and visual verification
 
 ### Phase 7: Visual Polish
 **Goal**: Glass components gain premium visual effects -- chromatic aberration, specular highlights, rim lighting, multiple refraction modes, and smooth morphing transitions
@@ -158,6 +158,6 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8
 | 3. GPU Texture Bridge | 2/2 | Complete | 2026-02-10 |
 | 4. Glass Shader Core | 2/2 | Complete | 2026-02-10 |
 | 5. React Component API | 2/2 | Complete | 2026-02-10 |
-| 6. Accessibility & Theming | 0/2 | Planned | - |
+| 6. Accessibility & Theming | 2/2 | Complete | 2026-02-10 |
 | 7. Visual Polish | 0/TBD | Not started | - |
 | 8. Library Packaging & Demo | 0/TBD | Not started | - |
