@@ -36,8 +36,8 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans**: 2 plans
 
 Plans:
-- [ ] 01-01-PLAN.md -- C++ engine source and CMake build configuration with emdawnwebgpu
-- [ ] 01-02-PLAN.md -- Vite + React scaffold, WASM loading, hot-reload, and browser verification
+- [x] 01-01-PLAN.md -- C++ engine source and CMake build configuration with emdawnwebgpu
+- [x] 01-02-PLAN.md -- Vite + React scaffold, WASM loading, hot-reload, and browser verification
 
 ### Phase 2: Background Rendering
 **Goal**: A procedural noise animation runs in C++ at 60FPS, rendering an animated full-canvas background to a WebGPU texture
@@ -49,10 +49,11 @@ Plans:
   2. The C++ engine exposes init(), update(), getTexture(), and resize() functions callable from JavaScript
   3. Resizing the browser window causes the background to smoothly adapt to the new canvas dimensions without crashes, distortion, or black frames
   4. DevTools Performance panel confirms the animation holds 60FPS on target hardware
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 02-01: TBD
+- [ ] 02-01-PLAN.md -- C++ BackgroundEngine class with simplex noise WGSL shader, render pipeline, and Embind API
+- [ ] 02-02-PLAN.md -- Full-viewport canvas, ResizeObserver integration, and visual verification
 
 ### Phase 3: GPU Texture Bridge
 **Goal**: The C++ engine's background texture is consumable by React components via zero-copy GPU sharing with proper lifecycle management
@@ -149,7 +150,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Engine Foundation | 2/2 | Complete | 2026-02-10 |
-| 2. Background Rendering | 0/TBD | Not started | - |
+| 2. Background Rendering | 0/2 | Planned | - |
 | 3. GPU Texture Bridge | 0/TBD | Not started | - |
 | 4. Glass Shader Core | 0/TBD | Not started | - |
 | 5. React Component API | 0/TBD | Not started | - |
