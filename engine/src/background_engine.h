@@ -44,6 +44,9 @@ public:
     void setRegionParams(int id, float cornerRadius, float blur, float opacity, float refraction);
     void setRegionTint(int id, float r, float g, float b);
 
+    void setPaused(bool paused);
+    void setReducedTransparency(bool enabled);
+
 private:
     void createNoisePipeline();
     void createUniforms();
@@ -78,4 +81,7 @@ private:
     wgpu::Buffer glassUniformBuffer;
     GlassRegion regions[MAX_GLASS_REGIONS]{};
     uint32_t uniformStride = 0;
+
+    bool paused_ = false;
+    bool reducedTransparency_ = false;
 };

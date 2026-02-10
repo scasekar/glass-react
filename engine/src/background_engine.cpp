@@ -249,11 +249,20 @@ void BackgroundEngine::createGlassBindGroup() {
 }
 
 void BackgroundEngine::update(float deltaTime) {
+    if (paused_) return;
     // Cap deltaTime to prevent huge jumps on tab switch
     if (deltaTime > 0.1f) {
         deltaTime = 0.1f;
     }
     currentTime += deltaTime;
+}
+
+void BackgroundEngine::setPaused(bool paused) {
+    paused_ = paused;
+}
+
+void BackgroundEngine::setReducedTransparency(bool enabled) {
+    reducedTransparency_ = enabled;
 }
 
 void BackgroundEngine::render() {

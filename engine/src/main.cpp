@@ -124,6 +124,8 @@ EMSCRIPTEN_BINDINGS(background_engine) {
         .function("removeGlassRegion", &BackgroundEngine::removeGlassRegion)
         .function("setRegionRect", &BackgroundEngine::setRegionRect)
         .function("setRegionParams", &BackgroundEngine::setRegionParams)
-        .function("setRegionTint", &BackgroundEngine::setRegionTint);
+        .function("setRegionTint", &BackgroundEngine::setRegionTint)
+        .function("setPaused", &BackgroundEngine::setPaused)
+        .function("setReducedTransparency", &BackgroundEngine::setReducedTransparency);
 }
 #endif
