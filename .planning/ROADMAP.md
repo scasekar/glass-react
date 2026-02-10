@@ -126,10 +126,11 @@ Plans:
   3. Glass component edges show a subtle rim lighting glow that distinguishes them from the background
   4. Switching between "standard" and "prominent" refraction modes produces visually distinct glass appearances
   5. Changing a glass component's state (e.g., hover, active, size) triggers a smooth morphing animation rather than an instant snap
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 07-01: TBD
+- [ ] 07-01-PLAN.md -- Expose shader effects as adjustable props (aberration, specular, rim) and add refraction modes (standard/prominent)
+- [ ] 07-02-PLAN.md -- CPU-side exponential decay lerp for morphing transitions, GlassButton hover/active states, and demo update
 
 ### Phase 8: Library Packaging & Demo
 **Goal**: The library is installable via npm and a demo page showcases every glass component and effect with interactive controls
