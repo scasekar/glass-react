@@ -15,7 +15,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 1: Engine Foundation** - Emscripten build pipeline and proof-of-concept GPU device sharing between C++ and JavaScript
 - [x] **Phase 2: Background Rendering** - Procedural noise simulation running in C++ at 60FPS as a full-canvas animated background
 - [x] **Phase 3: GPU Texture Bridge** - Zero-copy texture sharing and synchronized render pipeline between WASM engine and React
-- [ ] **Phase 4: Glass Shader Core** - WGSL refraction and frosted glass shaders that sample the background texture through glass UI regions
+- [x] **Phase 4: Glass Shader Core** - WGSL refraction and frosted glass shaders that sample the background texture through glass UI regions
 - [ ] **Phase 5: React Component API** - GlassPanel, GlassButton, GlassCard components with configurable props and GlassProvider context
 - [ ] **Phase 6: Accessibility & Theming** - Reduced-motion, reduced-transparency, WCAG contrast, and dark/light mode adaptation
 - [ ] **Phase 7: Visual Polish** - Chromatic aberration, specular highlights, rim lighting, refraction modes, and morphing transitions
@@ -82,8 +82,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 04-01-PLAN.md -- Glass WGSL shader and C++ pipeline integration replacing blit pass
-- [ ] 04-02-PLAN.md -- Embind API, TypeScript types, React integration, and visual verification
+- [x] 04-01-PLAN.md -- Glass WGSL shader and C++ pipeline integration replacing blit pass
+- [x] 04-02-PLAN.md -- Embind API, TypeScript types, React integration, and visual verification
 
 ### Phase 5: React Component API
 **Goal**: Developers can use GlassPanel, GlassButton, and GlassCard as React components with familiar props to place glass UI elements in their applications
@@ -154,7 +154,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8
 | 1. Engine Foundation | 2/2 | Complete | 2026-02-10 |
 | 2. Background Rendering | 2/2 | Complete | 2026-02-10 |
 | 3. GPU Texture Bridge | 2/2 | Complete | 2026-02-10 |
-| 4. Glass Shader Core | 0/2 | Planned | - |
+| 4. Glass Shader Core | 2/2 | Complete | 2026-02-10 |
 | 5. React Component API | 0/TBD | Not started | - |
 | 6. Accessibility & Theming | 0/TBD | Not started | - |
 | 7. Visual Polish | 0/TBD | Not started | - |
