@@ -94,10 +94,11 @@ Plans:
   2. Rendering `<GlassPanel>`, `<GlassButton>`, and `<GlassCard>` each shows a glass-effect UI element refracting the procedural background
   3. Passing blur, opacity, cornerRadius, and tint props to any glass component visibly changes its appearance in real-time without page reload
   4. TypeScript autocomplete in an IDE shows all available props with types and JSDoc descriptions for every glass component
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 05-01: TBD
+- [ ] 05-01-PLAN.md -- Multi-region C++ engine with dynamic uniform buffer offsets and Embind API
+- [ ] 05-02-PLAN.md -- React GlassProvider, hooks, GlassPanel/GlassButton/GlassCard components, and visual verification
 
 ### Phase 6: Accessibility & Theming
 **Goal**: Glass components respect user accessibility preferences and adapt to dark/light mode automatically
@@ -155,7 +156,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8
 | 2. Background Rendering | 2/2 | Complete | 2026-02-10 |
 | 3. GPU Texture Bridge | 2/2 | Complete | 2026-02-10 |
 | 4. Glass Shader Core | 2/2 | Complete | 2026-02-10 |
-| 5. React Component API | 0/TBD | Not started | - |
+| 5. React Component API | 0/2 | Planned | - |
 | 6. Accessibility & Theming | 0/TBD | Not started | - |
 | 7. Visual Polish | 0/TBD | Not started | - |
 | 8. Library Packaging & Demo | 0/TBD | Not started | - |
