@@ -109,10 +109,11 @@ Plans:
   2. With prefers-reduced-motion enabled in OS settings, the animated procedural background freezes to a static state
   3. Text rendered on top of any glass component meets WCAG 2.1 AA contrast ratio (4.5:1 minimum) in both light and dark modes
   4. Switching the OS between dark mode and light mode causes glass components to adapt their tint/appearance without any code changes
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 06-01: TBD
+- [ ] 06-01-PLAN.md -- C++ engine setPaused/setReducedTransparency methods, useAccessibilityPreferences hook, and GlassContext/Provider a11y wiring
+- [ ] 06-02-PLAN.md -- Dark/light mode tint adaptation, reduced-transparency overrides, contrast-safe text styles, and visual verification
 
 ### Phase 7: Visual Polish
 **Goal**: Glass components gain premium visual effects -- chromatic aberration, specular highlights, rim lighting, multiple refraction modes, and smooth morphing transitions
@@ -156,7 +157,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8
 | 2. Background Rendering | 2/2 | Complete | 2026-02-10 |
 | 3. GPU Texture Bridge | 2/2 | Complete | 2026-02-10 |
 | 4. Glass Shader Core | 2/2 | Complete | 2026-02-10 |
-| 5. React Component API | 0/2 | Planned | - |
-| 6. Accessibility & Theming | 0/TBD | Not started | - |
+| 5. React Component API | 2/2 | Complete | 2026-02-10 |
+| 6. Accessibility & Theming | 0/2 | Planned | - |
 | 7. Visual Polish | 0/TBD | Not started | - |
 | 8. Library Packaging & Demo | 0/TBD | Not started | - |
