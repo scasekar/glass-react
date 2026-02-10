@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-10)
 
 **Core value:** Glass components that look and feel like Apple's Liquid Glass -- refraction of a dynamic background through UI elements must be visually convincing at 60FPS.
-**Current focus:** Phase 5 complete. Ready to plan Phase 6.
+**Current focus:** Phase 6 in progress -- accessibility and theming.
 
 ## Current Position
 
-Phase: 5 of 8 complete (React Component API)
-Plan: 2 of 2 complete
-Status: Phase complete -- verified
-Last activity: 2026-02-10 -- Phase 05 execution complete, verified by human + automated checks
+Phase: 6 of 8 (Accessibility & Theming)
+Plan: 1 of 2 complete
+Status: Executing phase 06
+Last activity: 2026-02-10 -- Plan 06-01 complete (accessibility infrastructure)
 
-Progress: [######....] 62%
+Progress: [######....] 68%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 9
-- Average duration: ~3.3 min
-- Total execution time: ~0.5 hours
+- Total plans completed: 10
+- Average duration: ~3.2 min
+- Total execution time: ~0.55 hours
 
 **By Phase:**
 
@@ -32,10 +32,11 @@ Progress: [######....] 62%
 | 03-gpu-texture-bridge | 2/2 | ~5 min | ~2.5 min |
 | 04-glass-shader-core | 2/2 | ~18 min | ~9 min |
 | 05-react-component-api | 2/2 | ~6.5 min | ~3.2 min |
+| 06-accessibility-theming | 1/2 | ~3 min | ~3 min |
 
 **Recent Trend:**
-- Last 5 plans: 04-01, 04-02, 05-01, 05-02
-- Trend: Accelerating (05-02 in 2.5 min)
+- Last 5 plans: 04-02, 05-01, 05-02, 06-01
+- Trend: Stable (~3 min/plan)
 
 *Updated after each plan completion*
 
@@ -72,6 +73,10 @@ Recent decisions affecting current work:
 - [05-02]: GlassProvider owns the canvas element (removed from index.html)
 - [05-02]: useMergedRef as shared utility for internal + external ref merging
 - [05-02]: GlassButton cornerRadius default 16px (smaller than panel's 24px)
+- [06-01]: useSyncExternalStore for concurrent-safe media query detection (not useEffect+useState)
+- [06-01]: Module-level store instances for stable subscribe references across components
+- [06-01]: setPaused freezes time uniform only; render loop continues for DOM position tracking
+- [06-01]: setReducedTransparency stored in C++ but not called from React -- adaptation in React side
 
 ### Pending Todos
 
@@ -85,5 +90,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-10
-Stopped at: Phase 5 complete. Next: plan Phase 6.
+Stopped at: Completed 06-01-PLAN.md
 Resume file: None
