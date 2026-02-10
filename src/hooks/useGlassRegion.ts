@@ -70,6 +70,12 @@ export function useGlassRegion(
       effectiveOpacity = rtDefaults.opacity;
       effectiveTint = props.tint ?? rtDefaults.tint;
       effectiveRefraction = 0;
+
+      // Disable all visual effects in reduced-transparency mode
+      handle.updateAberration(0);
+      handle.updateSpecular(0);
+      handle.updateRim(0);
+      handle.updateMode(0);
     } else {
       // Normal mode: dark/light defaults for unset props
       const defaults = prefs.darkMode ? DARK_DEFAULTS : LIGHT_DEFAULTS;
@@ -78,6 +84,12 @@ export function useGlassRegion(
       effectiveOpacity = props.opacity ?? defaults.opacity;
       effectiveTint = props.tint ?? defaults.tint;
       effectiveRefraction = props.refraction ?? 0.15;
+
+      // Sync new visual effect props
+      handle.updateAberration(props.aberration ?? 3);
+      handle.updateSpecular(props.specular ?? 0.2);
+      handle.updateRim(props.rim ?? 0.15);
+      handle.updateMode(props.refractionMode === 'prominent' ? 1.0 : 0.0);
     }
 
     handle.updateParams(
@@ -93,6 +105,10 @@ export function useGlassRegion(
     props.opacity,
     props.refraction,
     props.tint,
+    props.aberration,
+    props.specular,
+    props.rim,
+    props.refractionMode,
     prefs.reducedTransparency,
     prefs.darkMode,
   ]);

@@ -6,6 +6,10 @@ export interface EngineModule {
     setRegionRect(id: number, x: number, y: number, w: number, h: number): void;
     setRegionParams(id: number, cornerRadius: number, blur: number, opacity: number, refraction: number): void;
     setRegionTint(id: number, r: number, g: number, b: number): void;
+    setRegionAberration(id: number, aberration: number): void;
+    setRegionSpecular(id: number, intensity: number): void;
+    setRegionRim(id: number, intensity: number): void;
+    setRegionMode(id: number, mode: number): void;
     setPaused(paused: boolean): void;
     setReducedTransparency(enabled: boolean): void;
   } | null;

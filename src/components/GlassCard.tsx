@@ -26,13 +26,17 @@ export function GlassCard({
   cornerRadius,
   tint,
   refraction,
+  aberration,
+  specular,
+  rim,
+  refractionMode,
   ...rest
 }: GlassCardProps) {
   const internalRef = useRef<HTMLElement>(null);
   const mergedRef = useMergedRef(internalRef, ref);
   const { preferences } = useGlassEngine();
 
-  useGlassRegion(internalRef, { blur, opacity, cornerRadius, tint, refraction });
+  useGlassRegion(internalRef, { blur, opacity, cornerRadius, tint, refraction, aberration, specular, rim, refractionMode });
 
   const textStyles: React.CSSProperties = (preferences?.darkMode ?? true)
     ? {

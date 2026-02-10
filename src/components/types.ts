@@ -23,6 +23,14 @@ export interface GlassStyleProps {
   tint?: GlassColor;
   /** Refraction strength at glass edges (0 = no lens effect, 0.3 = strong lens). Default: 0.15 */
   refraction?: number;
+  /** Chromatic aberration intensity in pixels (0 = none, 10 = extreme). Default: 3 */
+  aberration?: number;
+  /** Specular highlight intensity (0 = none, 1 = bright). Default: 0.2 */
+  specular?: number;
+  /** Rim lighting intensity (0 = none, 1 = strong glow). Default: 0.15 */
+  rim?: number;
+  /** Refraction mode: 'standard' for subtle glass, 'prominent' for enhanced glass with stronger effects. Default: 'standard' */
+  refractionMode?: 'standard' | 'prominent';
 }
 
 /** Props for GlassPanel (<div> wrapper) */

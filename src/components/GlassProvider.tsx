@@ -106,6 +106,10 @@ export function GlassProvider({ children }: { children: React.ReactNode }) {
       updateRect: (x, y, w, h) => engine.setRegionRect(id, x, y, w, h),
       updateParams: (cr, b, o, r) => engine.setRegionParams(id, cr, b, o, r),
       updateTint: (r, g, b) => engine.setRegionTint(id, r, g, b),
+      updateAberration: (intensity) => engine.setRegionAberration(id, intensity),
+      updateSpecular: (intensity) => engine.setRegionSpecular(id, intensity),
+      updateRim: (intensity) => engine.setRegionRim(id, intensity),
+      updateMode: (mode) => engine.setRegionMode(id, mode),
       remove: () => engine.removeGlassRegion(id),
     };
     regionsRef.current.set(id, { element, handle });

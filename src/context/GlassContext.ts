@@ -6,6 +6,10 @@ export interface GlassRegionHandle {
   updateRect(x: number, y: number, w: number, h: number): void;
   updateParams(cornerRadius: number, blur: number, opacity: number, refraction: number): void;
   updateTint(r: number, g: number, b: number): void;
+  updateAberration(intensity: number): void;
+  updateSpecular(intensity: number): void;
+  updateRim(intensity: number): void;
+  updateMode(mode: number): void;
   remove(): void;
 }
 

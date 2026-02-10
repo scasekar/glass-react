@@ -25,6 +25,10 @@ export function GlassButton({
   cornerRadius = 16,
   tint,
   refraction,
+  aberration,
+  specular,
+  rim,
+  refractionMode,
   onClick,
   disabled,
   type = 'button',
@@ -34,7 +38,7 @@ export function GlassButton({
   const mergedRef = useMergedRef(internalRef, ref);
   const { preferences } = useGlassEngine();
 
-  useGlassRegion(internalRef, { blur, opacity, cornerRadius, tint, refraction });
+  useGlassRegion(internalRef, { blur, opacity, cornerRadius, tint, refraction, aberration, specular, rim, refractionMode });
 
   const textStyles: React.CSSProperties = (preferences?.darkMode ?? true)
     ? {
