@@ -49,14 +49,17 @@ export default function App() {
 
         observerRef.current = observer;
 
-        // Set initial glass parameters so effect is visible from first frame
+        // Set initial glass region so effect is visible from first frame
         const engine = module.getEngine();
         if (engine) {
-          // Center glass rectangle: 50% of canvas, centered
-          engine.setGlassRect(0.25, 0.25, 0.5, 0.5);
-          // Liquid glass: 24px corners, moderate blur, subtle tint, 15% edge refraction
-          engine.setGlassParams(24.0, 0.5, 0.05, 0.15);
-          engine.setGlassTint(1.0, 1.0, 1.0);
+          const regionId = engine.addGlassRegion();
+          if (regionId >= 0) {
+            // Center glass rectangle: 50% of canvas, centered
+            engine.setRegionRect(regionId, 0.25, 0.25, 0.5, 0.5);
+            // Liquid glass: 24px corners, moderate blur, subtle tint, 15% edge refraction
+            engine.setRegionParams(regionId, 24.0, 0.5, 0.05, 0.15);
+            engine.setRegionTint(regionId, 1.0, 1.0, 1.0);
+          }
         }
 
         setStatus('running');

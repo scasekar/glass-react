@@ -1,9 +1,11 @@
 export interface EngineModule {
   getEngine(): {
     resize(w: number, h: number): void;
-    setGlassRect(x: number, y: number, w: number, h: number): void;
-    setGlassParams(cornerRadius: number, blur: number, opacity: number, refraction: number): void;
-    setGlassTint(r: number, g: number, b: number): void;
+    addGlassRegion(): number;
+    removeGlassRegion(id: number): void;
+    setRegionRect(id: number, x: number, y: number, w: number, h: number): void;
+    setRegionParams(id: number, cornerRadius: number, blur: number, opacity: number, refraction: number): void;
+    setRegionTint(id: number, r: number, g: number, b: number): void;
   } | null;
   destroyEngine(): void;
 }
