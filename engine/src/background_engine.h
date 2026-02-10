@@ -18,17 +18,34 @@ public:
     void render();
     void resize(uint32_t newWidth, uint32_t newHeight);
 private:
-    void createPipeline();
+    void createNoisePipeline();
     void createUniforms();
+    void createOffscreenTexture();
+    void createBlitPipeline();
+    void createBlitBindGroup();
+
     wgpu::Device device;
     wgpu::Surface surface;
     wgpu::TextureFormat surfaceFormat;
-    wgpu::ShaderModule shaderModule;
-    wgpu::RenderPipeline pipeline;
-    wgpu::BindGroupLayout bindGroupLayout;
-    wgpu::BindGroup bindGroup;
-    wgpu::Buffer uniformBuffer;
     uint32_t width = 0;
     uint32_t height = 0;
     float currentTime = 0.0f;
+
+    // Noise pass (Pass 1: render noise to offscreen texture)
+    wgpu::ShaderModule noiseShaderModule;
+    wgpu::RenderPipeline noisePipeline;
+    wgpu::BindGroupLayout noiseBindGroupLayout;
+    wgpu::BindGroup noiseBindGroup;
+    wgpu::Buffer uniformBuffer;
+
+    // Offscreen texture (target for Pass 1, sampled by Pass 2)
+    wgpu::Texture offscreenTexture;
+    wgpu::TextureView offscreenTextureView;
+
+    // Blit pass (Pass 2: blit offscreen texture to surface)
+    wgpu::Sampler blitSampler;
+    wgpu::ShaderModule blitShaderModule;
+    wgpu::RenderPipeline blitPipeline;
+    wgpu::BindGroupLayout blitBindGroupLayout;
+    wgpu::BindGroup blitBindGroup;
 };
