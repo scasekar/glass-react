@@ -33,11 +33,11 @@ Decimal phases appear between their surrounding integers in numeric order.
   2. Vite dev server loads the WASM module and the browser console confirms WebGPU device acquisition
   3. A minimal C++ function renders a solid color to a GPUTexture, and JavaScript code on the same page reads that texture and displays the color on a canvas -- proving shared device access
   4. Changing C++ source code triggers Vite hot-reload and the updated WASM loads without manual browser refresh
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 01-01: TBD
-- [ ] 01-02: TBD
+- [ ] 01-01-PLAN.md -- C++ engine source and CMake build configuration with emdawnwebgpu
+- [ ] 01-02-PLAN.md -- Vite + React scaffold, WASM loading, hot-reload, and browser verification
 
 ### Phase 2: Background Rendering
 **Goal**: A procedural noise animation runs in C++ at 60FPS, rendering an animated full-canvas background to a WebGPU texture
@@ -148,7 +148,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Engine Foundation | 0/TBD | Not started | - |
+| 1. Engine Foundation | 0/2 | Planned | - |
 | 2. Background Rendering | 0/TBD | Not started | - |
 | 3. GPU Texture Bridge | 0/TBD | Not started | - |
 | 4. Glass Shader Core | 0/TBD | Not started | - |
