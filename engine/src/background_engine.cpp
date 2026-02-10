@@ -378,6 +378,9 @@ int BackgroundEngine::addGlassRegion() {
             regions[i].uniforms.tintG = 1.0f;
             regions[i].uniforms.tintB = 1.0f;
             regions[i].uniforms.aberration = 3.0f;
+            regions[i].uniforms.specularIntensity = 0.2f;
+            regions[i].uniforms.rimIntensity = 0.15f;
+            regions[i].uniforms.mode = 0.0f;
             return static_cast<int>(i);
         }
     }
@@ -410,4 +413,24 @@ void BackgroundEngine::setRegionTint(int id, float r, float g, float b) {
     regions[id].uniforms.tintR = r;
     regions[id].uniforms.tintG = g;
     regions[id].uniforms.tintB = b;
+}
+
+void BackgroundEngine::setRegionAberration(int id, float aberration) {
+    if (id < 0 || id >= static_cast<int>(MAX_GLASS_REGIONS)) return;
+    regions[id].uniforms.aberration = aberration;
+}
+
+void BackgroundEngine::setRegionSpecular(int id, float intensity) {
+    if (id < 0 || id >= static_cast<int>(MAX_GLASS_REGIONS)) return;
+    regions[id].uniforms.specularIntensity = intensity;
+}
+
+void BackgroundEngine::setRegionRim(int id, float intensity) {
+    if (id < 0 || id >= static_cast<int>(MAX_GLASS_REGIONS)) return;
+    regions[id].uniforms.rimIntensity = intensity;
+}
+
+void BackgroundEngine::setRegionMode(int id, float mode) {
+    if (id < 0 || id >= static_cast<int>(MAX_GLASS_REGIONS)) return;
+    regions[id].uniforms.mode = mode;
 }

@@ -17,10 +17,14 @@ struct GlassUniforms {
     float refractionStrength;                    // offset 28
     float tintR, tintG, tintB;                   // offset 32-43
     float aberration;                            // offset 44 — chromatic aberration (pixels)
-    float resolutionX, resolutionY;              // offset 48-52
-    float _pad2, _pad3;                          // offset 56-60
+    float resolutionX, resolutionY;              // offset 48-55
+    float specularIntensity;                     // offset 56
+    float rimIntensity;                          // offset 60
+    // --- New 16-byte block ---
+    float mode;                                  // offset 64 (0.0=standard, 1.0=prominent)
+    float _pad4, _pad5, _pad6;                   // offset 68-79 (padding to 16-byte boundary)
 };
-// Total: 64 bytes (4 x vec4f aligned)
+// Total: 80 bytes (5 x vec4f aligned)
 
 static constexpr uint32_t MAX_GLASS_REGIONS = 16;
 
@@ -43,6 +47,10 @@ public:
     void setRegionRect(int id, float x, float y, float w, float h);
     void setRegionParams(int id, float cornerRadius, float blur, float opacity, float refraction);
     void setRegionTint(int id, float r, float g, float b);
+    void setRegionAberration(int id, float aberration);
+    void setRegionSpecular(int id, float intensity);
+    void setRegionRim(int id, float intensity);
+    void setRegionMode(int id, float mode);
 
     void setPaused(bool paused);
     void setReducedTransparency(bool enabled);

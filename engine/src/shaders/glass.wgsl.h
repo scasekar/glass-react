@@ -16,7 +16,12 @@ struct GlassUniforms {
     tint: vec3f,              // RGB tint color
     aberration: f32,          // chromatic aberration intensity (pixels)
     resolution: vec2f,        // canvas pixel dimensions
-    _pad2: vec2f,
+    specularIntensity: f32,   // specular highlight brightness (0–1)
+    rimIntensity: f32,        // rim lighting intensity (0–1)
+    mode: f32,                // 0.0 = standard, 1.0 = prominent
+    _pad4: f32,
+    _pad5: f32,
+    _pad6: f32,
 };
 
 @group(0) @binding(0) var texSampler: sampler;
@@ -59,6 +64,13 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
     let fw = fwidth(dist);
     let mask = smoothstep(fw, -fw, dist);
 
+    // Mode-dependent multipliers (0.0 = standard, 1.0 = prominent)
+    let modeF = glass.mode;
+    let refractionMul = mix(1.0, 1.8, modeF);
+    let specularMul = mix(1.0, 1.5, modeF);
+    let rimSpread = mix(3.0, 6.0, modeF);
+    let aberrationMul = mix(1.0, 1.5, modeF);
+
     // --- Lens displacement (SDF-based edge compression) ---
     // Matches reference: smoothstep(edgeZone, 0, sdfDist) creates a factor
     // that is 1.0 deep inside (identity UV) and 0.0 at edges (max distortion).
@@ -74,9 +86,10 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
     // At center (factor=1): all channels = 1.0 (identity, no aberration)
     // At edges (factor=0): channels diverge (R wider, B narrower)
     let aberrationNorm = glass.aberration * 0.003;
-    let rScale = mix(1.0 - glass.refractionStrength - aberrationNorm, 1.0, displacementFactor);
-    let gScale = mix(1.0 - glass.refractionStrength, 1.0, displacementFactor);
-    let bScale = mix(1.0 - glass.refractionStrength + aberrationNorm, 1.0, displacementFactor);
+    let effectiveRefraction = glass.refractionStrength * refractionMul;
+    let rScale = mix(1.0 - effectiveRefraction - aberrationNorm * aberrationMul, 1.0, displacementFactor);
+    let gScale = mix(1.0 - effectiveRefraction, 1.0, displacementFactor);
+    let bScale = mix(1.0 - effectiveRefraction + aberrationNorm * aberrationMul, 1.0, displacementFactor);
 
     let rUV = localPos * rScale + glassCenter;
     let gUV = localPos * gScale + glassCenter;
@@ -136,14 +149,14 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
     let lightDot = dot(normDir, vec2f(-0.707, -0.707));
     let topLeftFactor = clamp(lightDot * 0.5 + 0.5, 0.0, 1.0);
 
-    let coolSpec = broadGlow * topLeftFactor * 0.2;
+    let coolSpec = broadGlow * topLeftFactor * glass.specularIntensity * specularMul;
     let coolColor = vec3f(0.6, 0.75, 1.0);
 
-    let warmSpec = broadGlow * (1.0 - topLeftFactor) * 0.1;
+    let warmSpec = broadGlow * (1.0 - topLeftFactor) * glass.specularIntensity * 0.5 * specularMul;
     let warmColor = vec3f(0.95, 1.0, 0.75);
 
     // Sharp rim at glass boundary
-    let rimGlow = exp(-dist * dist / 3.0) * 0.15;
+    let rimGlow = exp(-dist * dist / rimSpread) * glass.rimIntensity;
 
     let specular = coolSpec * coolColor + warmSpec * warmColor + vec3f(rimGlow);
 
