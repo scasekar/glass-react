@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-10)
 
 **Core value:** Glass components that look and feel like Apple's Liquid Glass -- refraction of a dynamic background through UI elements must be visually convincing at 60FPS.
-**Current focus:** Phase 6 in progress -- accessibility and theming.
+**Current focus:** Phase 7 in progress -- visual polish.
 
 ## Current Position
 
-Phase: 6 of 8 (Accessibility & Theming)
-Plan: 2 of 2 complete
-Status: Phase 06 complete
-Last activity: 2026-02-10 -- Plan 06-02 complete (accessibility rendering)
+Phase: 7 of 8 (Visual Polish)
+Plan: 1 of 2 complete
+Status: Phase 07 in progress
+Last activity: 2026-02-10 -- Plan 07-01 complete (visual effect parameters)
 
-Progress: [#######...] 75%
+Progress: [########..] 81%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 11
-- Average duration: ~3.3 min
-- Total execution time: ~0.60 hours
+- Total plans completed: 12
+- Average duration: ~3.2 min
+- Total execution time: ~0.65 hours
 
 **By Phase:**
 
@@ -33,13 +33,14 @@ Progress: [#######...] 75%
 | 04-glass-shader-core | 2/2 | ~18 min | ~9 min |
 | 05-react-component-api | 2/2 | ~6.5 min | ~3.2 min |
 | 06-accessibility-theming | 2/2 | ~7 min | ~3.5 min |
+| 07-visual-polish | 1/2 | ~3 min | ~3 min |
 
 **Recent Trend:**
-- Last 5 plans: 05-01, 05-02, 06-01, 06-02
+- Last 5 plans: 05-02, 06-01, 06-02, 07-01
 - Trend: Stable (~3 min/plan)
 
 *Updated after each plan completion*
-| Phase 06-accessibility-theming P02 | 4 | 3 tasks | 6 files |
+| Phase 07-visual-polish P01 | 3 min | 2 tasks | 12 files |
 
 ## Accumulated Context
 
@@ -80,6 +81,10 @@ Recent decisions affecting current work:
 - [06-01]: setReducedTransparency stored in C++ but not called from React -- adaptation in React side
 - [Phase 06-02]: Dark/light mode tint defaults applied only when user has not provided explicit tint prop
 - [Phase 06-02]: Text contrast via text-shadow (not background adjustment) to preserve glass transparency aesthetic
+- [07-01]: Specular/rim defaults match previously hardcoded values (0.2/0.15) for zero visual regression
+- [07-01]: Mode multipliers use continuous mix() with float uniform (not branching) for GPU-friendly mode switching
+- [07-01]: Prominent mode: refraction 1.8x, specular 1.5x, rim spread 2x, aberration 1.5x
+- [07-01]: Reduced-transparency zeroes all visual effects (aberration, specular, rim, mode=standard)
 
 ### Pending Todos
 
@@ -88,10 +93,10 @@ None yet.
 ### Blockers/Concerns
 
 - (RESOLVED) Phase 3 research flag: React + WebGPU lifecycle integration patterns are non-standard -- solved with destroyEngine() + useEffect cleanup
-- Phase 7 research flag: Chromatic aberration and rim lighting shader techniques need investigation
+- (RESOLVED) Phase 7 research flag: Chromatic aberration and rim lighting shader techniques -- implemented as uniform-controlled parameters with mode-dependent multipliers
 
 ## Session Continuity
 
 Last session: 2026-02-10
-Stopped at: Completed 06-02-PLAN.md
+Stopped at: Completed 07-01-PLAN.md
 Resume file: None
