@@ -16,7 +16,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 2: Background Rendering** - Procedural noise simulation running in C++ at 60FPS as a full-canvas animated background
 - [x] **Phase 3: GPU Texture Bridge** - Zero-copy texture sharing and synchronized render pipeline between WASM engine and React
 - [x] **Phase 4: Glass Shader Core** - WGSL refraction and frosted glass shaders that sample the background texture through glass UI regions
-- [ ] **Phase 5: React Component API** - GlassPanel, GlassButton, GlassCard components with configurable props and GlassProvider context
+- [x] **Phase 5: React Component API** - GlassPanel, GlassButton, GlassCard components with configurable props and GlassProvider context
 - [ ] **Phase 6: Accessibility & Theming** - Reduced-motion, reduced-transparency, WCAG contrast, and dark/light mode adaptation
 - [ ] **Phase 7: Visual Polish** - Chromatic aberration, specular highlights, rim lighting, refraction modes, and morphing transitions
 - [ ] **Phase 8: Library Packaging & Demo** - npm-publishable package with demo page and API documentation
@@ -97,8 +97,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 05-01-PLAN.md -- Multi-region C++ engine with dynamic uniform buffer offsets and Embind API
-- [ ] 05-02-PLAN.md -- React GlassProvider, hooks, GlassPanel/GlassButton/GlassCard components, and visual verification
+- [x] 05-01-PLAN.md -- Multi-region C++ engine with dynamic uniform buffer offsets and Embind API
+- [x] 05-02-PLAN.md -- React GlassProvider, hooks, GlassPanel/GlassButton/GlassCard components, and visual verification
 
 ### Phase 6: Accessibility & Theming
 **Goal**: Glass components respect user accessibility preferences and adapt to dark/light mode automatically
