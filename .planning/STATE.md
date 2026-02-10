@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-10)
 
 **Core value:** Glass components that look and feel like Apple's Liquid Glass -- refraction of a dynamic background through UI elements must be visually convincing at 60FPS.
-**Current focus:** Phase 4 complete. Ready for Phase 5 planning.
+**Current focus:** Phase 5 in progress. Plan 01 complete, Plan 02 pending.
 
 ## Current Position
 
-Phase: 4 of 8 complete (Glass Shader Core)
-Plan: All plans complete
-Status: Phase 04 verified and complete
-Last activity: 2026-02-10 -- Phase 4 verified, all success criteria met
+Phase: 5 of 8 (React Component API)
+Plan: 1 of 2 complete
+Status: Executing Phase 05
+Last activity: 2026-02-10 -- Plan 05-01 complete (multi-region engine)
 
-Progress: [#####.....] 50%
+Progress: [######....] 56%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 7
-- Average duration: ~3.6 min
-- Total execution time: ~0.4 hours
+- Total plans completed: 8
+- Average duration: ~3.5 min
+- Total execution time: ~0.5 hours
 
 **By Phase:**
 
@@ -31,9 +31,10 @@ Progress: [#####.....] 50%
 | 02-background-rendering | 2 | ~8 min | ~4 min |
 | 03-gpu-texture-bridge | 2/2 | ~5 min | ~2.5 min |
 | 04-glass-shader-core | 2/2 | ~18 min | ~9 min |
+| 05-react-component-api | 1/2 | ~4 min | ~4 min |
 
 **Recent Trend:**
-- Last 5 plans: 03-01, 03-02, 04-01, 04-02
+- Last 5 plans: 03-02, 04-01, 04-02, 05-01
 - Trend: Stable
 
 *Updated after each plan completion*
@@ -65,6 +66,9 @@ Recent decisions affecting current work:
 - [04-01]: Glass pass replaces blit pass (not a third pass) -- shader outputs passthrough outside glass region
 - [04-01]: No blend state on glass pipeline -- shader does internal compositing via mix()
 - [04-01]: 9-tap blur with compile-time constant loop bounds for WGSL uniform control flow compliance
+- [05-01]: Use wgpu::Limits (not SupportedLimits) for emdawnwebgpu device limit queries
+- [05-01]: Passthrough fallback with rectW=0 when no regions active (mask=0 everywhere, pure background)
+- [05-01]: Remove old single-region API entirely (no backward compatibility wrapper)
 
 ### Pending Todos
 
@@ -78,5 +82,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-10
-Stopped at: Phase 04 verified and complete
+Stopped at: Completed 05-01-PLAN.md
 Resume file: None
