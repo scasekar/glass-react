@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-10)
 
 **Core value:** Glass components that look and feel like Apple's Liquid Glass -- refraction of a dynamic background through UI elements must be visually convincing at 60FPS.
-**Current focus:** Phase 3 in progress -- GPU Texture Bridge
+**Current focus:** Phase 3 complete -- GPU Texture Bridge. Ready for Phase 4.
 
 ## Current Position
 
-Phase: 3 of 8 (GPU Texture Bridge) -- IN PROGRESS
-Plan: 1 of 2 in current phase (Plan 1 complete)
-Status: Plan 03-01 complete, Plan 03-02 pending
-Last activity: 2026-02-10 -- Two-pass render architecture with offscreen texture and blit pipeline
+Phase: 3 of 8 (GPU Texture Bridge) -- COMPLETE
+Plan: 2 of 2 in current phase (all plans complete)
+Status: Phase 03 complete, ready for Phase 04 (Glass Shader)
+Last activity: 2026-02-10 -- GPU resource lifecycle management with destroyEngine() and React cleanup
 
-Progress: [####......] 31%
+Progress: [####......] 38%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 5
+- Total plans completed: 6
 - Average duration: ~4 min
-- Total execution time: ~0.3 hours
+- Total execution time: ~0.35 hours
 
 **By Phase:**
 
@@ -29,10 +29,10 @@ Progress: [####......] 31%
 |-------|-------|-------|----------|
 | 01-engine-foundation | 2 | ~10 min | ~5 min |
 | 02-background-rendering | 2 | ~8 min | ~4 min |
-| 03-gpu-texture-bridge | 1/2 | ~2 min | ~2 min |
+| 03-gpu-texture-bridge | 2/2 | ~5 min | ~2.5 min |
 
 **Recent Trend:**
-- Last 5 plans: 01-02, 02-01, 02-02, 03-01
+- Last 5 plans: 02-01, 02-02, 03-01, 03-02
 - Trend: Accelerating
 
 *Updated after each plan completion*
@@ -58,6 +58,9 @@ Recent decisions affecting current work:
 - [03-01]: Use same surfaceFormat for offscreen texture to avoid format conversion
 - [03-01]: Renamed pipeline members to noise-prefixed for clarity (noisePipeline, noiseBindGroup, etc.)
 - [03-01]: Linear filtering sampler with ClampToEdge for blit pass
+- [03-02]: destroyEngine as free function (not class method) matching getEngine pattern
+- [03-02]: React useRef to hold module reference for cleanup access
+- [03-02]: RAII handles GPU cleanup -- C++ destructor releases wgpu:: wrapper objects automatically
 
 ### Pending Todos
 
@@ -65,11 +68,11 @@ None yet.
 
 ### Blockers/Concerns
 
-- Phase 3 research flag: React + WebGPU lifecycle integration patterns are non-standard
+- (RESOLVED) Phase 3 research flag: React + WebGPU lifecycle integration patterns are non-standard -- solved with destroyEngine() + useEffect cleanup
 - Phase 7 research flag: Chromatic aberration and rim lighting shader techniques need investigation
 
 ## Session Continuity
 
 Last session: 2026-02-10
-Stopped at: Completed 03-01-PLAN.md
+Stopped at: Completed 03-02-PLAN.md (Phase 3 complete)
 Resume file: None
