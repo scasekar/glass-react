@@ -120,8 +120,10 @@ EMSCRIPTEN_BINDINGS(background_engine) {
     emscripten::function("destroyEngine", &destroyEngine);
     emscripten::class_<BackgroundEngine>("BackgroundEngine")
         .function("resize", &BackgroundEngine::resize)
-        .function("setGlassRect", &BackgroundEngine::setGlassRect)
-        .function("setGlassParams", &BackgroundEngine::setGlassParams)
-        .function("setGlassTint", &BackgroundEngine::setGlassTint);
+        .function("addGlassRegion", &BackgroundEngine::addGlassRegion)
+        .function("removeGlassRegion", &BackgroundEngine::removeGlassRegion)
+        .function("setRegionRect", &BackgroundEngine::setRegionRect)
+        .function("setRegionParams", &BackgroundEngine::setRegionParams)
+        .function("setRegionTint", &BackgroundEngine::setRegionTint);
 }
 #endif

@@ -22,6 +22,13 @@ struct GlassUniforms {
 };
 // Total: 64 bytes (4 x vec4f aligned)
 
+static constexpr uint32_t MAX_GLASS_REGIONS = 16;
+
+struct GlassRegion {
+    GlassUniforms uniforms{};
+    bool active = false;
+};
+
 class BackgroundEngine {
 public:
     BackgroundEngine();
@@ -31,9 +38,11 @@ public:
     void render();
     void resize(uint32_t newWidth, uint32_t newHeight);
 
-    void setGlassRect(float x, float y, float w, float h);
-    void setGlassParams(float cornerRadius, float blur, float opacity, float refraction);
-    void setGlassTint(float r, float g, float b);
+    int addGlassRegion();
+    void removeGlassRegion(int id);
+    void setRegionRect(int id, float x, float y, float w, float h);
+    void setRegionParams(int id, float cornerRadius, float blur, float opacity, float refraction);
+    void setRegionTint(int id, float r, float g, float b);
 
 private:
     void createNoisePipeline();
@@ -67,5 +76,6 @@ private:
     wgpu::BindGroupLayout glassBindGroupLayout;
     wgpu::BindGroup glassBindGroup;
     wgpu::Buffer glassUniformBuffer;
-    GlassUniforms glassUniforms{};
+    GlassRegion regions[MAX_GLASS_REGIONS]{};
+    uint32_t uniformStride = 0;
 };

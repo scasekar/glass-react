@@ -4,6 +4,12 @@
 #include <iostream>
 #include <string_view>
 
+namespace {
+inline uint32_t ceilToNextMultiple(uint32_t value, uint32_t alignment) {
+    return (value + alignment - 1) / alignment * alignment;
+}
+} // anonymous namespace
+
 BackgroundEngine::BackgroundEngine() = default;
 BackgroundEngine::~BackgroundEngine() = default;
 
@@ -14,20 +20,18 @@ void BackgroundEngine::init(wgpu::Device dev, wgpu::Surface surf,
     surfaceFormat = fmt;
     width = w;
     height = h;
+    // Query device limits for uniform buffer alignment
+    wgpu::Limits limits;
+    device.GetLimits(&limits);
+    uniformStride = ceilToNextMultiple(
+        static_cast<uint32_t>(sizeof(GlassUniforms)),
+        static_cast<uint32_t>(limits.minUniformBufferOffsetAlignment)
+    );
+
     createNoisePipeline();
     createUniforms();
     createGlassPipeline();
     createOffscreenTexture();
-
-    // Initialize default glass uniform values
-    glassUniforms.rectX = 0.25f;  glassUniforms.rectY = 0.25f;
-    glassUniforms.rectW = 0.5f;   glassUniforms.rectH = 0.5f;
-    glassUniforms.cornerRadius = 24.0f;
-    glassUniforms.blurIntensity = 0.5f;
-    glassUniforms.opacity = 0.05f;
-    glassUniforms.refractionStrength = 0.15f;
-    glassUniforms.tintR = 1.0f; glassUniforms.tintG = 1.0f; glassUniforms.tintB = 1.0f;
-    glassUniforms.aberration = 3.0f;
 }
 
 void BackgroundEngine::createNoisePipeline() {
@@ -150,10 +154,11 @@ void BackgroundEngine::createGlassPipeline() {
     entries[1].texture.sampleType = wgpu::TextureSampleType::Float;
     entries[1].texture.viewDimension = wgpu::TextureViewDimension::e2D;
 
-    // Uniform buffer
+    // Uniform buffer (dynamic offset for multi-region rendering)
     entries[2].binding = 2;
     entries[2].visibility = wgpu::ShaderStage::Fragment;
     entries[2].buffer.type = wgpu::BufferBindingType::Uniform;
+    entries[2].buffer.hasDynamicOffset = true;
     entries[2].buffer.minBindingSize = sizeof(GlassUniforms);
 
     wgpu::BindGroupLayoutDescriptor bglDesc{};
@@ -176,9 +181,9 @@ void BackgroundEngine::createGlassPipeline() {
     samplerDesc.minFilter = wgpu::FilterMode::Linear;
     glassSampler = device.CreateSampler(&samplerDesc);
 
-    // Glass uniform buffer
+    // Glass uniform buffer (sized for all regions with aligned stride)
     wgpu::BufferDescriptor bufDesc{};
-    bufDesc.size = sizeof(GlassUniforms);
+    bufDesc.size = uniformStride * MAX_GLASS_REGIONS;
     bufDesc.usage = wgpu::BufferUsage::CopyDst | wgpu::BufferUsage::Uniform;
     glassUniformBuffer = device.CreateBuffer(&bufDesc);
 
@@ -266,13 +271,8 @@ void BackgroundEngine::render() {
         pass.End();
     }
 
-    // === PASS 2: Glass pass -- offscreen texture to surface ===
+    // === PASS 2: Glass pass -- offscreen texture to surface (multi-region) ===
     {
-        // Update glass uniforms with current resolution
-        glassUniforms.resolutionX = static_cast<float>(width);
-        glassUniforms.resolutionY = static_cast<float>(height);
-        device.GetQueue().WriteBuffer(glassUniformBuffer, 0, &glassUniforms, sizeof(GlassUniforms));
-
         wgpu::SurfaceTexture surfaceTexture;
         surface.GetCurrentTexture(&surfaceTexture);
 
@@ -288,8 +288,34 @@ void BackgroundEngine::render() {
 
         wgpu::RenderPassEncoder pass = encoder.BeginRenderPass(&passDesc);
         pass.SetPipeline(glassPipeline);
-        pass.SetBindGroup(0, glassBindGroup);
-        pass.Draw(3);
+
+        // Count active regions to detect the zero-region fallback case
+        bool anyDrawn = false;
+        for (uint32_t i = 0; i < MAX_GLASS_REGIONS; i++) {
+            if (!regions[i].active) continue;
+            regions[i].uniforms.resolutionX = static_cast<float>(width);
+            regions[i].uniforms.resolutionY = static_cast<float>(height);
+            device.GetQueue().WriteBuffer(glassUniformBuffer, i * uniformStride,
+                                          &regions[i].uniforms, sizeof(GlassUniforms));
+            uint32_t dynamicOffset = i * uniformStride;
+            pass.SetBindGroup(0, glassBindGroup, 1, &dynamicOffset);
+            pass.Draw(3);
+            anyDrawn = true;
+        }
+
+        // Fallback: if no active regions, draw a passthrough (rectW=0 means mask=0, pure background)
+        if (!anyDrawn) {
+            GlassUniforms passthrough{};
+            passthrough.resolutionX = static_cast<float>(width);
+            passthrough.resolutionY = static_cast<float>(height);
+            // rectW=0, rectH=0 -> SDF negative everywhere -> mask=0 -> pure passthrough
+            device.GetQueue().WriteBuffer(glassUniformBuffer, 0,
+                                          &passthrough, sizeof(GlassUniforms));
+            uint32_t zeroOffset = 0;
+            pass.SetBindGroup(0, glassBindGroup, 1, &zeroOffset);
+            pass.Draw(3);
+        }
+
         pass.End();
     }
 
@@ -316,18 +342,50 @@ void BackgroundEngine::resize(uint32_t newWidth, uint32_t newHeight) {
     createOffscreenTexture();
 }
 
-void BackgroundEngine::setGlassRect(float x, float y, float w, float h) {
-    glassUniforms.rectX = x; glassUniforms.rectY = y;
-    glassUniforms.rectW = w; glassUniforms.rectH = h;
+int BackgroundEngine::addGlassRegion() {
+    for (uint32_t i = 0; i < MAX_GLASS_REGIONS; i++) {
+        if (!regions[i].active) {
+            regions[i].active = true;
+            // Set sensible defaults
+            regions[i].uniforms = {};
+            regions[i].uniforms.cornerRadius = 24.0f;
+            regions[i].uniforms.blurIntensity = 0.5f;
+            regions[i].uniforms.opacity = 0.05f;
+            regions[i].uniforms.refractionStrength = 0.15f;
+            regions[i].uniforms.tintR = 1.0f;
+            regions[i].uniforms.tintG = 1.0f;
+            regions[i].uniforms.tintB = 1.0f;
+            regions[i].uniforms.aberration = 3.0f;
+            return static_cast<int>(i);
+        }
+    }
+    return -1; // All slots full
 }
 
-void BackgroundEngine::setGlassParams(float cornerRadius, float blur, float opacity, float refraction) {
-    glassUniforms.cornerRadius = cornerRadius;
-    glassUniforms.blurIntensity = blur;
-    glassUniforms.opacity = opacity;
-    glassUniforms.refractionStrength = refraction;
+void BackgroundEngine::removeGlassRegion(int id) {
+    if (id < 0 || id >= static_cast<int>(MAX_GLASS_REGIONS)) return;
+    regions[id].active = false;
 }
 
-void BackgroundEngine::setGlassTint(float r, float g, float b) {
-    glassUniforms.tintR = r; glassUniforms.tintG = g; glassUniforms.tintB = b;
+void BackgroundEngine::setRegionRect(int id, float x, float y, float w, float h) {
+    if (id < 0 || id >= static_cast<int>(MAX_GLASS_REGIONS)) return;
+    regions[id].uniforms.rectX = x;
+    regions[id].uniforms.rectY = y;
+    regions[id].uniforms.rectW = w;
+    regions[id].uniforms.rectH = h;
+}
+
+void BackgroundEngine::setRegionParams(int id, float cornerRadius, float blur, float opacity, float refraction) {
+    if (id < 0 || id >= static_cast<int>(MAX_GLASS_REGIONS)) return;
+    regions[id].uniforms.cornerRadius = cornerRadius;
+    regions[id].uniforms.blurIntensity = blur;
+    regions[id].uniforms.opacity = opacity;
+    regions[id].uniforms.refractionStrength = refraction;
+}
+
+void BackgroundEngine::setRegionTint(int id, float r, float g, float b) {
+    if (id < 0 || id >= static_cast<int>(MAX_GLASS_REGIONS)) return;
+    regions[id].uniforms.tintR = r;
+    regions[id].uniforms.tintG = g;
+    regions[id].uniforms.tintB = b;
 }
