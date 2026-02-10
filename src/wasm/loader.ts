@@ -1,5 +1,10 @@
 export interface EngineModule {
-  getEngine(): { resize(w: number, h: number): void } | null;
+  getEngine(): {
+    resize(w: number, h: number): void;
+    setGlassRect(x: number, y: number, w: number, h: number): void;
+    setGlassParams(cornerRadius: number, blur: number, opacity: number, refraction: number): void;
+    setGlassTint(r: number, g: number, b: number): void;
+  } | null;
   destroyEngine(): void;
 }
 

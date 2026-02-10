@@ -119,6 +119,9 @@ EMSCRIPTEN_BINDINGS(background_engine) {
     emscripten::function("getEngine", &getEngine, emscripten::allow_raw_pointers());
     emscripten::function("destroyEngine", &destroyEngine);
     emscripten::class_<BackgroundEngine>("BackgroundEngine")
-        .function("resize", &BackgroundEngine::resize);
+        .function("resize", &BackgroundEngine::resize)
+        .function("setGlassRect", &BackgroundEngine::setGlassRect)
+        .function("setGlassParams", &BackgroundEngine::setGlassParams)
+        .function("setGlassTint", &BackgroundEngine::setGlassTint);
 }
 #endif
