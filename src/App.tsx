@@ -1,93 +1,61 @@
-import { useEffect, useRef, useState } from 'react';
-import { initEngine, type EngineModule } from './wasm/loader';
+import { GlassProvider } from './components/GlassProvider';
+import { GlassPanel } from './components/GlassPanel';
+import { GlassButton } from './components/GlassButton';
+import { GlassCard } from './components/GlassCard';
 
 export default function App() {
-  const [status, setStatus] = useState<'loading' | 'running' | 'error'>('loading');
-  const [error, setError] = useState<string | null>(null);
-  const observerRef = useRef<ResizeObserver | null>(null);
-  const moduleRef = useRef<EngineModule | null>(null);
+  return (
+    <GlassProvider>
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        minHeight: '100vh',
+        gap: '24px',
+        padding: '48px',
+        position: 'relative',
+        zIndex: 1,
+      }}>
+        <GlassPanel
+          style={{ width: 320, padding: '32px', textAlign: 'center' }}
+          blur={0.6}
+          opacity={0.08}
+          cornerRadius={28}
+        >
+          <h2 style={{ color: 'white', margin: 0, fontSize: '1.2rem', fontWeight: 500 }}>
+            Glass Panel
+          </h2>
+          <p style={{ color: 'rgba(255,255,255,0.7)', margin: '8px 0 0', fontSize: '0.9rem' }}>
+            A frosted glass container
+          </p>
+        </GlassPanel>
 
-  useEffect(() => {
-    let cancelled = false;
+        <GlassButton
+          style={{ padding: '14px 36px', fontSize: '1rem', color: 'white', fontWeight: 500 }}
+          blur={0.5}
+          opacity={0.06}
+          cornerRadius={16}
+          onClick={() => console.log('Glass button clicked')}
+        >
+          Glass Button
+        </GlassButton>
 
-    initEngine()
-      .then((module) => {
-        if (cancelled) return;
-        moduleRef.current = module;
-
-        const canvas = document.getElementById('gpu-canvas') as HTMLCanvasElement | null;
-        if (!canvas) {
-          setStatus('error');
-          setError('Canvas element #gpu-canvas not found');
-          return;
-        }
-
-        const observer = new ResizeObserver((entries) => {
-          const engine = module.getEngine();
-          if (!engine) return;
-          for (const entry of entries) {
-            const width = entry.devicePixelContentBoxSize?.[0].inlineSize
-              ?? Math.round(entry.contentBoxSize[0].inlineSize * devicePixelRatio);
-            const height = entry.devicePixelContentBoxSize?.[0].blockSize
-              ?? Math.round(entry.contentBoxSize[0].blockSize * devicePixelRatio);
-            const maxDim = 4096;
-            const w = Math.max(1, Math.min(width, maxDim));
-            const h = Math.max(1, Math.min(height, maxDim));
-            if (canvas.width !== w || canvas.height !== h) {
-              canvas.width = w;
-              canvas.height = h;
-              engine.resize(w, h);
-            }
-          }
-        });
-
-        try {
-          observer.observe(canvas, { box: 'device-pixel-content-box' as ResizeObserverBoxOptions });
-        } catch {
-          observer.observe(canvas, { box: 'content-box' });
-        }
-
-        observerRef.current = observer;
-
-        // Set initial glass region so effect is visible from first frame
-        const engine = module.getEngine();
-        if (engine) {
-          const regionId = engine.addGlassRegion();
-          if (regionId >= 0) {
-            // Center glass rectangle: 50% of canvas, centered
-            engine.setRegionRect(regionId, 0.25, 0.25, 0.5, 0.5);
-            // Liquid glass: 24px corners, moderate blur, subtle tint, 15% edge refraction
-            engine.setRegionParams(regionId, 24.0, 0.5, 0.05, 0.15);
-            engine.setRegionTint(regionId, 1.0, 1.0, 1.0);
-          }
-        }
-
-        setStatus('running');
-      })
-      .catch((err) => {
-        if (cancelled) return;
-        setStatus('error');
-        setError(err instanceof Error ? err.message : String(err));
-      });
-
-    return () => {
-      cancelled = true;
-      observerRef.current?.disconnect();
-      if (moduleRef.current) {
-        moduleRef.current.destroyEngine();
-        moduleRef.current = null;
-      }
-    };
-  }, []);
-
-  if (status === 'error') {
-    return (
-      <p style={{ color: '#f44', padding: '24px', pointerEvents: 'auto' }}>
-        Engine failed: {error}
-      </p>
-    );
-  }
-
-  // No visible UI when loading or running -- the noise background IS the visual
-  return null;
+        <GlassCard
+          style={{ width: 320, padding: '24px' }}
+          blur={0.7}
+          opacity={0.04}
+          cornerRadius={20}
+          tint={[0.8, 0.85, 1.0]}
+        >
+          <h3 style={{ color: 'white', margin: 0, fontSize: '1.1rem', fontWeight: 500 }}>
+            Glass Card
+          </h3>
+          <p style={{ color: 'rgba(255,255,255,0.7)', margin: '8px 0 0', fontSize: '0.85rem' }}>
+            An article-semantic glass element with a cool blue tint.
+          </p>
+        </GlassCard>
+      </div>
+    </GlassProvider>
+  );
 }
