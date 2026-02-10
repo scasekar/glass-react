@@ -61,6 +61,9 @@ export function useGlassRegion(
     const effectiveCornerRadius = props.cornerRadius ?? 24;
 
     if (prefs.reducedTransparency) {
+      // Accessibility: instant transition to opaque state
+      handle.updateMorphSpeed(0);
+
       // Reduced-transparency: near-opaque solid surface
       const rtDefaults = prefs.darkMode
         ? REDUCED_TRANSPARENCY_DARK
@@ -99,6 +102,9 @@ export function useGlassRegion(
       effectiveRefraction
     );
     handle.updateTint(effectiveTint[0], effectiveTint[1], effectiveTint[2]);
+
+    // Sync morph speed (restore after reduced-transparency instant set above)
+    handle.updateMorphSpeed(props.morphSpeed ?? 8);
   }, [
     props.cornerRadius,
     props.blur,
@@ -109,6 +115,7 @@ export function useGlassRegion(
     props.specular,
     props.rim,
     props.refractionMode,
+    props.morphSpeed,
     prefs.reducedTransparency,
     prefs.darkMode,
   ]);

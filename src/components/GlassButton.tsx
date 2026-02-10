@@ -1,11 +1,11 @@
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { useGlassRegion } from '../hooks/useGlassRegion';
 import { useGlassEngine } from '../hooks/useGlassEngine';
 import { useMergedRef } from '../hooks/useMergedRef';
 import type { GlassButtonProps } from './types';
 
 /**
- * A glass-effect button component.
+ * A glass-effect button component with smooth hover/active morph transitions.
  * Place inside a `<GlassProvider>` to see the glass refraction effect.
  *
  * @example
@@ -29,6 +29,7 @@ export function GlassButton({
   specular,
   rim,
   refractionMode,
+  morphSpeed,
   onClick,
   disabled,
   type = 'button',
@@ -38,7 +39,33 @@ export function GlassButton({
   const mergedRef = useMergedRef(internalRef, ref);
   const { preferences } = useGlassEngine();
 
-  useGlassRegion(internalRef, { blur, opacity, cornerRadius, tint, refraction, aberration, specular, rim, refractionMode });
+  const [hovered, setHovered] = useState(false);
+  const [pressed, setPressed] = useState(false);
+
+  // Hover: slightly enhance glass effects for visual feedback
+  // Active/pressed: reduce blur for a "closer to surface" feel
+  const effectiveBlur = pressed ? (blur ?? 0.5) * 0.3
+                      : hovered ? (blur ?? 0.5) * 0.8
+                      : blur;
+  const effectiveSpecular = hovered ? (specular ?? 0.2) * 1.8
+                          : specular;
+  const effectiveRim = hovered ? (rim ?? 0.15) * 2.0
+                     : rim;
+  const effectiveAberration = hovered ? (aberration ?? 3) * 1.5
+                            : aberration;
+
+  useGlassRegion(internalRef, {
+    blur: effectiveBlur,
+    opacity,
+    cornerRadius,
+    tint,
+    refraction,
+    aberration: effectiveAberration,
+    specular: effectiveSpecular,
+    rim: effectiveRim,
+    refractionMode,
+    morphSpeed,
+  });
 
   const textStyles: React.CSSProperties = (preferences?.darkMode ?? true)
     ? {
@@ -63,6 +90,10 @@ export function GlassButton({
         ...textStyles,
         ...style,
       }}
+      onMouseEnter={() => { if (!disabled) setHovered(true); }}
+      onMouseLeave={() => { setHovered(false); setPressed(false); }}
+      onMouseDown={() => { if (!disabled) setPressed(true); }}
+      onMouseUp={() => setPressed(false)}
       onClick={onClick}
       disabled={disabled}
       type={type}

@@ -32,15 +32,36 @@ export default function App() {
           </p>
         </GlassPanel>
 
-        <GlassButton
-          style={{ padding: '14px 36px', fontSize: '1rem', fontWeight: 500 }}
-          blur={0.5}
-          opacity={0.06}
-          cornerRadius={16}
-          onClick={() => console.log('Glass button clicked')}
-        >
-          Glass Button
-        </GlassButton>
+        <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', justifyContent: 'center' }}>
+          {/* Standard mode button (hover to see morph) */}
+          <GlassButton
+            style={{ padding: '14px 36px', fontSize: '1rem', fontWeight: 500 }}
+            blur={0.5}
+            opacity={0.06}
+            cornerRadius={16}
+            aberration={3}
+            specular={0.2}
+            rim={0.15}
+            onClick={() => console.log('Standard glass clicked')}
+          >
+            Standard Glass
+          </GlassButton>
+
+          {/* Prominent mode button (hover to see morph) */}
+          <GlassButton
+            style={{ padding: '14px 36px', fontSize: '1rem', fontWeight: 500 }}
+            blur={0.6}
+            opacity={0.08}
+            cornerRadius={16}
+            refractionMode="prominent"
+            aberration={5}
+            specular={0.35}
+            rim={0.25}
+            onClick={() => console.log('Prominent glass clicked')}
+          >
+            Prominent Glass
+          </GlassButton>
+        </div>
 
         <GlassCard
           style={{ width: 340, padding: '24px' }}
@@ -48,30 +69,32 @@ export default function App() {
           opacity={0.04}
           cornerRadius={20}
           tint={[0.8, 0.85, 1.0]}
+          aberration={4}
+          specular={0.3}
+          rim={0.2}
         >
           <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600 }}>
             Glass Card (Custom Tint)
           </h3>
           <p style={{ margin: '8px 0 0', fontSize: '0.85rem', opacity: 0.8 }}>
-            This card has an explicit blue tint prop that is preserved in both
-            dark and light modes -- never overridden by defaults.
+            This card has an explicit blue tint with enhanced specular and rim
+            effects. Hover the buttons above to see smooth morph transitions.
           </p>
         </GlassCard>
 
         <div style={{
           marginTop: '16px',
           padding: '16px 24px',
-          maxWidth: 400,
+          maxWidth: 420,
           textAlign: 'center',
           color: 'rgba(255, 255, 255, 0.5)',
           fontSize: '0.75rem',
           lineHeight: 1.5,
         }}>
-          Try toggling OS accessibility settings to see changes:
-          Reduce Motion (freezes background animation),
-          Reduce Transparency (opaque glass surfaces),
-          Dark/Light Mode (adapts tint and text styles).
-          Use Chrome DevTools &gt; Rendering to emulate these.
+          Hover over buttons to see smooth morph transitions (blur, specular, rim, aberration animate).
+          The Standard button uses default refraction; Prominent uses enhanced mode (1.8x refraction, 1.5x specular).
+          Toggle OS accessibility: Reduce Motion (freezes background), Reduce Transparency (instant opaque),
+          Dark/Light Mode (adapts tint). Use Chrome DevTools &gt; Rendering to emulate.
         </div>
       </div>
     </GlassProvider>
