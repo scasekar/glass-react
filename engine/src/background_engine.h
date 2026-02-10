@@ -15,8 +15,8 @@ struct GlassUniforms {
     float blurIntensity;                         // offset 20
     float opacity;                               // offset 24
     float refractionStrength;                    // offset 28
-    float tintR, tintG, tintB;                   // offset 32-40
-    float _pad;                                  // offset 44
+    float tintR, tintG, tintB;                   // offset 32-43
+    float aberration;                            // offset 44 — chromatic aberration (pixels)
     float resolutionX, resolutionY;              // offset 48-52
     float _pad2, _pad3;                          // offset 56-60
 };

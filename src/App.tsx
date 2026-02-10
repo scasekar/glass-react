@@ -54,9 +54,8 @@ export default function App() {
         if (engine) {
           // Center glass rectangle: 50% of canvas, centered
           engine.setGlassRect(0.25, 0.25, 0.5, 0.5);
-          // Visible defaults: 20px corners, moderate blur, light tint, subtle refraction
-          engine.setGlassParams(20.0, 0.5, 0.15, 0.02);
-          // White tint
+          // Liquid glass: 24px corners, moderate blur, subtle tint, 15% edge refraction
+          engine.setGlassParams(24.0, 0.5, 0.05, 0.15);
           engine.setGlassTint(1.0, 1.0, 1.0);
         }
 

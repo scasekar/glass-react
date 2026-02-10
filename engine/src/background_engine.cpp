@@ -22,11 +22,12 @@ void BackgroundEngine::init(wgpu::Device dev, wgpu::Surface surf,
     // Initialize default glass uniform values
     glassUniforms.rectX = 0.25f;  glassUniforms.rectY = 0.25f;
     glassUniforms.rectW = 0.5f;   glassUniforms.rectH = 0.5f;
-    glassUniforms.cornerRadius = 20.0f;
+    glassUniforms.cornerRadius = 24.0f;
     glassUniforms.blurIntensity = 0.5f;
-    glassUniforms.opacity = 0.15f;
-    glassUniforms.refractionStrength = 0.02f;
+    glassUniforms.opacity = 0.05f;
+    glassUniforms.refractionStrength = 0.15f;
     glassUniforms.tintR = 1.0f; glassUniforms.tintG = 1.0f; glassUniforms.tintB = 1.0f;
+    glassUniforms.aberration = 3.0f;
 }
 
 void BackgroundEngine::createNoisePipeline() {
