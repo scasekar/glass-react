@@ -79,10 +79,11 @@ Plans:
   2. Increasing the blur intensity parameter produces a progressively frosted appearance; setting it to zero shows sharp refraction only
   3. Adjusting the opacity parameter smoothly transitions the glass region between fully transparent (invisible) and fully opaque (solid tint)
   4. The glass region renders with rounded corners and smooth, anti-aliased edges -- no visible jaggies or hard pixelated borders at any size
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 04-01: TBD
+- [ ] 04-01-PLAN.md -- Glass WGSL shader and C++ pipeline integration replacing blit pass
+- [ ] 04-02-PLAN.md -- Embind API, TypeScript types, React integration, and visual verification
 
 ### Phase 5: React Component API
 **Goal**: Developers can use GlassPanel, GlassButton, and GlassCard as React components with familiar props to place glass UI elements in their applications
@@ -152,8 +153,8 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8
 |-------|----------------|--------|-----------|
 | 1. Engine Foundation | 2/2 | Complete | 2026-02-10 |
 | 2. Background Rendering | 2/2 | Complete | 2026-02-10 |
-| 3. GPU Texture Bridge | 0/2 | Planned | - |
-| 4. Glass Shader Core | 0/TBD | Not started | - |
+| 3. GPU Texture Bridge | 2/2 | Complete | 2026-02-10 |
+| 4. Glass Shader Core | 0/2 | Planned | - |
 | 5. React Component API | 0/TBD | Not started | - |
 | 6. Accessibility & Theming | 0/TBD | Not started | - |
 | 7. Visual Polish | 0/TBD | Not started | - |
