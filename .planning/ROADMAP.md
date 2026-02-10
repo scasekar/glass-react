@@ -13,7 +13,7 @@ This roadmap delivers a React component library implementing Apple's Liquid Glas
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Engine Foundation** - Emscripten build pipeline and proof-of-concept GPU device sharing between C++ and JavaScript
-- [ ] **Phase 2: Background Rendering** - Procedural noise simulation running in C++ at 60FPS as a full-canvas animated background
+- [x] **Phase 2: Background Rendering** - Procedural noise simulation running in C++ at 60FPS as a full-canvas animated background
 - [ ] **Phase 3: GPU Texture Bridge** - Zero-copy texture sharing and synchronized render pipeline between WASM engine and React
 - [ ] **Phase 4: Glass Shader Core** - WGSL refraction and frosted glass shaders that sample the background texture through glass UI regions
 - [ ] **Phase 5: React Component API** - GlassPanel, GlassButton, GlassCard components with configurable props and GlassProvider context
@@ -52,8 +52,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 02-01-PLAN.md -- C++ BackgroundEngine class with simplex noise WGSL shader, render pipeline, and Embind API
-- [ ] 02-02-PLAN.md -- Full-viewport canvas, ResizeObserver integration, and visual verification
+- [x] 02-01-PLAN.md -- C++ BackgroundEngine class with simplex noise WGSL shader, render pipeline, and Embind API
+- [x] 02-02-PLAN.md -- Full-viewport canvas, ResizeObserver integration, and visual verification
 
 ### Phase 3: GPU Texture Bridge
 **Goal**: The C++ engine's background texture is consumable by React components via zero-copy GPU sharing with proper lifecycle management
@@ -150,7 +150,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Engine Foundation | 2/2 | Complete | 2026-02-10 |
-| 2. Background Rendering | 0/2 | Planned | - |
+| 2. Background Rendering | 2/2 | Complete | 2026-02-10 |
 | 3. GPU Texture Bridge | 0/TBD | Not started | - |
 | 4. Glass Shader Core | 0/TBD | Not started | - |
 | 5. React Component API | 0/TBD | Not started | - |
