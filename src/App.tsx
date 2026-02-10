@@ -13,7 +13,6 @@ export default function App() {
       .then((module) => {
         if (cancelled) return;
 
-        const engine = module.getEngine();
         const canvas = document.getElementById('gpu-canvas') as HTMLCanvasElement | null;
         if (!canvas) {
           setStatus('error');
@@ -22,6 +21,8 @@ export default function App() {
         }
 
         const observer = new ResizeObserver((entries) => {
+          const engine = module.getEngine();
+          if (!engine) return;
           for (const entry of entries) {
             const width = entry.devicePixelContentBoxSize?.[0].inlineSize
               ?? Math.round(entry.contentBoxSize[0].inlineSize * devicePixelRatio);
