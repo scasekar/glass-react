@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-10)
 
 **Core value:** Glass components that look and feel like Apple's Liquid Glass -- refraction of a dynamic background through UI elements must be visually convincing at 60FPS.
-**Current focus:** Phase 8 in progress -- library packaging. Plan 01 complete (library build), Plan 02 pending (demo app).
+**Current focus:** Phase 8 complete -- all plans executed. Pending human verification of demo page (Task 3 checkpoint).
 
 ## Current Position
 
 Phase: 8 of 8 (Library Packaging & Demo)
-Plan: 1 of 2 complete
-Status: Executing Phase 08
-Last activity: 2026-02-10 -- Plan 08-01 complete (library packaging)
+Plan: 2 of 2 complete
+Status: Phase 08 complete (pending checkpoint verification)
+Last activity: 2026-02-10 -- Plan 08-02 complete (demo app & API docs)
 
-Progress: [#########.] 93%
+Progress: [##########] 100%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 14
+- Total plans completed: 15
 - Average duration: ~3.0 min
-- Total execution time: ~0.7 hours
+- Total execution time: ~0.75 hours
 
 **By Phase:**
 
@@ -34,16 +34,17 @@ Progress: [#########.] 93%
 | 05-react-component-api | 2/2 | ~6.5 min | ~3.2 min |
 | 06-accessibility-theming | 2/2 | ~7 min | ~3.5 min |
 | 07-visual-polish | 2/2 | ~6 min | ~3 min |
-| 08-library-packaging-demo | 1/2 | ~2 min | ~2 min |
+| 08-library-packaging-demo | 2/2 | ~5 min | ~2.5 min |
 
 **Recent Trend:**
-- Last 5 plans: 06-02, 07-01, 07-02, 08-01
+- Last 5 plans: 07-01, 07-02, 08-01, 08-02
 - Trend: Stable (~2.5 min/plan)
 
 *Updated after each plan completion*
 | Phase 07-visual-polish P01 | 3 min | 2 tasks | 12 files |
 | Phase 07-visual-polish P02 | 3 min | 2 tasks | 10 files |
 | Phase 08-library-packaging-demo P01 | 2 min | 2 tasks | 6 files |
+| Phase 08-library-packaging-demo P02 | 3 min | 2 tasks | 10 files |
 
 ## Accumulated Context
 
@@ -96,6 +97,9 @@ Recent decisions affecting current work:
 - [08-01]: SINGLE_FILE=1 embeds WASM as base64 in engine.js (~674KB) eliminating separate .wasm file distribution
 - [08-01]: Vite config uses command+mode conditional: build (default) = library, build --mode demo = app, dev = dev server
 - [08-01]: React/ReactDOM moved to peerDependencies (^18 || ^19) with devDependencies for development
+- [08-02]: Separate vite.demo.config.ts (not conditional mode in main vite.config.ts) for demo isolation
+- [08-02]: Demo imports components from source directly (../src/components/) for HMR during development
+- [08-02]: Inline styles only in demo controls (no CSS files) for zero-dependency demo components
 
 ### Pending Todos
 
@@ -109,5 +113,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-10
-Stopped at: Completed 08-01-PLAN.md
+Stopped at: Completed 08-02-PLAN.md (checkpoint:human-verify pending for Task 3)
 Resume file: None
