@@ -141,10 +141,11 @@ Plans:
   2. The demo page displays all glass components (Panel, Button, Card) with the procedural background, and every visual effect (blur, refraction, chromatic aberration, specular, rim lighting) is visible
   3. Interactive controls on the demo page allow adjusting glass parameters (blur, opacity, tint, aberration intensity, refraction mode) and the glass components update in real-time
   4. API documentation covers all public components, their props, types, and usage examples
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 08-01: TBD
+- [ ] 08-01-PLAN.md -- Library packaging: SINGLE_FILE WASM, barrel export, Vite library mode, package.json npm config
+- [ ] 08-02-PLAN.md -- Demo page with interactive controls, API documentation, and human verification
 
 ## Progress
 
