@@ -2,7 +2,7 @@
 
 ## What This Is
 
-A React component library implementing Apple's "Liquid Glass" visual aesthetic using a shared WebGPU context between a C++20/WASM background engine and React UI components. The C++ engine renders procedural noise/fluid simulations to a GPU texture, and React glass components sample that texture through refraction/reflection shaders to create a polished, premium glass effect.
+A React component library implementing Apple's "Liquid Glass" visual aesthetic using a shared WebGPU context between a C++20/WASM background engine and React UI components. The C++ engine renders procedural simplex noise to a GPU texture via a two-pass architecture, and React glass components (GlassPanel, GlassButton, GlassCard) sample that texture through refraction/blur/tint shaders with premium visual effects including chromatic aberration, specular highlights, rim lighting, and smooth morphing transitions.
 
 ## Core Value
 
@@ -12,41 +12,42 @@ Glass components that look and feel like Apple's Liquid Glass — the refraction
 
 ### Validated
 
-(None yet — ship to validate)
+- ✓ C++ background engine compiled to WASM via Emscripten with WebGPU rendering — v1.0
+- ✓ Procedural noise simulation running as full-canvas background at 60FPS — v1.0
+- ✓ Zero-copy texture sharing between WASM engine and React components — v1.0
+- ✓ Glass refraction/blur WGSL shaders for UI components — v1.0
+- ✓ GlassPanel, GlassButton, GlassCard React components with GlassProvider — v1.0
+- ✓ Chromatic aberration, specular highlights, rim lighting effects — v1.0
+- ✓ Morphing transitions between glass states — v1.0
+- ✓ Accessibility (reduced-motion, reduced-transparency, WCAG contrast, dark/light mode) — v1.0
+- ✓ npm-publishable package with embedded WASM and interactive demo — v1.0
 
 ### Active
 
-- [ ] C++ background engine compiled to WASM via Emscripten with WebGPU rendering
-- [ ] Procedural noise/fluid simulation running as full-canvas background
-- [ ] Zero-copy texture sharing between WASM engine and React components
-- [ ] Glass refraction/reflection WGSL shaders for UI components
-- [ ] GlassButton, GlassPanel, GlassCard React components
-- [ ] Morphing transitions between glass states
-- [ ] Full demo page showcasing all glass components
-- [ ] Specular highlights (static light source for v1)
-- [ ] npm-publishable package structure
+(None yet — define with next milestone)
 
 ### Out of Scope
 
 - Gyroscope/device tilt interaction — deferred to v2, get static visuals right first
 - Content-blur mode (frosted glass over page content) — v2, procedural backgrounds only for v1
 - Server-side rendering — WebGPU is client-only
-- Fallback for non-WebGPU browsers — target modern browsers only for v1
+- WebGL fallback — WebGPU-only is the value proposition; doubles shader work
+- CSS-only glassmorphism mode — defeats purpose of GPU pipeline
+- Non-WebGPU browser support — target modern browsers only
 
 ## Context
 
-- Target aesthetic: Apple's Liquid Glass design language (WWDC 2025)
-- Architecture: C++ engine renders base texture to GPU → React components receive texture handle → custom WGSL pipeline composites glass UI on top, sampling base texture for refraction
-- Triple purpose: component library for own app, open-source package, and portfolio/demo piece
-- WebGPU is the graphics API (not WebGL) — newer, more capable, but narrower browser support
-- Emscripten provides the C++→WASM compilation toolchain with WebGPU bindings (dawn)
+Shipped v1.0 with 2,727 LOC across C++, TypeScript, and WGSL.
+Tech stack: React 19, Vite 6.4, Emscripten 4.0.16, emdawnwebgpu, C++20, WebGPU.
+Architecture: C++ engine renders simplex noise to offscreen texture → glass shader samples with refraction/blur → multi-region rendering with dynamic uniform buffer offsets → React components track DOM positions via rAF.
+Package: ESM bundle with SINGLE_FILE embedded WASM (~674KB), peer dependency on React ^18/^19.
 
 ## Constraints
 
 - **Graphics API**: WebGPU only — no WebGL fallback, simplifies architecture
 - **Build toolchain**: Emscripten for C++→WASM compilation
 - **C++ standard**: C++20 minimum
-- **React version**: React 19+
+- **React version**: React 18+ (peer dependency)
 - **Performance**: 60FPS target for background + glass compositing
 - **v1 interaction**: Static lighting only — pointer/gyro interaction deferred
 
@@ -54,10 +55,18 @@ Glass components that look and feel like Apple's Liquid Glass — the refraction
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| WebGPU over WebGL | Modern API with compute shaders, better texture sharing, future-proof | — Pending |
-| C++/WASM for background engine | Performance-critical fluid sim benefits from native-speed computation | — Pending |
-| Procedural background only for v1 | Simpler architecture, content-blur requires additional compositor complexity | — Pending |
-| Static visuals for v1 | Focus on getting the glass effect right before adding interaction | — Pending |
+| WebGPU over WebGL | Modern API with compute shaders, better texture sharing, future-proof | ✓ Good — enabled zero-copy texture sharing |
+| C++/WASM for background engine | Performance-critical noise sim benefits from native-speed computation | ✓ Good — 60FPS achieved with headroom |
+| Procedural background only for v1 | Simpler architecture, content-blur requires additional compositor complexity | ✓ Good — clean separation of concerns |
+| Static visuals for v1 | Focus on getting the glass effect right before adding interaction | ✓ Good — shipped polished static effects |
+| emdawnwebgpu over raw Dawn | Header-only C++ bindings, simpler build via `--use-port` | ✓ Good — clean integration |
+| AllowSpontaneous callbacks for device init | Double WaitAny corrupts emdawnwebgpu Instance reference | ✓ Good — critical discovery, resolved device init |
+| Two-pass render (noise → glass) | Glass shader replaces blit pass, samples offscreen texture | ✓ Good — single texture, no extra copy |
+| Multi-region via dynamic uniform buffer offsets | Supports up to 16 glass regions without pipeline recreation | ✓ Good — efficient GPU instancing |
+| SINGLE_FILE WASM embedding | Eliminates separate .wasm file distribution complexity | ✓ Good — single JS import, ~674KB |
+| Exponential decay lerp for morphing | Frame-rate independent transitions, works with reduced-motion | ✓ Good — smooth transitions at any FPS |
+| useSyncExternalStore for a11y preferences | Concurrent-safe media query detection without useEffect race conditions | ✓ Good — stable React 18/19 compatible |
+| GlassProvider owns canvas element | Removes canvas from index.html, component controls full lifecycle | ✓ Good — clean encapsulation |
 
 ---
-*Last updated: 2026-02-10 after initialization*
+*Last updated: 2026-02-10 after v1.0 milestone*
