@@ -17,6 +17,8 @@
     "watch:wasm": "nodemon --watch engine/src -e cpp,h --exec 'npm run build:wasm'",
     "dev:vite": "vite",
     "dev": "concurrently \"npm run watch:wasm\" \"npm run dev:vite\"",
+    "dev:demo": "vite --config vite.demo.config.ts",
+    "build:demo": "vite build --config vite.demo.config.ts",
     "build:lib": "vite build",
     "build": "npm run build:wasm && npm run build:lib",
     "prepublishOnly": "npm run build"
