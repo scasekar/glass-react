@@ -85,7 +85,7 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
     // Per-channel UV scaling for chromatic aberration
     // At center (factor=1): all channels = 1.0 (identity, no aberration)
     // At edges (factor=0): channels diverge (R wider, B narrower)
-    let aberrationNorm = glass.aberration * 0.003;
+    let aberrationNorm = glass.aberration * 0.008;
     let effectiveRefraction = glass.refractionStrength * refractionMul;
     let rScale = mix(1.0 - effectiveRefraction - aberrationNorm * aberrationMul, 1.0, displacementFactor);
     let gScale = mix(1.0 - effectiveRefraction, 1.0, displacementFactor);
@@ -97,7 +97,7 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
 
     // --- 25-tap (5x5) Gaussian blur at green UV + 2 aberration samples ---
     let texelSize = 1.0 / glass.resolution;
-    let blurRadius = glass.blurIntensity * 8.0;
+    let blurRadius = glass.blurIntensity * 30.0;
 
     var blurColor = vec4f(0.0);
     var totalWeight = 0.0;
