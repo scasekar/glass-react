@@ -5,22 +5,22 @@
 See: .planning/PROJECT.md (updated 2026-02-10)
 
 **Core value:** Glass components that look and feel like Apple's Liquid Glass -- refraction of a dynamic background through UI elements must be visually convincing at 60FPS.
-**Current focus:** Phase 7 complete -- visual polish done. Ready for Phase 8 (packaging).
+**Current focus:** Phase 8 in progress -- library packaging. Plan 01 complete (library build), Plan 02 pending (demo app).
 
 ## Current Position
 
-Phase: 7 of 8 (Visual Polish)
-Plan: 2 of 2 complete
-Status: Phase 07 complete
-Last activity: 2026-02-10 -- Plan 07-02 complete (morphing transitions)
+Phase: 8 of 8 (Library Packaging & Demo)
+Plan: 1 of 2 complete
+Status: Executing Phase 08
+Last activity: 2026-02-10 -- Plan 08-01 complete (library packaging)
 
-Progress: [#########.] 87%
+Progress: [#########.] 93%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 13
-- Average duration: ~3.1 min
+- Total plans completed: 14
+- Average duration: ~3.0 min
 - Total execution time: ~0.7 hours
 
 **By Phase:**
@@ -34,14 +34,16 @@ Progress: [#########.] 87%
 | 05-react-component-api | 2/2 | ~6.5 min | ~3.2 min |
 | 06-accessibility-theming | 2/2 | ~7 min | ~3.5 min |
 | 07-visual-polish | 2/2 | ~6 min | ~3 min |
+| 08-library-packaging-demo | 1/2 | ~2 min | ~2 min |
 
 **Recent Trend:**
-- Last 5 plans: 06-01, 06-02, 07-01, 07-02
-- Trend: Stable (~3 min/plan)
+- Last 5 plans: 06-02, 07-01, 07-02, 08-01
+- Trend: Stable (~2.5 min/plan)
 
 *Updated after each plan completion*
 | Phase 07-visual-polish P01 | 3 min | 2 tasks | 12 files |
 | Phase 07-visual-polish P02 | 3 min | 2 tasks | 10 files |
+| Phase 08-library-packaging-demo P01 | 2 min | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -91,6 +93,9 @@ Recent decisions affecting current work:
 - [07-02]: setRegionRect writes to both current and target (instant DOM tracking, no sliding lag)
 - [07-02]: Accessibility transitions instant via temporary morphSpeed=0 before parameter changes
 - [07-02]: GlassButton hover multipliers: specular 1.8x, rim 2x, aberration 1.5x, blur 0.8x; pressed blur 0.3x
+- [08-01]: SINGLE_FILE=1 embeds WASM as base64 in engine.js (~674KB) eliminating separate .wasm file distribution
+- [08-01]: Vite config uses command+mode conditional: build (default) = library, build --mode demo = app, dev = dev server
+- [08-01]: React/ReactDOM moved to peerDependencies (^18 || ^19) with devDependencies for development
 
 ### Pending Todos
 
@@ -104,5 +109,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-10
-Stopped at: Completed 07-02-PLAN.md (Phase 07 complete)
+Stopped at: Completed 08-01-PLAN.md
 Resume file: None
