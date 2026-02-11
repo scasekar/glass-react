@@ -24,5 +24,6 @@ if(EMSCRIPTEN)
         "-sEXPORT_ES6=1"
         "-sEXPORT_NAME=createEngineModule"
         "-sASSERTIONS=1"
+        "-sSINGLE_FILE=1"
     )
 endif()
