@@ -18,7 +18,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 4: Glass Shader Core** - WGSL refraction and frosted glass shaders that sample the background texture through glass UI regions
 - [x] **Phase 5: React Component API** - GlassPanel, GlassButton, GlassCard components with configurable props and GlassProvider context
 - [x] **Phase 6: Accessibility & Theming** - Reduced-motion, reduced-transparency, WCAG contrast, and dark/light mode adaptation
-- [ ] **Phase 7: Visual Polish** - Chromatic aberration, specular highlights, rim lighting, refraction modes, and morphing transitions
+- [x] **Phase 7: Visual Polish** - Chromatic aberration, specular highlights, rim lighting, refraction modes, and morphing transitions
 - [ ] **Phase 8: Library Packaging & Demo** - npm-publishable package with demo page and API documentation
 
 ## Phase Details
@@ -129,8 +129,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 07-01-PLAN.md -- Expose shader effects as adjustable props (aberration, specular, rim) and add refraction modes (standard/prominent)
-- [ ] 07-02-PLAN.md -- CPU-side exponential decay lerp for morphing transitions, GlassButton hover/active states, and demo update
+- [x] 07-01-PLAN.md -- Expose shader effects as adjustable props (aberration, specular, rim) and add refraction modes (standard/prominent)
+- [x] 07-02-PLAN.md -- CPU-side exponential decay lerp for morphing transitions, GlassButton hover/active states, and demo update
 
 ### Phase 8: Library Packaging & Demo
 **Goal**: The library is installable via npm and a demo page showcases every glass component and effect with interactive controls
@@ -160,5 +160,5 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8
 | 4. Glass Shader Core | 2/2 | Complete | 2026-02-10 |
 | 5. React Component API | 2/2 | Complete | 2026-02-10 |
 | 6. Accessibility & Theming | 2/2 | Complete | 2026-02-10 |
-| 7. Visual Polish | 0/TBD | Not started | - |
+| 7. Visual Polish | 2/2 | Complete | 2026-02-10 |
 | 8. Library Packaging & Demo | 0/TBD | Not started | - |
