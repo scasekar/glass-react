@@ -19,7 +19,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 5: React Component API** - GlassPanel, GlassButton, GlassCard components with configurable props and GlassProvider context
 - [x] **Phase 6: Accessibility & Theming** - Reduced-motion, reduced-transparency, WCAG contrast, and dark/light mode adaptation
 - [x] **Phase 7: Visual Polish** - Chromatic aberration, specular highlights, rim lighting, refraction modes, and morphing transitions
-- [ ] **Phase 8: Library Packaging & Demo** - npm-publishable package with demo page and API documentation
+- [x] **Phase 8: Library Packaging & Demo** - npm-publishable package with demo page and API documentation
 
 ## Phase Details
 
@@ -144,8 +144,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 08-01-PLAN.md -- Library packaging: SINGLE_FILE WASM, barrel export, Vite library mode, package.json npm config
-- [ ] 08-02-PLAN.md -- Demo page with interactive controls, API documentation, and human verification
+- [x] 08-01-PLAN.md -- Library packaging: SINGLE_FILE WASM, barrel export, Vite library mode, package.json npm config
+- [x] 08-02-PLAN.md -- Demo page with interactive controls, API documentation, and human verification
 
 ## Progress
 
@@ -162,4 +162,4 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8
 | 5. React Component API | 2/2 | Complete | 2026-02-10 |
 | 6. Accessibility & Theming | 2/2 | Complete | 2026-02-10 |
 | 7. Visual Polish | 2/2 | Complete | 2026-02-10 |
-| 8. Library Packaging & Demo | 0/TBD | Not started | - |
+| 8. Library Packaging & Demo | 2/2 | Complete | 2026-02-10 |
