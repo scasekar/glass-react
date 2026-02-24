@@ -29,8 +29,10 @@ void BackgroundEngine::init(wgpu::Device dev, wgpu::Surface surf,
         static_cast<uint32_t>(limits.minUniformBufferOffsetAlignment)
     );
 
-    createNoisePipeline();
-    createUniforms();
+    if (!externalTextureMode_) {
+        createNoisePipeline();
+        createUniforms();
+    }
     createGlassPipeline();
     createOffscreenTexture();
 }
@@ -120,7 +122,8 @@ void BackgroundEngine::createOffscreenTexture() {
     texDesc.size = {width, height, 1};
     texDesc.format = surfaceFormat;
     texDesc.usage = wgpu::TextureUsage::RenderAttachment |
-                    wgpu::TextureUsage::TextureBinding;
+                    wgpu::TextureUsage::TextureBinding |
+                    wgpu::TextureUsage::CopyDst;
     texDesc.dimension = wgpu::TextureDimension::e2D;
     texDesc.mipLevelCount = 1;
     texDesc.sampleCount = 1;
@@ -294,14 +297,13 @@ void BackgroundEngine::setReducedTransparency(bool enabled) {
 }
 
 void BackgroundEngine::render() {
-    // Update uniform buffer with current time and resolution
-    Uniforms uniforms{currentTime, 0.0f, static_cast<float>(width), static_cast<float>(height)};
-    device.GetQueue().WriteBuffer(uniformBuffer, 0, &uniforms, sizeof(Uniforms));
-
     wgpu::CommandEncoder encoder = device.CreateCommandEncoder();
 
     // === PASS 1: Render noise to offscreen texture ===
-    {
+    if (!externalTextureMode_) {
+        // Update noise uniform buffer with current time and resolution
+        Uniforms uniforms{currentTime, 0.0f, static_cast<float>(width), static_cast<float>(height)};
+        device.GetQueue().WriteBuffer(uniformBuffer, 0, &uniforms, sizeof(Uniforms));
         wgpu::RenderPassColorAttachment attachment{};
         attachment.view = offscreenTextureView;
         attachment.loadOp = wgpu::LoadOp::Clear;
@@ -469,4 +471,15 @@ void BackgroundEngine::setRegionMode(int id, float mode) {
 void BackgroundEngine::setRegionMorphSpeed(int id, float speed) {
     if (id < 0 || id >= static_cast<int>(MAX_GLASS_REGIONS)) return;
     regions[id].morphSpeed = speed;
+}
+
+void BackgroundEngine::setExternalTextureMode(bool enabled) {
+    externalTextureMode_ = enabled;
+}
+
+uint32_t BackgroundEngine::getBackgroundTextureHandle() const {
+    // Return the raw WGPUTexture as an integer handle.
+    // In emdawnwebgpu, this is the object manager ID that JS can use
+    // via Module.WebGPU.mgrTexture.get(handle) to obtain a GPUTexture.
+    return static_cast<uint32_t>(reinterpret_cast<uintptr_t>(offscreenTexture.Get()));
 }

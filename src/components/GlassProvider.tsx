@@ -3,7 +3,15 @@ import { GlassContext, type GlassRegionHandle, type RegisteredRegion } from '../
 import { initEngine, type EngineModule } from '../wasm/loader';
 import { useAccessibilityPreferences } from '../hooks/useAccessibilityPreferences';
 
-export function GlassProvider({ children }: { children: React.ReactNode }) {
+export interface GlassProviderProps {
+  children: React.ReactNode;
+  /** External WebGPU device. When provided, engine uses this instead of creating its own. */
+  device?: GPUDevice;
+  /** External background texture. When provided, noise pass is skipped and this texture is used as background. */
+  externalTexture?: GPUTexture;
+}
+
+export function GlassProvider({ children, device, externalTexture }: GlassProviderProps) {
   const [ready, setReady] = useState(false);
   const moduleRef = useRef<EngineModule | null>(null);
   const regionsRef = useRef(new Map<number, RegisteredRegion>());
@@ -13,16 +21,27 @@ export function GlassProvider({ children }: { children: React.ReactNode }) {
   // Initialize WASM engine
   useEffect(() => {
     let cancelled = false;
-    initEngine().then(async module => {
+    initEngine(device ? { device } : undefined).then(async module => {
       if (cancelled) return;
-      // The C++ main() fires RequestAdapter → RequestDevice asynchronously.
-      // Poll until getEngine() returns non-null (device acquired, engine created).
-      while (!module.getEngine()) {
-        if (cancelled) return;
-        await new Promise(r => setTimeout(r, 50));
+
+      if (device) {
+        // External mode: engine is available immediately (no async device request)
+        const engine = module.getEngine();
+        if (!engine) {
+          console.error('GlassProvider: engine not available in external mode');
+          return;
+        }
+        moduleRef.current = module;
+        setReady(true);
+      } else {
+        // Standalone mode: poll until device is acquired (existing behavior)
+        while (!module.getEngine()) {
+          if (cancelled) return;
+          await new Promise(r => setTimeout(r, 50));
+        }
+        moduleRef.current = module;
+        setReady(true);
       }
-      moduleRef.current = module;
-      setReady(true);
     }).catch(err => {
       console.error('GlassProvider: engine init failed', err);
     });
@@ -33,7 +52,58 @@ export function GlassProvider({ children }: { children: React.ReactNode }) {
         moduleRef.current = null;
       }
     };
-  }, []);
+  }, [device]);
+
+  // External texture mode: copy external texture to engine's offscreen texture each frame
+  useEffect(() => {
+    if (!ready || !externalTexture || !device) return;
+    const module = moduleRef.current;
+    const engine = module?.getEngine();
+    if (!engine || !module) return;
+
+    // Enable external texture mode (skips noise pass)
+    engine.setExternalTextureMode(true);
+
+    // Get the engine's offscreen texture via handle interop
+    const handle = engine.getBackgroundTextureHandle();
+    const offscreenTexture = module.WebGPU?.mgrTexture.get(handle);
+    if (!offscreenTexture) {
+      console.error('GlassProvider: failed to get offscreen texture from engine');
+      return;
+    }
+
+    let rafId: number;
+    let lastTime = performance.now();
+
+    const frame = () => {
+      const now = performance.now();
+      let dt = (now - lastTime) / 1000;
+      lastTime = now;
+      if (dt > 0.1) dt = 0.1;
+
+      // Copy external texture to engine's offscreen texture (GPU-to-GPU, ~0.1ms)
+      const encoder = device.createCommandEncoder();
+      encoder.copyTextureToTexture(
+        { texture: externalTexture },
+        { texture: offscreenTexture },
+        [externalTexture.width, externalTexture.height]
+      );
+      device.queue.submit([encoder.finish()]);
+
+      // Drive the engine update + render
+      engine.update(dt);
+      engine.render();
+
+      rafId = requestAnimationFrame(frame);
+    };
+
+    rafId = requestAnimationFrame(frame);
+    return () => {
+      cancelAnimationFrame(rafId);
+      // Disable external texture mode on cleanup
+      engine.setExternalTextureMode(false);
+    };
+  }, [ready, externalTexture, device]);
 
   // ResizeObserver for canvas
   useEffect(() => {
@@ -138,7 +208,7 @@ export function GlassProvider({ children }: { children: React.ReactNode }) {
           inset: 0,
           width: '100%',
           height: '100%',
-          zIndex: -1,
+          zIndex: externalTexture ? 0 : -1,
           display: 'block',
         }}
       />

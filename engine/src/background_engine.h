@@ -58,6 +58,9 @@ public:
     void setPaused(bool paused);
     void setReducedTransparency(bool enabled);
 
+    void setExternalTextureMode(bool enabled);
+    uint32_t getBackgroundTextureHandle() const;
+
 private:
     static void lerpUniforms(GlassUniforms& current, const GlassUniforms& target, float t);
     void createNoisePipeline();
@@ -96,4 +99,5 @@ private:
 
     bool paused_ = false;
     bool reducedTransparency_ = false;
+    bool externalTextureMode_ = false;
 };

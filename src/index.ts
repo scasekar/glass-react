@@ -13,6 +13,7 @@ export type {
   GlassColor,
   AccessibilityPreferences,
 } from './components/types';
+export type { GlassProviderProps } from './components/GlassProvider';
 
 // Hooks (advanced usage)
 export { useGlassEngine } from './hooks/useGlassEngine';

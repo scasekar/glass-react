@@ -94,12 +94,43 @@ void OnAdapterAcquired(wgpu::RequestAdapterStatus status, wgpu::Adapter adapter,
 }
 
 int main() {
-    wgpu::Instance instance = wgpu::CreateInstance();
-    instance.RequestAdapter(nullptr, wgpu::CallbackMode::AllowSpontaneous,
-                            OnAdapterAcquired);
-
 #ifdef __EMSCRIPTEN__
-    emscripten_set_main_loop(MainLoop, 0, false);
+    WGPUDevice preDevice = emscripten_webgpu_get_device();
+    if (preDevice) {
+        // External mode: device provided by host via preinitializedWebGPUDevice
+        wgpu::Device device = wgpu::Device::Acquire(preDevice);
+        device.SetUncapturedErrorCallback([](const wgpu::Device&, wgpu::ErrorType type, wgpu::StringView msg) {
+            std::cerr << "Device error: " << static_cast<int>(type)
+                      << " - " << std::string_view(msg.data, msg.length) << "\n";
+        });
+
+        wgpu::Instance instance = wgpu::CreateInstance();
+        wgpu::SurfaceDescriptor surfaceDesc{};
+        wgpu::EmscriptenSurfaceSourceCanvasHTMLSelector canvasSource{};
+        canvasSource.selector = "#gpu-canvas";
+        surfaceDesc.nextInChain = &canvasSource;
+        wgpu::Surface surface = instance.CreateSurface(&surfaceDesc);
+
+        wgpu::TextureFormat format = wgpu::TextureFormat::BGRA8Unorm;
+        wgpu::SurfaceConfiguration config{};
+        config.device = device;
+        config.format = format;
+        config.width = 512;
+        config.height = 512;
+        surface.Configure(&config);
+
+        g_engine = new BackgroundEngine();
+        g_engine->init(device, surface, format, 512, 512);
+        // Do NOT start main loop — JS drives it in external mode
+    } else {
+#endif
+        // Standalone mode (current behavior)
+        wgpu::Instance instance = wgpu::CreateInstance();
+        instance.RequestAdapter(nullptr, wgpu::CallbackMode::AllowSpontaneous,
+                                OnAdapterAcquired);
+#ifdef __EMSCRIPTEN__
+        emscripten_set_main_loop(MainLoop, 0, false);
+    }
 #endif
     return 0;
 }
@@ -131,6 +162,10 @@ EMSCRIPTEN_BINDINGS(background_engine) {
         .function("setRegionMode", &BackgroundEngine::setRegionMode)
         .function("setRegionMorphSpeed", &BackgroundEngine::setRegionMorphSpeed)
         .function("setPaused", &BackgroundEngine::setPaused)
-        .function("setReducedTransparency", &BackgroundEngine::setReducedTransparency);
+        .function("setReducedTransparency", &BackgroundEngine::setReducedTransparency)
+        .function("setExternalTextureMode", &BackgroundEngine::setExternalTextureMode)
+        .function("getBackgroundTextureHandle", &BackgroundEngine::getBackgroundTextureHandle)
+        .function("update", &BackgroundEngine::update)
+        .function("render", &BackgroundEngine::render);
 }
 #endif
