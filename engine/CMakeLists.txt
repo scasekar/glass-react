@@ -18,7 +18,7 @@ if(EMSCRIPTEN)
         "-sASYNCIFY=1"
         "-sALLOW_MEMORY_GROWTH"
         "-lembind"
-        "-sEXPORTED_RUNTIME_METHODS=['ccall']"
+        "-sEXPORTED_RUNTIME_METHODS=['ccall','WebGPU']"
         "-sENVIRONMENT=web"
         "-sMODULARIZE=1"
         "-sEXPORT_ES6=1"

@@ -65,10 +65,12 @@ export function GlassProvider({ children, device, externalTexture }: GlassProvid
     engine.setExternalTextureMode(true);
 
     // Get the engine's offscreen texture via handle interop
+    // emdawnwebgpu uses WebGPU.getJsObject(ptr), old libwebgpu uses WebGPU.mgrTexture.get(id)
     const handle = engine.getBackgroundTextureHandle();
-    const offscreenTexture = module.WebGPU?.mgrTexture.get(handle);
+    const getJsObj = module.WebGPU?.getJsObject ?? module.WebGPU?.mgrTexture?.get?.bind(module.WebGPU.mgrTexture);
+    const offscreenTexture = getJsObj?.(handle) as GPUTexture | undefined;
     if (!offscreenTexture) {
-      console.error('GlassProvider: failed to get offscreen texture from engine');
+      console.error('GlassProvider: failed to get offscreen texture from engine, handle=', handle);
       return;
     }
 
