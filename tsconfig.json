@@ -6,6 +6,7 @@
     "jsx": "react-jsx",
     "strict": true,
     "esModuleInterop": true,
+    "types": ["@webgpu/types"],
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,

@@ -84,11 +84,6 @@ void OnAdapterAcquired(wgpu::RequestAdapterStatus status, wgpu::Adapter adapter,
     g_adapter = std::move(adapter);
 
     wgpu::DeviceDescriptor devDesc{};
-    devDesc.SetUncapturedErrorCallback(
-        [](const wgpu::Device&, wgpu::ErrorType type, wgpu::StringView msg) {
-            std::cerr << "Device error: " << static_cast<int>(type)
-                      << " - " << std::string_view(msg.data, msg.length) << "\n";
-        });
     g_adapter.RequestDevice(&devDesc, wgpu::CallbackMode::AllowSpontaneous,
                             OnDeviceAcquired);
 }
@@ -99,10 +94,6 @@ int main() {
     if (preDevice) {
         // External mode: device provided by host via preinitializedWebGPUDevice
         wgpu::Device device = wgpu::Device::Acquire(preDevice);
-        device.SetUncapturedErrorCallback([](const wgpu::Device&, wgpu::ErrorType type, wgpu::StringView msg) {
-            std::cerr << "Device error: " << static_cast<int>(type)
-                      << " - " << std::string_view(msg.data, msg.length) << "\n";
-        });
 
         wgpu::Instance instance = wgpu::CreateInstance();
         wgpu::SurfaceDescriptor surfaceDesc{};
