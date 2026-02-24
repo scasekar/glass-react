@@ -64,6 +64,17 @@ export function GlassProvider({ children, device, externalTexture }: GlassProvid
     // Enable external texture mode (skips noise pass)
     engine.setExternalTextureMode(true);
 
+    // Resize engine to match the external texture dimensions so the offscreen
+    // texture, surface, and scene texture are all the same size.
+    engine.resize(externalTexture.width, externalTexture.height);
+
+    // Also set the canvas backing store to match (prevents DPR mismatch)
+    const canvas = canvasRef.current;
+    if (canvas) {
+      canvas.width = externalTexture.width;
+      canvas.height = externalTexture.height;
+    }
+
     // Get the engine's offscreen texture via handle interop
     // emdawnwebgpu uses WebGPU.getJsObject(ptr), old libwebgpu uses WebGPU.mgrTexture.get(id)
     const handle = engine.getBackgroundTextureHandle();
@@ -107,9 +118,9 @@ export function GlassProvider({ children, device, externalTexture }: GlassProvid
     };
   }, [ready, externalTexture, device]);
 
-  // ResizeObserver for canvas
+  // ResizeObserver for canvas (standalone mode only — external texture mode sizes are set by the external texture)
   useEffect(() => {
-    if (!ready) return;
+    if (!ready || externalTexture) return;
     const canvas = canvasRef.current;
     if (!canvas) return;
     const observer = new ResizeObserver((entries) => {
