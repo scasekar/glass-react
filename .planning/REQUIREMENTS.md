@@ -1,7 +1,7 @@
 # Requirements: LiquidGlass-React-WASM v2.0
 
 **Defined:** 2026-02-25
-**Core Value:** Glass components that look and feel like Apple's Liquid Glass — visually convincing refraction at 60FPS, now with pixel-level parity against native iOS rendering.
+**Core Value:** Glass components that look and feel like Apple's Liquid Glass -- visually convincing refraction at 60FPS, now with pixel-level parity against native iOS rendering.
 
 ## v2.0 Requirements
 
@@ -69,9 +69,9 @@
 
 | Feature | Reason |
 |---------|--------|
-| Gyroscope/device tilt interaction | Deferred — get visual parity on static glass first |
+| Gyroscope/device tilt interaction | Deferred -- get visual parity on static glass first |
 | Content-blur mode (frosted glass over page content) | Requires additional compositor; procedural/image backgrounds only |
-| Physical device reference screenshots | iOS 26 `.glassEffect()` renders dark on device (confirmed bug) — simulator only |
+| Physical device reference screenshots | iOS 26 `.glassEffect()` renders dark on device (confirmed bug) -- simulator only |
 | WebGL fallback | WebGPU-only is the value proposition |
 | Server-side rendering | WebGPU is client-only |
 
@@ -79,36 +79,36 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| IMG-01 | — | Pending |
-| IMG-02 | — | Pending |
-| IMG-03 | — | Pending |
-| IMG-04 | — | Pending |
-| SHDR-01 | — | Pending |
-| SHDR-02 | — | Pending |
-| SHDR-03 | — | Pending |
-| SHDR-04 | — | Pending |
-| SHDR-05 | — | Pending |
-| TUNE-01 | — | Pending |
-| TUNE-02 | — | Pending |
-| TUNE-03 | — | Pending |
-| TUNE-04 | — | Pending |
-| REF-01 | — | Pending |
-| REF-02 | — | Pending |
-| REF-03 | — | Pending |
-| REF-04 | — | Pending |
-| DIFF-01 | — | Pending |
-| DIFF-02 | — | Pending |
-| DIFF-03 | — | Pending |
-| DIFF-04 | — | Pending |
-| AUTO-01 | — | Pending |
-| AUTO-02 | — | Pending |
-| AUTO-03 | — | Pending |
+| IMG-01 | Phase 9 | Pending |
+| IMG-02 | Phase 9 | Pending |
+| IMG-03 | Phase 9 | Pending |
+| IMG-04 | Phase 9 | Pending |
+| SHDR-01 | Phase 10 | Pending |
+| SHDR-02 | Phase 10 | Pending |
+| SHDR-03 | Phase 10 | Pending |
+| SHDR-04 | Phase 10 | Pending |
+| SHDR-05 | Phase 10 | Pending |
+| TUNE-01 | Phase 12 | Pending |
+| TUNE-02 | Phase 12 | Pending |
+| TUNE-03 | Phase 12 | Pending |
+| TUNE-04 | Phase 12 | Pending |
+| REF-01 | Phase 11 | Pending |
+| REF-02 | Phase 11 | Pending |
+| REF-03 | Phase 11 | Pending |
+| REF-04 | Phase 11 | Pending |
+| DIFF-01 | Phase 13 | Pending |
+| DIFF-02 | Phase 13 | Pending |
+| DIFF-03 | Phase 13 | Pending |
+| DIFF-04 | Phase 13 | Pending |
+| AUTO-01 | Phase 14 | Pending |
+| AUTO-02 | Phase 14 | Pending |
+| AUTO-03 | Phase 14 | Pending |
 
 **Coverage:**
 - v2.0 requirements: 24 total
-- Mapped to phases: 0
-- Unmapped: 24 (pending roadmap creation)
+- Mapped to phases: 24
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-02-25*
-*Last updated: 2026-02-25 after initial definition*
+*Last updated: 2026-02-25 after roadmap creation*

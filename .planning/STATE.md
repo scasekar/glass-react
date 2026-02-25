@@ -2,45 +2,47 @@
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-02-10)
+See: .planning/PROJECT.md (updated 2026-02-25)
 
-**Core value:** Glass components that look and feel like Apple's Liquid Glass -- refraction of a dynamic background through UI elements must be visually convincing at 60FPS.
-**Current focus:** v2.0 Visual Parity — image backgrounds, shader tuning, iOS reference comparison
+**Core value:** Glass components that look and feel like Apple's Liquid Glass -- visually convincing refraction at 60FPS, now with pixel-level parity against native iOS rendering.
+**Current focus:** Phase 9 - Image Background Engine
 
 ## Current Position
 
-Phase: Not started (defining requirements)
-Milestone: v2.0 Visual Parity
-Status: Defining requirements
-Last activity: 2026-02-25 — Milestone v2.0 started
+Phase: 9 of 14 (Image Background Engine)
+Plan: 0 of TBD in current phase
+Milestone: v2.0 Visual Parity (Phases 9-14)
+Status: Ready to plan
+Last activity: 2026-02-25 -- Roadmap created for v2.0
 
 Progress: [░░░░░░░░░░] 0% (v2.0)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 16
+- Total plans completed: 16 (all v1.0)
 - Average duration: ~3.0 min
 - Total execution time: ~0.75 hours
 
-**By Phase:**
+**By Phase (v1.0):**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 01-engine-foundation | 2 | ~10 min | ~5 min |
-| 02-background-rendering | 2 | ~8 min | ~4 min |
-| 03-gpu-texture-bridge | 2 | ~5 min | ~2.5 min |
-| 04-glass-shader-core | 2 | ~18 min | ~9 min |
-| 05-react-component-api | 2 | ~6.5 min | ~3.2 min |
-| 06-accessibility-theming | 2 | ~7 min | ~3.5 min |
-| 07-visual-polish | 2 | ~6 min | ~3 min |
-| 08-library-packaging-demo | 2 | ~5 min | ~2.5 min |
+| 01-08 (v1.0) | 16 | ~65 min | ~4 min |
+
+**Recent Trend:**
+- v1.0 complete, starting fresh milestone
+- Trend: Stable
 
 ## Accumulated Context
 
 ### Decisions
 
-All decisions logged in PROJECT.md Key Decisions table.
+All v1.0 decisions logged in PROJECT.md Key Decisions table.
+v2.0 pending decisions:
+- Image loading via JS decode + C++ upload (not C++ stb_image) -- confirmed by research
+- Separate Xcode project for SwiftUI reference (not inside glass-react repo)
+- leva for tuning UI, pixelmatch + pngjs for diff pipeline
 
 ### Pending Todos
 
@@ -48,10 +50,12 @@ None.
 
 ### Blockers/Concerns
 
-None — all resolved during v1.0.
+- iOS Simulator `.glassEffect()` dark-on-device bug (C6) -- use simulator only as reference
+- Playwright WebGPU headless capture reliability -- validate early in Phase 13
+- 5x5 Gaussian blur structural gap vs Apple multi-pass -- acknowledged, excluded from initial convergence target
 
 ## Session Continuity
 
-Last session: 2026-02-10
-Stopped at: v1.0 milestone archived
+Last session: 2026-02-25
+Stopped at: v2.0 roadmap created, ready to plan Phase 9
 Resume file: None
