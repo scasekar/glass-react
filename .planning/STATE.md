@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-02-10)
 
 **Core value:** Glass components that look and feel like Apple's Liquid Glass -- refraction of a dynamic background through UI elements must be visually convincing at 60FPS.
-**Current focus:** v1.0 shipped. Planning next milestone.
+**Current focus:** v2.0 Visual Parity — image backgrounds, shader tuning, iOS reference comparison
 
 ## Current Position
 
-Phase: 8 of 8 (all complete)
-Milestone: v1.0 MVP — SHIPPED 2026-02-10
-Status: Milestone archived
-Last activity: 2026-02-10 — v1.0 milestone completed and archived
+Phase: Not started (defining requirements)
+Milestone: v2.0 Visual Parity
+Status: Defining requirements
+Last activity: 2026-02-25 — Milestone v2.0 started
 
-Progress: [##########] 100% (v1.0)
+Progress: [░░░░░░░░░░] 0% (v2.0)
 
 ## Performance Metrics
 
