@@ -4,21 +4,10 @@ import { GlassPanel } from '../src/components/GlassPanel';
 import { GlassButton } from '../src/components/GlassButton';
 import { GlassCard } from '../src/components/GlassCard';
 import { ControlPanel, type GlassParams } from './controls/ControlPanel';
-
-const defaults: GlassParams = {
-  blur: 0.5,
-  opacity: 0.05,
-  cornerRadius: 24,
-  aberration: 3,
-  specular: 0.2,
-  rim: 0.15,
-  tint: [1, 1, 1],
-  refractionMode: 'standard',
-  morphSpeed: 8,
-};
+import { DEFAULTS } from './controls/presets';
 
 export default function App() {
-  const [params, setParams] = useState<GlassParams>(defaults);
+  const [params, setParams] = useState<GlassParams>(DEFAULTS);
   const [bgMode, setBgMode] = useState<'image' | 'noise'>('image');
 
   return (
@@ -66,11 +55,19 @@ export default function App() {
           opacity={params.opacity}
           cornerRadius={params.cornerRadius}
           tint={params.tint}
+          refraction={params.refraction}
           aberration={params.aberration}
           specular={params.specular}
           rim={params.rim}
           refractionMode={params.refractionMode}
           morphSpeed={params.morphSpeed}
+          contrast={params.contrast}
+          saturation={params.saturation}
+          blurRadius={params.blurRadius}
+          fresnelIOR={params.fresnelIOR}
+          fresnelExponent={params.fresnelExponent}
+          envReflectionStrength={params.envReflectionStrength}
+          glareDirection={params.glareDirection}
         >
           <h2 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 600 }}>
             Glass Panel
@@ -89,11 +86,19 @@ export default function App() {
             opacity={params.opacity}
             cornerRadius={Math.min(params.cornerRadius, 16)}
             tint={params.tint}
+            refraction={params.refraction}
             aberration={params.aberration}
             specular={params.specular}
             rim={params.rim}
             refractionMode="standard"
             morphSpeed={params.morphSpeed}
+            contrast={params.contrast}
+            saturation={params.saturation}
+            blurRadius={params.blurRadius}
+            fresnelIOR={params.fresnelIOR}
+            fresnelExponent={params.fresnelExponent}
+            envReflectionStrength={params.envReflectionStrength}
+            glareDirection={params.glareDirection}
             onClick={() => console.log('Standard glass clicked')}
           >
             Standard Button
@@ -105,11 +110,19 @@ export default function App() {
             opacity={params.opacity}
             cornerRadius={Math.min(params.cornerRadius, 16)}
             tint={params.tint}
+            refraction={params.refraction}
             aberration={params.aberration}
             specular={params.specular}
             rim={params.rim}
             refractionMode="prominent"
             morphSpeed={params.morphSpeed}
+            contrast={params.contrast}
+            saturation={params.saturation}
+            blurRadius={params.blurRadius}
+            fresnelIOR={params.fresnelIOR}
+            fresnelExponent={params.fresnelExponent}
+            envReflectionStrength={params.envReflectionStrength}
+            glareDirection={params.glareDirection}
             onClick={() => console.log('Prominent glass clicked')}
           >
             Prominent Button
@@ -123,11 +136,19 @@ export default function App() {
           opacity={params.opacity}
           cornerRadius={params.cornerRadius}
           tint={params.tint}
+          refraction={params.refraction}
           aberration={params.aberration}
           specular={params.specular}
           rim={params.rim}
           refractionMode={params.refractionMode}
           morphSpeed={params.morphSpeed}
+          contrast={params.contrast}
+          saturation={params.saturation}
+          blurRadius={params.blurRadius}
+          fresnelIOR={params.fresnelIOR}
+          fresnelExponent={params.fresnelExponent}
+          envReflectionStrength={params.envReflectionStrength}
+          glareDirection={params.glareDirection}
         >
           <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600 }}>
             Glass Card
