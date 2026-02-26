@@ -25,7 +25,7 @@ Full details: [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md)
 
 ### v2.0 Visual Parity
 
-- [ ] **Phase 9: Image Background Engine** — Load and render real images as background textures with sRGB-correct pipeline
+- [x] **Phase 9: Image Background Engine** — Load and render real images as background textures with sRGB-correct pipeline
 - [ ] **Phase 10: Shader Parameter Exposure** — Expose all glass shader uniforms as typed React props with sensible defaults
 - [ ] **Phase 11: SwiftUI Reference App** — Native iOS reference app capturing authentic Apple Liquid Glass for visual comparison
 - [ ] **Phase 12: Live Tuning UI** — Real-time shader parameter controls with presets and JSON export/import in demo app
@@ -42,9 +42,10 @@ Full details: [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md)
   1. The library's bundled default wallpaper renders as the background behind glass components with correct refraction in image mode
   2. User can switch between `backgroundMode="noise"` and `backgroundMode="image"` without reloading the page, and both modes render correctly
   3. A 50% gray test image passed through the glass pipeline with zero effects produces 50% gray output (sRGB/linear color space correctness verified)
-**Plans**: 2 plans
-  - [ ] 09-01-PLAN.md -- C++ image blit pipeline, mode switching, upload API, Embind bindings
-  - [ ] 09-02-PLAN.md -- JS image decode/upload, GlassProvider backgroundMode prop, bundled wallpaper, demo toggle
+**Plans**: 3 plans
+  - [x] 09-01-PLAN.md -- C++ image blit pipeline, mode switching, upload API, Embind bindings
+  - [x] 09-02-PLAN.md -- JS image decode/upload, GlassProvider backgroundMode prop, bundled wallpaper, demo toggle
+  - [x] 09-03-PLAN.md -- Documentation gap closure (success criteria + requirements verification)
 
 ### Phase 10: Shader Parameter Exposure
 **Goal**: Users can fine-tune every aspect of the glass appearance through documented React props
@@ -115,7 +116,7 @@ Phases 9 and 10 can execute in parallel. Phase 11 can execute in parallel with 9
 | 6. Accessibility & Theming | v1.0 | 2/2 | Complete | 2026-02-10 |
 | 7. Visual Polish | v1.0 | 2/2 | Complete | 2026-02-10 |
 | 8. Library Packaging & Demo | v1.0 | 2/2 | Complete | 2026-02-10 |
-| 9. Image Background Engine | v2.0 | 0/2 | Planned | - |
+| 9. Image Background Engine | v2.0 | 3/3 | Complete | 2026-02-25 |
 | 10. Shader Parameter Exposure | v2.0 | 0/TBD | Not started | - |
 | 11. SwiftUI Reference App | v2.0 | 0/TBD | Not started | - |
 | 12. Live Tuning UI | v2.0 | 0/TBD | Not started | - |
