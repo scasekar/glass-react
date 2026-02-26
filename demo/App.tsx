@@ -43,6 +43,45 @@ export default function App() {
   const [params, setParams] = useState<GlassParams>(() => ({ ...DEFAULTS, ...getParamsFromURL() }));
   const [bgMode, setBgMode] = useState<'image' | 'noise'>('image');
 
+  const isCapture = new URL(window.location.href).searchParams.has('capture');
+
+  if (isCapture) {
+    return (
+      <GlassProvider backgroundMode="image">
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: '100vw',
+          height: '100vh',
+          position: 'relative',
+          zIndex: 1,
+        }}>
+          <GlassPanel
+            style={{ width: 360, height: 240 }}
+            blur={params.blur}
+            opacity={params.opacity}
+            cornerRadius={params.cornerRadius}
+            tint={params.tint}
+            refraction={params.refraction}
+            aberration={params.aberration}
+            specular={params.specular}
+            rim={params.rim}
+            refractionMode={params.refractionMode}
+            morphSpeed={0}
+            contrast={params.contrast}
+            saturation={params.saturation}
+            blurRadius={params.blurRadius}
+            fresnelIOR={params.fresnelIOR}
+            fresnelExponent={params.fresnelExponent}
+            envReflectionStrength={params.envReflectionStrength}
+            glareDirection={params.glareDirection}
+          />
+        </div>
+      </GlassProvider>
+    );
+  }
+
   return (
     <GlassProvider backgroundMode={bgMode}>
       {/* Main content area */}
