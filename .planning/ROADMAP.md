@@ -69,7 +69,9 @@ Full details: [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md)
   2. Reference app displays both a glass panel and a rounded element (search bar or pill button) matching the web demo layout
   3. Reference app can be toggled between light mode and dark mode, producing visually distinct glass variants
   4. Running the capture script produces stable, repeatable PNG screenshots from the iOS Simulator (three consecutive captures are pixel-identical)
-**Plans**: TBD
+**Plans**: 2 plans
+  - [ ] 11-01-PLAN.md -- Xcode project, SwiftUI app with glass elements, wallpaper, toggles, capture mode
+  - [ ] 11-02-PLAN.md -- Bash capture script with metadata stripping, 3-capture pixel-identity verification
 
 ### Phase 12: Live Tuning UI
 **Goal**: Developers can interactively adjust every shader parameter in the demo app and save/load parameter configurations
@@ -120,7 +122,7 @@ Phases 9 and 10 can execute in parallel. Phase 11 can execute in parallel with 9
 | 8. Library Packaging & Demo | v1.0 | 2/2 | Complete | 2026-02-10 |
 | 9. Image Background Engine | v2.0 | 3/3 | Complete | 2026-02-25 |
 | 10. Shader Parameter Exposure | 2/2 | Complete    | 2026-02-26 | - |
-| 11. SwiftUI Reference App | v2.0 | 0/TBD | Not started | - |
+| 11. SwiftUI Reference App | v2.0 | 0/2 | Planned | - |
 | 12. Live Tuning UI | v2.0 | 0/TBD | Not started | - |
 | 13. Screenshot Diff Pipeline | v2.0 | 0/TBD | Not started | - |
 | 14. Automated Tuning Loop | v2.0 | 0/TBD | Not started | - |
