@@ -1,10 +1,10 @@
 #pragma once
 
 // WGSL image blit shader as C++ raw string literal
-// Fullscreen triangle that samples an sRGB image texture and outputs to offscreen texture
+// Fullscreen triangle that samples an image texture and outputs to offscreen texture
 // Used as Pass 1 alternative in image background mode (replaces noise pass)
-// The image texture uses rgba8unorm-srgb format which handles sRGB-to-linear conversion
-// automatically on sample -- no manual pow(2.2) gamma correction needed
+// The image texture uses rgba8unorm format -- raw sRGB bytes pass through without
+// linearization, matching the non-sRGB offscreen and surface textures
 
 const char* imageBlitShaderCode = R"(
 

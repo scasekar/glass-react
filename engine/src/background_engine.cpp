@@ -187,11 +187,13 @@ void BackgroundEngine::uploadImageData(const uint8_t* pixels, uint32_t imgWidth,
         imageTexture_.Destroy();
     }
 
-    // Create image texture with sRGB format for automatic sRGB-to-linear conversion on sample
+    // Create image texture — use RGBA8Unorm (not Srgb) so raw sRGB bytes pass through
+    // without linearization. The rest of the pipeline (offscreen texture, surface) also
+    // uses non-sRGB formats, so this keeps color space handling consistent.
     wgpu::TextureDescriptor texDesc{};
     texDesc.label = "Image background texture";
     texDesc.size = {imgWidth, imgHeight, 1};
-    texDesc.format = wgpu::TextureFormat::RGBA8UnormSrgb;
+    texDesc.format = wgpu::TextureFormat::RGBA8Unorm;
     texDesc.usage = wgpu::TextureUsage::TextureBinding | wgpu::TextureUsage::CopyDst;
     texDesc.dimension = wgpu::TextureDimension::e2D;
     texDesc.mipLevelCount = 1;
