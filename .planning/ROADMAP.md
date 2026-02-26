@@ -65,7 +65,7 @@ Full details: [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md)
 **Depends on**: Nothing (independent of web app phases)
 **Requirements**: REF-01, REF-02, REF-03, REF-04
 **Success Criteria** (what must be TRUE):
-  1. Xcode project builds and runs on iPhone 16 Pro Simulator showing `.regular` and `.clear` glass variants over the bundled wallpaper
+  1. Xcode project builds and runs on iPhone Simulator showing `.clear` glass variant over the bundled wallpaper (`.regular` available but not a tuning target)
   2. Reference app displays both a glass panel and a rounded element (search bar or pill button) matching the web demo layout
   3. Reference app can be toggled between light mode and dark mode, producing visually distinct glass variants
   4. Running the capture script produces stable, repeatable PNG screenshots from the iOS Simulator (three consecutive captures are pixel-identical)
@@ -80,7 +80,7 @@ Full details: [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md)
 **Success Criteria** (what must be TRUE):
   1. Demo app displays grouped slider controls for all shader parameters, and moving any slider updates the glass appearance instantly
   2. User can click "Reset" per section or globally and all parameters return to their defaults
-  3. User can select "Apple Standard" or "Apple Prominent" presets and see distinct glass appearances load instantly
+  3. User can select "Apple Clear Light" or "Apple Clear Dark" presets and see distinct glass appearances load instantly
   4. User can export current parameters as a JSON file and import a previously exported JSON to restore those parameters
 **Plans**: TBD
 

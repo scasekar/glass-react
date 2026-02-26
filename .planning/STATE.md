@@ -80,6 +80,7 @@ v2.0 decisions:
 - [10-02] No hover effects on new shader params -- physical material properties, not interaction feedback
 - [10-02] Same defaults across dark/light mode for new params (physical properties)
 - [11-02] sips fallback when exiftool unavailable -- both produce pixel-identical stripped PNGs
+- [Scope] Tuning target narrowed to `.clear` variant only (light + dark mode). `.regular` variant remains available in reference app but is not a convergence target for Phases 12-14
 - [11-02] Screenshots gitignored (large binary output), only .gitkeep tracked
 - [11-02] In-app variant toggle is a documented limitation -- script captures current variant only
 

@@ -24,12 +24,12 @@
 
 - [ ] **TUNE-01**: Demo app shows real-time slider controls for all shader parameters, grouped by section
 - [ ] **TUNE-02**: User can reset parameters to defaults per section and globally
-- [ ] **TUNE-03**: Demo app offers named presets (Apple Standard, Apple Prominent) for one-click parameter loading
+- [ ] **TUNE-03**: Demo app offers named presets (Apple Clear Light, Apple Clear Dark) for one-click parameter loading
 - [ ] **TUNE-04**: User can export current parameters as JSON and import a JSON config
 
 ### SwiftUI Reference
 
-- [ ] **REF-01**: Separate Xcode project renders `.regular` and `.clear` glass variants over the same wallpaper image
+- [ ] **REF-01**: Separate Xcode project renders `.clear` glass variant over the same wallpaper image (`.regular` available but not a tuning target)
 - [ ] **REF-02**: Reference app includes a glass panel and a rounded element (search bar / pill button)
 - [ ] **REF-03**: Reference app supports light and dark mode variants
 - [x] **REF-04**: Screenshots can be captured via `xcrun simctl io` script targeting iPhone 16 Pro Simulator
