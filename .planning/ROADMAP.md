@@ -82,7 +82,9 @@ Full details: [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md)
   2. User can click "Reset" per section or globally and all parameters return to their defaults
   3. User can select "Apple Clear Light" or "Apple Clear Dark" presets and see distinct glass appearances load instantly
   4. User can export current parameters as a JSON file and import a previously exported JSON to restore those parameters
-**Plans**: TBD
+**Plans**: 2 plans
+  - [ ] 12-01-PLAN.md -- Presets data module + extended ControlPanel with all params, sections, reset, presets, import/export
+  - [ ] 12-02-PLAN.md -- App.tsx wiring for all 16 props, URL param support, visual verification
 
 ### Phase 13: Screenshot Diff Pipeline
 **Goal**: A scripted pipeline captures matching screenshots from web and iOS and produces a quantified pixel-diff comparison
