@@ -33,6 +33,47 @@ export interface GlassStyleProps {
   refractionMode?: 'standard' | 'prominent';
   /** Morph transition speed (0 = instant snap, 8 = smooth ~0.4s). Default: 8 */
   morphSpeed?: number;
+  /**
+   * Contrast adjustment applied to the background behind the glass (0--2).
+   * Matches CSS backdrop-filter: contrast(). 1.0 = no change, <1 = reduce, >1 = increase.
+   * Default: 0.85 (Apple Liquid Glass standard).
+   */
+  contrast?: number;
+  /**
+   * Saturation boost applied to the background behind the glass (0--3).
+   * Matches CSS backdrop-filter: saturate(). 1.0 = no change, >1 = boost.
+   * Default: 1.4 (Apple Liquid Glass standard).
+   */
+  saturation?: number;
+  /**
+   * Blur radius in CSS pixels applied to the background (0--50).
+   * When set, overrides the normalized `blur` prop. Higher = more frosted.
+   * Default: 15. If unset, computed from `blur` prop as `blur * 30`.
+   */
+  blurRadius?: number;
+  /**
+   * Fresnel index of refraction for edge reflection (1.0--3.0).
+   * 1.5 = physical glass. Higher values create more edge reflectivity.
+   * Default: 1.5.
+   */
+  fresnelIOR?: number;
+  /**
+   * Fresnel exponent controlling edge fall-off curve (0.5--10).
+   * Higher = sharper, more concentrated edge reflection.
+   * Default: 5.0.
+   */
+  fresnelExponent?: number;
+  /**
+   * Environment reflection strength -- intensity of ambient glass reflections (0--1).
+   * Default: 0.12 (subtle, matching Apple's light-touch approach).
+   */
+  envReflectionStrength?: number;
+  /**
+   * Glare direction angle in degrees (any number, wraps naturally).
+   * 0 = right, 90 = down, 180 = left, 270 = up.
+   * Default: 315 (upper-left, Apple standard).
+   */
+  glareDirection?: number;
 }
 
 /** Props for GlassPanel (<div> wrapper) */

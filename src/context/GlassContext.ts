@@ -11,6 +11,13 @@ export interface GlassRegionHandle {
   updateRim(intensity: number): void;
   updateMode(mode: number): void;
   updateMorphSpeed(speed: number): void;
+  updateContrast(value: number): void;
+  updateSaturation(value: number): void;
+  updateBlurRadius(value: number): void;
+  updateFresnelIOR(value: number): void;
+  updateFresnelExponent(value: number): void;
+  updateEnvReflectionStrength(value: number): void;
+  updateGlareAngle(value: number): void;
   remove(): void;
 }
 

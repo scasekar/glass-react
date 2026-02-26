@@ -11,6 +11,13 @@ export interface EngineModule {
     setRegionRim(id: number, intensity: number): void;
     setRegionMode(id: number, mode: number): void;
     setRegionMorphSpeed(id: number, speed: number): void;
+    setRegionContrast(id: number, contrast: number): void;
+    setRegionSaturation(id: number, saturation: number): void;
+    setRegionFresnelIOR(id: number, ior: number): void;
+    setRegionFresnelExponent(id: number, exponent: number): void;
+    setRegionEnvReflectionStrength(id: number, strength: number): void;
+    setRegionGlareAngle(id: number, angle: number): void;
+    setRegionBlurRadius(id: number, radius: number): void;
     setPaused(paused: boolean): void;
     setReducedTransparency(enabled: boolean): void;
   } | null;
