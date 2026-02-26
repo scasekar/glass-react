@@ -2,8 +2,46 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { GlassContext, type GlassRegionHandle, type RegisteredRegion } from '../context/GlassContext';
 import { initEngine, type EngineModule } from '../wasm/loader';
 import { useAccessibilityPreferences } from '../hooks/useAccessibilityPreferences';
+import wallpaperUrl from '../assets/wallpaper.jpg';
 
-export function GlassProvider({ children }: { children: React.ReactNode }) {
+interface GlassProviderProps {
+  backgroundMode?: 'image' | 'noise'; // default: 'image'
+  children: React.ReactNode;
+}
+
+async function loadAndUploadWallpaper(module: EngineModule): Promise<void> {
+  const response = await fetch(wallpaperUrl);
+  if (!response.ok) {
+    console.error('GlassProvider: failed to load wallpaper:', response.status);
+    return;
+  }
+  const blob = await response.blob();
+
+  // colorSpaceConversion: 'none' preserves raw sRGB values from JPEG
+  // This prevents the browser from applying unwanted ICC profile conversion
+  const bitmap = await createImageBitmap(blob, { colorSpaceConversion: 'none' });
+
+  // Capture dimensions before closing bitmap
+  const width = bitmap.width;
+  const height = bitmap.height;
+
+  // Extract raw RGBA pixels via OffscreenCanvas
+  const canvas = new OffscreenCanvas(width, height);
+  const ctx = canvas.getContext('2d')!;
+  ctx.drawImage(bitmap, 0, 0);
+  const imageData = ctx.getImageData(0, 0, width, height);
+  bitmap.close();
+
+  const rgba = new Uint8Array(imageData.data.buffer);
+
+  // Transfer to WASM heap and upload
+  const ptr = module._malloc(rgba.byteLength);
+  module.HEAPU8.set(rgba, ptr);
+  module.uploadImageData(ptr, width, height);
+  module._free(ptr);
+}
+
+export function GlassProvider({ children, backgroundMode = 'image' }: GlassProviderProps) {
   const [ready, setReady] = useState(false);
   const moduleRef = useRef<EngineModule | null>(null);
   const regionsRef = useRef(new Map<number, RegisteredRegion>());
@@ -72,6 +110,21 @@ export function GlassProvider({ children }: { children: React.ReactNode }) {
     if (!engine) return;
     engine.setPaused(prefs.reducedMotion);
   }, [prefs.reducedMotion, ready]);
+
+  // Load and upload wallpaper image when engine is ready
+  useEffect(() => {
+    if (!ready || !moduleRef.current) return;
+    loadAndUploadWallpaper(moduleRef.current).catch(err => {
+      console.error('GlassProvider: wallpaper upload failed', err);
+    });
+  }, [ready]);
+
+  // Sync backgroundMode prop to C++ engine
+  useEffect(() => {
+    if (!ready || !moduleRef.current) return;
+    // 0 = Image, 1 = Noise (matches C++ BackgroundMode enum)
+    moduleRef.current.setBackgroundMode(backgroundMode === 'image' ? 0 : 1);
+  }, [backgroundMode, ready]);
 
   // rAF position sync loop
   useEffect(() => {

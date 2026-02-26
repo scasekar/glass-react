@@ -19,9 +19,10 @@ const defaults: GlassParams = {
 
 export default function App() {
   const [params, setParams] = useState<GlassParams>(defaults);
+  const [bgMode, setBgMode] = useState<'image' | 'noise'>('image');
 
   return (
-    <GlassProvider>
+    <GlassProvider backgroundMode={bgMode}>
       {/* Main content area */}
       <div style={{
         display: 'flex',
@@ -151,6 +152,31 @@ export default function App() {
           Press for blur reduction. Toggle OS accessibility preferences via Chrome DevTools
           &gt; Rendering to test reduced motion, reduced transparency, and dark/light mode.
         </div>
+      </div>
+
+      {/* Background mode toggle */}
+      <div style={{
+        position: 'fixed',
+        bottom: 20,
+        left: 20,
+        zIndex: 10,
+      }}>
+        <button
+          onClick={() => setBgMode(m => m === 'image' ? 'noise' : 'image')}
+          style={{
+            padding: '8px 16px',
+            fontSize: '0.8rem',
+            fontWeight: 500,
+            background: 'rgba(255, 255, 255, 0.15)',
+            color: 'rgba(255, 255, 255, 0.85)',
+            border: '1px solid rgba(255, 255, 255, 0.2)',
+            borderRadius: 8,
+            cursor: 'pointer',
+            backdropFilter: 'blur(8px)',
+          }}
+        >
+          Background: {bgMode === 'image' ? 'Image' : 'Noise'}
+        </button>
       </div>
 
       {/* Control Panel */}
