@@ -14,11 +14,11 @@
 
 ### Shader Parameters
 
-- [ ] **SHDR-01**: User can control contrast, saturation, and blurRadius via React props on glass components
-- [ ] **SHDR-02**: All existing glass shader uniforms are exposed as documented, typed React props with sensible defaults
-- [ ] **SHDR-03**: Glass shader supports Fresnel IOR and exponent parameters for edge reflection
-- [ ] **SHDR-04**: Glass shader supports environment reflection strength parameter
-- [ ] **SHDR-05**: Glass shader supports glare direction angle parameter
+- [x] **SHDR-01**: User can control contrast, saturation, and blurRadius via React props on glass components
+- [x] **SHDR-02**: All existing glass shader uniforms are exposed as documented, typed React props with sensible defaults
+- [x] **SHDR-03**: Glass shader supports Fresnel IOR and exponent parameters for edge reflection
+- [x] **SHDR-04**: Glass shader supports environment reflection strength parameter
+- [x] **SHDR-05**: Glass shader supports glare direction angle parameter
 
 ### Live Tuning UI
 
@@ -83,11 +83,11 @@
 | IMG-02 | Phase 9 | Complete |
 | IMG-03 | Phase 9 | Complete |
 | IMG-04 | Phase 9 | Complete |
-| SHDR-01 | Phase 10 | Pending |
-| SHDR-02 | Phase 10 | Pending |
-| SHDR-03 | Phase 10 | Pending |
-| SHDR-04 | Phase 10 | Pending |
-| SHDR-05 | Phase 10 | Pending |
+| SHDR-01 | Phase 10 | Complete |
+| SHDR-02 | Phase 10 | Complete |
+| SHDR-03 | Phase 10 | Complete |
+| SHDR-04 | Phase 10 | Complete |
+| SHDR-05 | Phase 10 | Complete |
 | TUNE-01 | Phase 12 | Pending |
 | TUNE-02 | Phase 12 | Pending |
 | TUNE-03 | Phase 12 | Pending |

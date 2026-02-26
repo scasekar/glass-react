@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: Visual Parity
 status: unknown
-last_updated: "2026-02-26T01:49:19.342Z"
+last_updated: "2026-02-26T02:39:55Z"
 progress:
-  total_phases: 9
+  total_phases: 10
   completed_phases: 9
-  total_plans: 19
-  completed_plans: 19
+  total_plans: 21
+  completed_plans: 20
 ---
 
 # Project State
@@ -18,17 +18,17 @@ progress:
 See: .planning/PROJECT.md (updated 2026-02-25)
 
 **Core value:** Glass components that look and feel like Apple's Liquid Glass -- visually convincing refraction at 60FPS, now with pixel-level parity against native iOS rendering.
-**Current focus:** Phase 9 - Image Background Engine
+**Current focus:** Phase 10 - Shader Parameter Exposure
 
 ## Current Position
 
-Phase: 9 of 14 (Image Background Engine)
-Plan: 3 of 3 in current phase (all complete)
+Phase: 10 of 14 (Shader Parameter Exposure)
+Plan: 1 of 2 in current phase (Plan 01 complete)
 Milestone: v2.0 Visual Parity (Phases 9-14)
-Status: Phase 9 complete — ready for Phase 10
-Last activity: 2026-02-25 -- Completed 09-03 Documentation Gap Closure
+Status: Phase 10 in progress -- Plan 01 complete, Plan 02 remaining
+Last activity: 2026-02-25 -- Completed 10-01 C++ Engine Parameter Exposure
 
-Progress: [██░░░░░░░░] 17% (v2.0)
+Progress: [███░░░░░░░] 33% (v2.0)
 
 ## Performance Metrics
 
@@ -48,9 +48,10 @@ Progress: [██░░░░░░░░] 17% (v2.0)
 | Phase | Plan | Duration | Tasks | Files |
 |-------|------|----------|-------|-------|
 | 09 | P03 | 1min | 2 | 1 |
+| 10 | P01 | 6min | 2 | 4 |
 
 **Recent Trend:**
-- Phase 9 complete (3 plans: C++ pipeline, JS integration, doc gap closure)
+- Phase 10 Plan 01 complete (C++ engine parameter exposure)
 - Trend: Stable
 
 ## Accumulated Context
@@ -68,6 +69,9 @@ v2.0 decisions:
 - [09-02] HEAPU8 must be in EXPORTED_RUNTIME_METHODS for JS→WASM pixel transfer (not just EXPORTED_FUNCTIONS)
 - [09-02] Wallpaper loaded via fetch + createImageBitmap(colorSpaceConversion:'none') + OffscreenCanvas for sRGB preservation
 - [Phase 09]: Phase 9 success criteria updated: backgroundSrc prop deferred, criteria reflect bundled-wallpaper-only scope
+- [10-01] Fresnel edge reflection is additive on top of existing specular, not a replacement
+- [10-01] blurRadius uniform is in absolute pixels, JS computes from props
+- [10-01] glareAngle has no clamping -- wraps naturally via cos/sin
 
 ### Pending Todos
 
@@ -82,5 +86,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-25
-Stopped at: Completed 09-03-PLAN.md -- Phase 9 fully complete (all 3 plans done, docs verified)
+Stopped at: Completed 10-01-PLAN.md -- C++ engine parameter exposure (7 new shader uniforms + Fresnel model)
 Resume file: None
