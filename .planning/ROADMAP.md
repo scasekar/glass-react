@@ -107,7 +107,9 @@ Full details: [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md)
   1. Tuning script injects parameters via URL query string and captures a screenshot without requiring a rebuild or HMR cycle
   2. Script performs coordinate descent, adjusting one parameter at a time, and the diff score decreases across iterations
   3. Script outputs a log of convergence per iteration and a final JSON file containing the best-found parameter set
-**Plans**: TBD
+**Plans**: 2 plans
+  - [ ] 14-01-PLAN.md -- Scorer module (persistent browser + capture/normalize/compare) and tuner engine (coordinate descent with adaptive steps)
+  - [ ] 14-02-PLAN.md -- Tuning loop entry point, CLI, convergence logging, JSON output, npm run tune script
 
 ## Progress
 
@@ -129,4 +131,4 @@ Phases 9 and 10 can execute in parallel. Phase 11 can execute in parallel with 9
 | 11. SwiftUI Reference App | 2/2 | Complete    | 2026-02-26 | - |
 | 12. Live Tuning UI | v2.0 | Complete    | 2026-02-26 | 2026-02-26 |
 | 13. Screenshot Diff Pipeline | 2/2 | Complete    | 2026-02-26 | - |
-| 14. Automated Tuning Loop | v2.0 | 0/TBD | Not started | - |
+| 14. Automated Tuning Loop | v2.0 | 0/2 | Not started | - |
