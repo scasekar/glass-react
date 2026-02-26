@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: Visual Parity
 status: unknown
-last_updated: "2026-02-26T02:55:12.130Z"
+last_updated: "2026-02-26T04:29:00Z"
 progress:
-  total_phases: 10
-  completed_phases: 10
-  total_plans: 21
-  completed_plans: 21
+  total_phases: 11
+  completed_phases: 11
+  total_plans: 23
+  completed_plans: 23
 ---
 
 # Project State
@@ -18,17 +18,17 @@ progress:
 See: .planning/PROJECT.md (updated 2026-02-25)
 
 **Core value:** Glass components that look and feel like Apple's Liquid Glass -- visually convincing refraction at 60FPS, now with pixel-level parity against native iOS rendering.
-**Current focus:** Phase 10 - Shader Parameter Exposure
+**Current focus:** Phase 11 - SwiftUI Reference App
 
 ## Current Position
 
-Phase: 10 of 14 (Shader Parameter Exposure) -- COMPLETE
+Phase: 11 of 14 (SwiftUI Reference App) -- COMPLETE
 Plan: 2 of 2 in current phase (all plans complete)
 Milestone: v2.0 Visual Parity (Phases 9-14)
-Status: Phase 10 complete -- all shader parameters exposed from C++ through React API
-Last activity: 2026-02-25 -- Completed 10-02 TypeScript/React Wiring
+Status: Phase 11 complete -- SwiftUI reference app with capture pipeline for pixel-identity verification
+Last activity: 2026-02-25 -- Completed 11-02 Capture Script
 
-Progress: [████░░░░░░] 40% (v2.0)
+Progress: [█████░░░░░] 50% (v2.0)
 
 ## Performance Metrics
 
@@ -50,9 +50,11 @@ Progress: [████░░░░░░] 40% (v2.0)
 | 09 | P03 | 1min | 2 | 1 |
 | 10 | P01 | 6min | 2 | 4 |
 | 10 | P02 | 3min | 2 | 8 |
+| 11 | P01 | 45min | 2 | 5 |
+| 11 | P02 | 2min | 2 | 3 |
 
 **Recent Trend:**
-- Phase 10 complete (Plan 01 engine + Plan 02 React wiring)
+- Phase 11 complete (Plan 01 SwiftUI app + Plan 02 capture script)
 - Trend: Stable
 
 ## Accumulated Context
@@ -77,6 +79,9 @@ v2.0 decisions:
 - [10-02] blurRadius (pixels) takes precedence over blur (normalized) when both set
 - [10-02] No hover effects on new shader params -- physical material properties, not interaction feedback
 - [10-02] Same defaults across dark/light mode for new params (physical properties)
+- [11-02] sips fallback when exiftool unavailable -- both produce pixel-identical stripped PNGs
+- [11-02] Screenshots gitignored (large binary output), only .gitkeep tracked
+- [11-02] In-app variant toggle is a documented limitation -- script captures current variant only
 
 ### Pending Todos
 
@@ -91,5 +96,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-25
-Stopped at: Completed 10-02-PLAN.md -- TypeScript/React wiring of 7 shader parameters (Phase 10 complete)
+Stopped at: Completed 11-02-PLAN.md -- Capture script with pixel-identity verification (Phase 11 complete)
 Resume file: None

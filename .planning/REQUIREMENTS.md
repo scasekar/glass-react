@@ -32,7 +32,7 @@
 - [ ] **REF-01**: Separate Xcode project renders `.regular` and `.clear` glass variants over the same wallpaper image
 - [ ] **REF-02**: Reference app includes a glass panel and a rounded element (search bar / pill button)
 - [ ] **REF-03**: Reference app supports light and dark mode variants
-- [ ] **REF-04**: Screenshots can be captured via `xcrun simctl io` script targeting iPhone 16 Pro Simulator
+- [x] **REF-04**: Screenshots can be captured via `xcrun simctl io` script targeting iPhone 16 Pro Simulator
 
 ### Visual Diffing
 
@@ -95,7 +95,7 @@
 | REF-01 | Phase 11 | Pending |
 | REF-02 | Phase 11 | Pending |
 | REF-03 | Phase 11 | Pending |
-| REF-04 | Phase 11 | Pending |
+| REF-04 | Phase 11 | Complete |
 | DIFF-01 | Phase 13 | Pending |
 | DIFF-02 | Phase 13 | Pending |
 | DIFF-03 | Phase 13 | Pending |
