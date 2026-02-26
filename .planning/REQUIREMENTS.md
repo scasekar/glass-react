@@ -36,7 +36,7 @@
 
 ### Visual Diffing
 
-- [ ] **DIFF-01**: Playwright script captures WebGPU canvas screenshot at standardized pixel dimensions
+- [x] **DIFF-01**: Playwright script captures WebGPU canvas screenshot at standardized pixel dimensions
 - [ ] **DIFF-02**: Diff script normalizes both web and iOS screenshots to sRGB color space before comparison
 - [ ] **DIFF-03**: pixelmatch comparison produces diff image output with mismatch percentage
 - [ ] **DIFF-04**: Diff pipeline supports region-of-interest masking to compare only the glass area
@@ -96,7 +96,7 @@
 | REF-02 | Phase 11 | Pending |
 | REF-03 | Phase 11 | Pending |
 | REF-04 | Phase 11 | Complete |
-| DIFF-01 | Phase 13 | Pending |
+| DIFF-01 | Phase 13 | Complete |
 | DIFF-02 | Phase 13 | Pending |
 | DIFF-03 | Phase 13 | Pending |
 | DIFF-04 | Phase 13 | Pending |

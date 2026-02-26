@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: Visual Parity
 status: unknown
-last_updated: "2026-02-26T21:00:43.747Z"
+last_updated: "2026-02-26T21:47:25Z"
 progress:
-  total_phases: 12
+  total_phases: 13
   completed_phases: 12
-  total_plans: 25
-  completed_plans: 25
+  total_plans: 27
+  completed_plans: 26
 ---
 
 # Project State
@@ -18,17 +18,17 @@ progress:
 See: .planning/PROJECT.md (updated 2026-02-25)
 
 **Core value:** Glass components that look and feel like Apple's Liquid Glass -- visually convincing refraction at 60FPS, now with pixel-level parity against native iOS rendering.
-**Current focus:** Phase 12 complete, ready for Phase 13
+**Current focus:** Phase 13 in progress -- screenshot diff pipeline
 
 ## Current Position
 
-Phase: 12 of 14 (Live Tuning UI) -- COMPLETE
-Plan: 2 of 2 in current phase (all plans complete)
+Phase: 13 of 14 (Screenshot Diff Pipeline) -- IN PROGRESS
+Plan: 1 of 2 in current phase
 Milestone: v2.0 Visual Parity (Phases 9-14)
-Status: Phase 12 complete -- full live tuning UI with 16-parameter controls, presets, import/export, URL param injection
-Last activity: 2026-02-26 -- Completed 12-02 App Wiring & Visual Verification
+Status: Phase 13 Plan 01 complete -- pipeline infrastructure, web capture, capture mode
+Last activity: 2026-02-26 -- Completed 13-01 Pipeline Infrastructure & Web Capture
 
-Progress: [███████░░░] 67% (v2.0)
+Progress: [████████░░] 83% (v2.0)
 
 ## Performance Metrics
 
@@ -54,9 +54,10 @@ Progress: [███████░░░] 67% (v2.0)
 | 11 | P02 | 2min | 2 | 3 |
 | 12 | P01 | 3min | 2 | 3 |
 | 12 | P02 | 2min | 2 | 1 |
+| 13 | P01 | 3min | 2 | 7 |
 
 **Recent Trend:**
-- Phase 12 complete (2 plans: presets data layer + app wiring with visual verification)
+- Phase 13 Plan 01 complete (pipeline config, web capture, capture mode)
 - Trend: Stable
 
 ## Accumulated Context
@@ -90,6 +91,10 @@ v2.0 decisions:
 - [12-01] All 16 GlassParams fields required -- tuning panel always holds concrete values
 - [12-02] URL params parsed once on mount via lazy useState initializer -- no re-parsing on navigation
 - [12-02] Human-verified complete tuning experience: sliders, resets, presets, import/export, URL params all functional
+- [13-01] Chrome channel (not bundled Chromium) for WebGPU GPU support in Playwright
+- [13-01] deviceScaleFactor=1 for 1:1 pixel mapping, no DPR scaling
+- [13-01] morphSpeed=0 in capture mode for instant parameter application
+- [13-01] backgroundMode always 'image' in capture mode to match iOS reference
 
 ### Pending Todos
 
@@ -104,5 +109,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-26
-Stopped at: Completed 12-02-PLAN.md -- App wiring and visual verification, Phase 12 complete
+Stopped at: Completed 13-01-PLAN.md -- Pipeline infrastructure, web capture, and capture mode
 Resume file: None

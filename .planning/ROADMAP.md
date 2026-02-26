@@ -128,5 +128,5 @@ Phases 9 and 10 can execute in parallel. Phase 11 can execute in parallel with 9
 | 10. Shader Parameter Exposure | 2/2 | Complete    | 2026-02-26 | - |
 | 11. SwiftUI Reference App | 2/2 | Complete    | 2026-02-26 | - |
 | 12. Live Tuning UI | v2.0 | Complete    | 2026-02-26 | 2026-02-26 |
-| 13. Screenshot Diff Pipeline | v2.0 | 0/TBD | Not started | - |
+| 13. Screenshot Diff Pipeline | 1/2 | In Progress|  | - |
 | 14. Automated Tuning Loop | v2.0 | 0/TBD | Not started | - |
