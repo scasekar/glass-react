@@ -30,6 +30,13 @@ export function GlassButton({
   rim,
   refractionMode,
   morphSpeed,
+  contrast,
+  saturation,
+  blurRadius,
+  fresnelIOR,
+  fresnelExponent,
+  envReflectionStrength,
+  glareDirection,
   onClick,
   disabled,
   type = 'button',
@@ -65,6 +72,7 @@ export function GlassButton({
     rim: effectiveRim,
     refractionMode,
     morphSpeed,
+    contrast, saturation, blurRadius, fresnelIOR, fresnelExponent, envReflectionStrength, glareDirection,
   });
 
   const textStyles: React.CSSProperties = (preferences?.darkMode ?? true)

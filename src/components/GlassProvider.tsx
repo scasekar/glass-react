@@ -164,6 +164,13 @@ export function GlassProvider({ children, backgroundMode = 'image' }: GlassProvi
       updateRim: (intensity) => engine.setRegionRim(id, intensity),
       updateMode: (mode) => engine.setRegionMode(id, mode),
       updateMorphSpeed: (speed) => engine.setRegionMorphSpeed(id, speed),
+      updateContrast: (v) => engine.setRegionContrast(id, v),
+      updateSaturation: (v) => engine.setRegionSaturation(id, v),
+      updateBlurRadius: (v) => engine.setRegionBlurRadius(id, v),
+      updateFresnelIOR: (v) => engine.setRegionFresnelIOR(id, v),
+      updateFresnelExponent: (v) => engine.setRegionFresnelExponent(id, v),
+      updateEnvReflectionStrength: (v) => engine.setRegionEnvReflectionStrength(id, v),
+      updateGlareAngle: (v) => engine.setRegionGlareAngle(id, v),
       remove: () => engine.removeGlassRegion(id),
     };
     regionsRef.current.set(id, { element, handle });

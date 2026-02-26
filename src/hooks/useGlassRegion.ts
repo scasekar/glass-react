@@ -79,6 +79,13 @@ export function useGlassRegion(
       handle.updateSpecular(0);
       handle.updateRim(0);
       handle.updateMode(0);
+      handle.updateContrast(1.0);
+      handle.updateSaturation(1.0);
+      handle.updateBlurRadius(0);
+      handle.updateFresnelIOR(1.0);
+      handle.updateFresnelExponent(1.0);
+      handle.updateEnvReflectionStrength(0);
+      handle.updateGlareAngle(0);
     } else {
       // Normal mode: dark/light defaults for unset props
       const defaults = prefs.darkMode ? DARK_DEFAULTS : LIGHT_DEFAULTS;
@@ -93,6 +100,15 @@ export function useGlassRegion(
       handle.updateSpecular(props.specular ?? 0.2);
       handle.updateRim(props.rim ?? 0.15);
       handle.updateMode(props.refractionMode === 'prominent' ? 1.0 : 0.0);
+      handle.updateContrast(props.contrast ?? 0.85);
+      handle.updateSaturation(props.saturation ?? 1.4);
+      handle.updateFresnelIOR(props.fresnelIOR ?? 1.5);
+      handle.updateFresnelExponent(props.fresnelExponent ?? 5.0);
+      handle.updateEnvReflectionStrength(props.envReflectionStrength ?? 0.12);
+      // glareDirection prop is degrees; convert to radians for shader
+      handle.updateGlareAngle((props.glareDirection ?? 315) * Math.PI / 180);
+      // blurRadius (pixels) takes precedence; falls back to blur (normalized) * 30
+      handle.updateBlurRadius(props.blurRadius ?? (props.blur ?? 0.5) * 30);
     }
 
     handle.updateParams(
@@ -116,6 +132,13 @@ export function useGlassRegion(
     props.rim,
     props.refractionMode,
     props.morphSpeed,
+    props.contrast,
+    props.saturation,
+    props.blurRadius,
+    props.fresnelIOR,
+    props.fresnelExponent,
+    props.envReflectionStrength,
+    props.glareDirection,
     prefs.reducedTransparency,
     prefs.darkMode,
   ]);

@@ -29,13 +29,25 @@ export function GlassPanel({
   specular,
   rim,
   refractionMode,
+  morphSpeed,
+  contrast,
+  saturation,
+  blurRadius,
+  fresnelIOR,
+  fresnelExponent,
+  envReflectionStrength,
+  glareDirection,
   ...rest
 }: GlassPanelProps) {
   const internalRef = useRef<HTMLDivElement>(null);
   const mergedRef = useMergedRef(internalRef, ref);
   const { preferences } = useGlassEngine();
 
-  useGlassRegion(internalRef, { blur, opacity, cornerRadius, tint, refraction, aberration, specular, rim, refractionMode });
+  useGlassRegion(internalRef, {
+    blur, opacity, cornerRadius, tint, refraction,
+    aberration, specular, rim, refractionMode, morphSpeed,
+    contrast, saturation, blurRadius, fresnelIOR, fresnelExponent, envReflectionStrength, glareDirection,
+  });
 
   const textStyles: React.CSSProperties = (preferences?.darkMode ?? true)
     ? {
