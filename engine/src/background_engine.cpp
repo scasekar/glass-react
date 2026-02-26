@@ -7,6 +7,7 @@
 #include <cmath>
 #include <vector>
 #include <cstring>
+#include <algorithm>
 
 namespace {
 inline uint32_t ceilToNextMultiple(uint32_t value, uint32_t alignment) {
@@ -419,6 +420,13 @@ void BackgroundEngine::lerpUniforms(GlassUniforms& current, const GlassUniforms&
     current.specularIntensity += (target.specularIntensity - current.specularIntensity) * t;
     current.rimIntensity += (target.rimIntensity - current.rimIntensity) * t;
     current.mode += (target.mode - current.mode) * t;
+    current.contrast += (target.contrast - current.contrast) * t;
+    current.saturation += (target.saturation - current.saturation) * t;
+    current.fresnelIOR += (target.fresnelIOR - current.fresnelIOR) * t;
+    current.fresnelExponent += (target.fresnelExponent - current.fresnelExponent) * t;
+    current.envReflectionStrength += (target.envReflectionStrength - current.envReflectionStrength) * t;
+    current.glareAngle += (target.glareAngle - current.glareAngle) * t;
+    current.blurRadius += (target.blurRadius - current.blurRadius) * t;
 }
 
 void BackgroundEngine::update(float deltaTime) {
@@ -573,6 +581,14 @@ int BackgroundEngine::addGlassRegion() {
             defaults.specularIntensity = 0.2f;
             defaults.rimIntensity = 0.15f;
             defaults.mode = 0.0f;
+            defaults.contrast = 0.85f;
+            defaults.saturation = 1.4f;
+            defaults.fresnelIOR = 1.5f;
+            defaults.fresnelExponent = 5.0f;
+            defaults.envReflectionStrength = 0.12f;
+            defaults.glareAngle = -0.785398f;  // -PI/4 radians = 315 degrees (upper-left)
+            defaults.blurRadius = 15.0f;
+            defaults._pad7 = 0.0f;
             regions[i].current = defaults;
             regions[i].target = defaults;
             regions[i].morphSpeed = 8.0f;
@@ -634,4 +650,39 @@ void BackgroundEngine::setRegionMode(int id, float mode) {
 void BackgroundEngine::setRegionMorphSpeed(int id, float speed) {
     if (id < 0 || id >= static_cast<int>(MAX_GLASS_REGIONS)) return;
     regions[id].morphSpeed = speed;
+}
+
+void BackgroundEngine::setRegionContrast(int id, float contrast) {
+    if (id < 0 || id >= static_cast<int>(MAX_GLASS_REGIONS)) return;
+    regions[id].target.contrast = std::clamp(contrast, 0.0f, 2.0f);
+}
+
+void BackgroundEngine::setRegionSaturation(int id, float saturation) {
+    if (id < 0 || id >= static_cast<int>(MAX_GLASS_REGIONS)) return;
+    regions[id].target.saturation = std::clamp(saturation, 0.0f, 3.0f);
+}
+
+void BackgroundEngine::setRegionFresnelIOR(int id, float ior) {
+    if (id < 0 || id >= static_cast<int>(MAX_GLASS_REGIONS)) return;
+    regions[id].target.fresnelIOR = std::clamp(ior, 1.0f, 3.0f);
+}
+
+void BackgroundEngine::setRegionFresnelExponent(int id, float exponent) {
+    if (id < 0 || id >= static_cast<int>(MAX_GLASS_REGIONS)) return;
+    regions[id].target.fresnelExponent = std::clamp(exponent, 0.5f, 10.0f);
+}
+
+void BackgroundEngine::setRegionEnvReflectionStrength(int id, float strength) {
+    if (id < 0 || id >= static_cast<int>(MAX_GLASS_REGIONS)) return;
+    regions[id].target.envReflectionStrength = std::clamp(strength, 0.0f, 1.0f);
+}
+
+void BackgroundEngine::setRegionGlareAngle(int id, float angle) {
+    if (id < 0 || id >= static_cast<int>(MAX_GLASS_REGIONS)) return;
+    regions[id].target.glareAngle = angle;
+}
+
+void BackgroundEngine::setRegionBlurRadius(int id, float radius) {
+    if (id < 0 || id >= static_cast<int>(MAX_GLASS_REGIONS)) return;
+    regions[id].target.blurRadius = std::clamp(radius, 0.0f, 50.0f);
 }

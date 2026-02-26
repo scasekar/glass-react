@@ -1,6 +1,7 @@
 #pragma once
 #include <webgpu/webgpu_cpp.h>
 #include <cstdint>
+#include <cmath>
 
 struct Uniforms {
     float time;
@@ -23,8 +24,18 @@ struct GlassUniforms {
     // --- New 16-byte block ---
     float mode;                                  // offset 64 (0.0=standard, 1.0=prominent)
     float _pad4, _pad5, _pad6;                   // offset 68-79 (padding to 16-byte boundary)
+    // --- New vec4f block 6 (offset 80-95) ---
+    float contrast;                              // offset 80: contrast multiplier (default 0.85)
+    float saturation;                            // offset 84: saturation multiplier (default 1.4)
+    float fresnelIOR;                            // offset 88: index of refraction (default 1.5)
+    float fresnelExponent;                       // offset 92: Fresnel fall-off exponent (default 5.0)
+    // --- New vec4f block 7 (offset 96-111) ---
+    float envReflectionStrength;                 // offset 96: ambient reflection strength (default 0.12)
+    float glareAngle;                            // offset 100: light direction in radians (default -PI/4)
+    float blurRadius;                            // offset 104: blur radius in pixels (default 15.0)
+    float _pad7;                                 // offset 108: padding to 112 bytes (7 x 16)
 };
-// Total: 80 bytes (5 x vec4f aligned)
+// Total: 112 bytes (7 x vec4f aligned)
 
 static constexpr uint32_t MAX_GLASS_REGIONS = 16;
 
@@ -56,6 +67,13 @@ public:
     void setRegionRim(int id, float intensity);
     void setRegionMode(int id, float mode);
     void setRegionMorphSpeed(int id, float speed);
+    void setRegionContrast(int id, float contrast);
+    void setRegionSaturation(int id, float saturation);
+    void setRegionFresnelIOR(int id, float ior);
+    void setRegionFresnelExponent(int id, float exponent);
+    void setRegionEnvReflectionStrength(int id, float strength);
+    void setRegionGlareAngle(int id, float angle);
+    void setRegionBlurRadius(int id, float radius);
 
     void setPaused(bool paused);
     void setReducedTransparency(bool enabled);
