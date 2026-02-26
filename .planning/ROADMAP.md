@@ -56,7 +56,9 @@ Full details: [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md)
   2. User can set `fresnelIOR`, `fresnelExponent`, `envReflectionStrength`, and `glareDirection` props on glass components
   3. All shader parameter props have TypeScript types, JSDoc documentation, and sensible defaults that match v1.0 appearance when unset
   4. Changing any shader prop applies smoothly through the existing morphing/lerp system without visual discontinuities
-**Plans**: TBD
+**Plans**: 2 plans
+  - [ ] 10-01-PLAN.md -- C++ GlassUniforms extension (7 new fields), WGSL shader update, Embind bindings, WASM rebuild
+  - [ ] 10-02-PLAN.md -- TypeScript types, GlassRegionHandle, useGlassRegion, GlassProvider wiring, component props
 
 ### Phase 11: SwiftUI Reference App
 **Goal**: A native iOS app renders authentic Apple Liquid Glass over the same wallpaper for use as the visual comparison ground truth
@@ -117,7 +119,7 @@ Phases 9 and 10 can execute in parallel. Phase 11 can execute in parallel with 9
 | 7. Visual Polish | v1.0 | 2/2 | Complete | 2026-02-10 |
 | 8. Library Packaging & Demo | v1.0 | 2/2 | Complete | 2026-02-10 |
 | 9. Image Background Engine | v2.0 | 3/3 | Complete | 2026-02-25 |
-| 10. Shader Parameter Exposure | v2.0 | 0/TBD | Not started | - |
+| 10. Shader Parameter Exposure | v2.0 | 0/2 | Planned | - |
 | 11. SwiftUI Reference App | v2.0 | 0/TBD | Not started | - |
 | 12. Live Tuning UI | v2.0 | 0/TBD | Not started | - |
 | 13. Screenshot Diff Pipeline | v2.0 | 0/TBD | Not started | - |
