@@ -95,7 +95,9 @@ Full details: [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md)
   2. Both web and iOS screenshots are normalized to sRGB color space before comparison (solid color patches differ by less than 1% after normalization)
   3. Running the diff script produces a visual diff image and a mismatch percentage comparing web vs iOS glass renders
   4. Diff pipeline supports a region-of-interest mask that restricts comparison to the glass panel area only, ignoring background differences
-**Plans**: TBD
+**Plans**: 2 plans
+  - [ ] 13-01-PLAN.md -- Pipeline infrastructure, capture-mode demo URL param, Playwright web capture
+  - [ ] 13-02-PLAN.md -- iOS capture, sRGB normalization, pixelmatch diffing with ROI mask, HTML report, unified entry point
 
 ### Phase 14: Automated Tuning Loop
 **Goal**: A script automatically adjusts shader parameters toward minimizing the visual diff against the iOS reference
