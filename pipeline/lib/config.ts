@@ -78,7 +78,7 @@ export const CONFIG: PipelineConfig = {
   // NOTE: Calibration needed after first iOS capture.
   iosCropRegion: { left: 203, top: 600, width: 800, height: 800 },
 
-  iosDevice: 'iPhone 16 Pro',
+  iosDevice: 'iPhone 17 Pro',
   outputDir: 'output',
   diffThreshold: 0.1,
 };

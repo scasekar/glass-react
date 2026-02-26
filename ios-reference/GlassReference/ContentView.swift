@@ -2,7 +2,7 @@ import SwiftUI
 
 struct ContentView: View {
     @Binding var colorScheme: ColorScheme
-    @State private var glassVariant: Glass = .regular
+    @State private var glassVariant: Glass = .clear
     @State private var captureMode: Bool = false
     @State private var wallpaperName: String = "wallpaper"
 

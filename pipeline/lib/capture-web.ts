@@ -19,7 +19,7 @@ export async function captureWeb(mode: 'light' | 'dark'): Promise<string> {
 
   const browser = await chromium.launch({
     channel: 'chrome',
-    args: ['--enable-gpu', '--use-gl=egl'],
+    args: ['--enable-gpu', '--enable-unsafe-webgpu', '--use-angle=metal'],
   });
 
   try {

@@ -24,7 +24,7 @@ export async function createCaptureContext(
 ): Promise<CaptureContext> {
   const browser = await chromium.launch({
     channel: 'chrome',
-    args: ['--enable-gpu', '--use-gl=egl'],
+    args: ['--enable-gpu', '--enable-unsafe-webgpu', '--use-angle=metal'],
   });
 
   const context = await browser.newContext({
