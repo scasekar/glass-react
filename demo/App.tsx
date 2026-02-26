@@ -3,11 +3,44 @@ import { GlassProvider } from '../src/components/GlassProvider';
 import { GlassPanel } from '../src/components/GlassPanel';
 import { GlassButton } from '../src/components/GlassButton';
 import { GlassCard } from '../src/components/GlassCard';
-import { ControlPanel, type GlassParams } from './controls/ControlPanel';
-import { DEFAULTS } from './controls/presets';
+import { ControlPanel } from './controls/ControlPanel';
+import { DEFAULTS, type GlassParams } from './controls/presets';
+import type { GlassColor } from '../src/components/types';
+
+/**
+ * Parse URL query parameters into partial GlassParams overrides.
+ * Supports Phase 14 automated tuning scripts that inject values via URL.
+ */
+function getParamsFromURL(): Partial<GlassParams> {
+  const url = new URL(window.location.href);
+  const overrides: Partial<GlassParams> = {};
+  for (const [key, value] of url.searchParams) {
+    if (key in DEFAULTS) {
+      if (key === 'tint') {
+        try {
+          const parsed = JSON.parse(value);
+          if (Array.isArray(parsed) && parsed.length === 3 &&
+              parsed.every((v: unknown) => typeof v === 'number')) {
+            overrides.tint = parsed as GlassColor;
+          }
+        } catch { /* ignore invalid tint */ }
+      } else if (key === 'refractionMode') {
+        if (value === 'standard' || value === 'prominent') {
+          overrides.refractionMode = value;
+        }
+      } else {
+        const num = parseFloat(value);
+        if (!isNaN(num)) {
+          (overrides as Record<string, number>)[key] = num;
+        }
+      }
+    }
+  }
+  return overrides;
+}
 
 export default function App() {
-  const [params, setParams] = useState<GlassParams>(DEFAULTS);
+  const [params, setParams] = useState<GlassParams>(() => ({ ...DEFAULTS, ...getParamsFromURL() }));
   const [bgMode, setBgMode] = useState<'image' | 'noise'>('image');
 
   return (
