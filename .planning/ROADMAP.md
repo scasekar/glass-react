@@ -29,7 +29,7 @@ Full details: [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md)
 - [x] **Phase 10: Shader Parameter Exposure** — Expose all glass shader uniforms as typed React props with sensible defaults (completed 2026-02-26)
 - [x] **Phase 11: SwiftUI Reference App** — Native iOS reference app capturing authentic Apple Liquid Glass for visual comparison (completed 2026-02-26)
 - [x] **Phase 12: Live Tuning UI** — Real-time shader parameter controls with presets and JSON export/import in demo app (completed 2026-02-26)
-- [ ] **Phase 13: Screenshot Diff Pipeline** — Automated screenshot capture and pixel-diff comparison between web and iOS renders
+- [x] **Phase 13: Screenshot Diff Pipeline** — Automated screenshot capture and pixel-diff comparison between web and iOS renders (completed 2026-02-26)
 - [ ] **Phase 14: Automated Tuning Loop** — Script-driven coordinate descent to converge shader parameters toward Apple's Liquid Glass
 
 ## Phase Details
@@ -128,5 +128,5 @@ Phases 9 and 10 can execute in parallel. Phase 11 can execute in parallel with 9
 | 10. Shader Parameter Exposure | 2/2 | Complete    | 2026-02-26 | - |
 | 11. SwiftUI Reference App | 2/2 | Complete    | 2026-02-26 | - |
 | 12. Live Tuning UI | v2.0 | Complete    | 2026-02-26 | 2026-02-26 |
-| 13. Screenshot Diff Pipeline | 1/2 | In Progress|  | - |
+| 13. Screenshot Diff Pipeline | 2/2 | Complete   | 2026-02-26 | - |
 | 14. Automated Tuning Loop | v2.0 | 0/TBD | Not started | - |

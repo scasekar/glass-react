@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: Visual Parity
 status: unknown
-last_updated: "2026-02-26T21:47:25Z"
+last_updated: "2026-02-26T21:54:16.534Z"
 progress:
   total_phases: 13
-  completed_phases: 12
+  completed_phases: 13
   total_plans: 27
-  completed_plans: 26
+  completed_plans: 27
 ---
 
 # Project State
@@ -18,17 +18,17 @@ progress:
 See: .planning/PROJECT.md (updated 2026-02-25)
 
 **Core value:** Glass components that look and feel like Apple's Liquid Glass -- visually convincing refraction at 60FPS, now with pixel-level parity against native iOS rendering.
-**Current focus:** Phase 13 in progress -- screenshot diff pipeline
+**Current focus:** Phase 13 complete -- screenshot diff pipeline finished
 
 ## Current Position
 
-Phase: 13 of 14 (Screenshot Diff Pipeline) -- IN PROGRESS
-Plan: 1 of 2 in current phase
+Phase: 13 of 14 (Screenshot Diff Pipeline) -- COMPLETE
+Plan: 2 of 2 in current phase (all complete)
 Milestone: v2.0 Visual Parity (Phases 9-14)
-Status: Phase 13 Plan 01 complete -- pipeline infrastructure, web capture, capture mode
-Last activity: 2026-02-26 -- Completed 13-01 Pipeline Infrastructure & Web Capture
+Status: Phase 13 complete -- full screenshot diff pipeline operational
+Last activity: 2026-02-26 -- Completed 13-02 iOS Capture, Diff Pipeline & Report
 
-Progress: [████████░░] 83% (v2.0)
+Progress: [█████████░] 92% (v2.0)
 
 ## Performance Metrics
 
@@ -55,9 +55,10 @@ Progress: [████████░░] 83% (v2.0)
 | 12 | P01 | 3min | 2 | 3 |
 | 12 | P02 | 2min | 2 | 1 |
 | 13 | P01 | 3min | 2 | 7 |
+| 13 | P02 | 3min | 2 | 6 |
 
 **Recent Trend:**
-- Phase 13 Plan 01 complete (pipeline config, web capture, capture mode)
+- Phase 13 complete (both plans: pipeline infrastructure + iOS capture/diff/report)
 - Trend: Stable
 
 ## Accumulated Context
@@ -95,6 +96,10 @@ v2.0 decisions:
 - [13-01] deviceScaleFactor=1 for 1:1 pixel mapping, no DPR scaling
 - [13-01] morphSpeed=0 in capture mode for instant parameter application
 - [13-01] backgroundMode always 'image' in capture mode to match iOS reference
+- [13-02] ROI mask zeroes non-glass pixels to solid black on both images before pixelmatch comparison
+- [13-02] Pipeline always exits 0 regardless of mismatch (report-only, no pass/fail gating)
+- [13-02] Sequential capture (web then iOS) per mode to avoid resource contention
+- [13-02] 3s settle time after iOS appearance change for rendering completion
 
 ### Pending Todos
 
@@ -109,5 +114,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-26
-Stopped at: Completed 13-01-PLAN.md -- Pipeline infrastructure, web capture, and capture mode
+Stopped at: Completed 13-02-PLAN.md -- iOS capture, diff pipeline, HTML report, unified entry point
 Resume file: None
