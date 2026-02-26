@@ -18,7 +18,7 @@ if(EMSCRIPTEN)
         "-sASYNCIFY=1"
         "-sALLOW_MEMORY_GROWTH"
         "-lembind"
-        "-sEXPORTED_RUNTIME_METHODS=['ccall']"
+        "-sEXPORTED_RUNTIME_METHODS=['ccall','HEAPU8']"
         "-sEXPORTED_FUNCTIONS=['_main','_malloc','_free']"
         "-sENVIRONMENT=web"
         "-sMODULARIZE=1"
