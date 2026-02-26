@@ -2,3 +2,6 @@ node_modules/
 dist/
 engine/build-web/
 *.tsbuildinfo
+
+# iOS reference screenshots (captured output, not source)
+ios-reference/screenshots/*.png
