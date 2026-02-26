@@ -115,9 +115,21 @@ void destroyEngine() {
     }
 }
 
+void uploadImageDataJS(uintptr_t pixelPtr, uint32_t width, uint32_t height) {
+    if (!g_engine) return;
+    g_engine->uploadImageData(reinterpret_cast<const uint8_t*>(pixelPtr), width, height);
+}
+
+void setBackgroundModeJS(int mode) {
+    if (!g_engine) return;
+    g_engine->setBackgroundMode(static_cast<BackgroundMode>(mode));
+}
+
 EMSCRIPTEN_BINDINGS(background_engine) {
     emscripten::function("getEngine", &getEngine, emscripten::allow_raw_pointers());
     emscripten::function("destroyEngine", &destroyEngine);
+    emscripten::function("uploadImageData", &uploadImageDataJS);
+    emscripten::function("setBackgroundMode", &setBackgroundModeJS);
     emscripten::class_<BackgroundEngine>("BackgroundEngine")
         .function("resize", &BackgroundEngine::resize)
         .function("addGlassRegion", &BackgroundEngine::addGlassRegion)

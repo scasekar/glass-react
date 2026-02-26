@@ -19,6 +19,7 @@ if(EMSCRIPTEN)
         "-sALLOW_MEMORY_GROWTH"
         "-lembind"
         "-sEXPORTED_RUNTIME_METHODS=['ccall']"
+        "-sEXPORTED_FUNCTIONS=['_main','_malloc','_free']"
         "-sENVIRONMENT=web"
         "-sMODULARIZE=1"
         "-sEXPORT_ES6=1"
