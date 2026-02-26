@@ -35,6 +35,8 @@ struct GlassRegion {
     bool active = false;
 };
 
+enum class BackgroundMode : int { Image = 0, Noise = 1 };
+
 class BackgroundEngine {
 public:
     BackgroundEngine();
@@ -58,9 +60,14 @@ public:
     void setPaused(bool paused);
     void setReducedTransparency(bool enabled);
 
+    void uploadImageData(const uint8_t* pixels, uint32_t imgWidth, uint32_t imgHeight);
+    void setBackgroundMode(BackgroundMode mode);
+
 private:
     static void lerpUniforms(GlassUniforms& current, const GlassUniforms& target, float t);
     void createNoisePipeline();
+    void createImageBlitPipeline();
+    void createImageBlitBindGroup();
     void createUniforms();
     void createOffscreenTexture();
     void createGlassPipeline();
@@ -93,6 +100,17 @@ private:
     wgpu::Buffer glassUniformBuffer;
     GlassRegion regions[MAX_GLASS_REGIONS]{};
     uint32_t uniformStride = 0;
+
+    // Image mode (Pass 1 alternative: blit image texture to offscreen texture)
+    BackgroundMode backgroundMode_ = BackgroundMode::Image;  // Image is the new default
+    bool hasImageTexture_ = false;
+    wgpu::Texture imageTexture_;
+    wgpu::TextureView imageTextureView_;
+    wgpu::ShaderModule imageBlitShaderModule_;
+    wgpu::RenderPipeline imageBlitPipeline_;
+    wgpu::BindGroupLayout imageBlitBindGroupLayout_;
+    wgpu::BindGroup imageBlitBindGroup_;
+    wgpu::Sampler imageBlitSampler_;
 
     bool paused_ = false;
     bool reducedTransparency_ = false;

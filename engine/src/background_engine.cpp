@@ -1,9 +1,12 @@
 #include "background_engine.h"
 #include "shaders/noise.wgsl.h"
+#include "shaders/image_blit.wgsl.h"
 #include "shaders/glass.wgsl.h"
 #include <iostream>
 #include <string_view>
 #include <cmath>
+#include <vector>
+#include <cstring>
 
 namespace {
 inline uint32_t ceilToNextMultiple(uint32_t value, uint32_t alignment) {
@@ -30,6 +33,7 @@ void BackgroundEngine::init(wgpu::Device dev, wgpu::Surface surf,
     );
 
     createNoisePipeline();
+    createImageBlitPipeline();
     createUniforms();
     createGlassPipeline();
     createOffscreenTexture();
@@ -85,6 +89,157 @@ void BackgroundEngine::createNoisePipeline() {
     pipelineDesc.multisample.mask = ~0u;
 
     noisePipeline = device.CreateRenderPipeline(&pipelineDesc);
+}
+
+void BackgroundEngine::createImageBlitPipeline() {
+    // Shader module from image_blit.wgsl.h
+    wgpu::ShaderSourceWGSL wgslSource{};
+    wgslSource.code = imageBlitShaderCode;
+
+    wgpu::ShaderModuleDescriptor shaderDesc{};
+    shaderDesc.nextInChain = &wgslSource;
+    imageBlitShaderModule_ = device.CreateShaderModule(&shaderDesc);
+
+    // Bind group layout: sampler(0), texture(1)
+    wgpu::BindGroupLayoutEntry entries[2]{};
+
+    // Sampler
+    entries[0].binding = 0;
+    entries[0].visibility = wgpu::ShaderStage::Fragment;
+    entries[0].sampler.type = wgpu::SamplerBindingType::Filtering;
+
+    // Texture
+    entries[1].binding = 1;
+    entries[1].visibility = wgpu::ShaderStage::Fragment;
+    entries[1].texture.sampleType = wgpu::TextureSampleType::Float;
+    entries[1].texture.viewDimension = wgpu::TextureViewDimension::e2D;
+
+    wgpu::BindGroupLayoutDescriptor bglDesc{};
+    bglDesc.entryCount = 2;
+    bglDesc.entries = entries;
+    imageBlitBindGroupLayout_ = device.CreateBindGroupLayout(&bglDesc);
+
+    // Pipeline layout
+    wgpu::PipelineLayoutDescriptor plDesc{};
+    plDesc.bindGroupLayoutCount = 1;
+    plDesc.bindGroupLayouts = &imageBlitBindGroupLayout_;
+    wgpu::PipelineLayout pipelineLayout = device.CreatePipelineLayout(&plDesc);
+
+    // Sampler (linear filtering, clamp to edge)
+    wgpu::SamplerDescriptor samplerDesc{};
+    samplerDesc.label = "Image blit sampler";
+    samplerDesc.addressModeU = wgpu::AddressMode::ClampToEdge;
+    samplerDesc.addressModeV = wgpu::AddressMode::ClampToEdge;
+    samplerDesc.magFilter = wgpu::FilterMode::Linear;
+    samplerDesc.minFilter = wgpu::FilterMode::Linear;
+    imageBlitSampler_ = device.CreateSampler(&samplerDesc);
+
+    // Color target format = surfaceFormat (offscreen texture uses surfaceFormat)
+    wgpu::ColorTargetState colorTarget{};
+    colorTarget.format = surfaceFormat;
+    colorTarget.writeMask = wgpu::ColorWriteMask::All;
+
+    // Fragment state
+    wgpu::FragmentState fragmentState{};
+    fragmentState.module = imageBlitShaderModule_;
+    fragmentState.entryPoint = "fs_main";
+    fragmentState.targetCount = 1;
+    fragmentState.targets = &colorTarget;
+
+    // Render pipeline
+    wgpu::RenderPipelineDescriptor pipelineDesc{};
+    pipelineDesc.layout = pipelineLayout;
+    pipelineDesc.vertex.module = imageBlitShaderModule_;
+    pipelineDesc.vertex.entryPoint = "vs_main";
+    pipelineDesc.fragment = &fragmentState;
+    pipelineDesc.primitive.topology = wgpu::PrimitiveTopology::TriangleList;
+    pipelineDesc.multisample.count = 1;
+    pipelineDesc.multisample.mask = ~0u;
+
+    imageBlitPipeline_ = device.CreateRenderPipeline(&pipelineDesc);
+}
+
+void BackgroundEngine::createImageBlitBindGroup() {
+    // Guard: return early if texture not uploaded yet
+    if (!hasImageTexture_) return;
+
+    wgpu::BindGroupEntry entries[2]{};
+
+    // Sampler at binding 0
+    entries[0].binding = 0;
+    entries[0].sampler = imageBlitSampler_;
+
+    // Texture view at binding 1
+    entries[1].binding = 1;
+    entries[1].textureView = imageTextureView_;
+
+    wgpu::BindGroupDescriptor bgDesc{};
+    bgDesc.label = "Image blit bind group";
+    bgDesc.layout = imageBlitBindGroupLayout_;
+    bgDesc.entryCount = 2;
+    bgDesc.entries = entries;
+    imageBlitBindGroup_ = device.CreateBindGroup(&bgDesc);
+}
+
+void BackgroundEngine::uploadImageData(const uint8_t* pixels, uint32_t imgWidth, uint32_t imgHeight) {
+    // Destroy old image texture if it exists (re-upload case)
+    if (imageTexture_) {
+        imageTexture_.Destroy();
+    }
+
+    // Create image texture with sRGB format for automatic sRGB-to-linear conversion on sample
+    wgpu::TextureDescriptor texDesc{};
+    texDesc.label = "Image background texture";
+    texDesc.size = {imgWidth, imgHeight, 1};
+    texDesc.format = wgpu::TextureFormat::RGBA8UnormSrgb;
+    texDesc.usage = wgpu::TextureUsage::TextureBinding | wgpu::TextureUsage::CopyDst;
+    texDesc.dimension = wgpu::TextureDimension::e2D;
+    texDesc.mipLevelCount = 1;
+    texDesc.sampleCount = 1;
+
+    imageTexture_ = device.CreateTexture(&texDesc);
+
+    // Calculate bytes per row with 256-byte alignment for WriteTexture
+    uint32_t unpadded = imgWidth * 4;
+    uint32_t bytesPerRow = ceilToNextMultiple(unpadded, 256);
+
+    // Upload pixel data -- pad rows if needed for alignment
+    wgpu::TexelCopyTextureInfo dst{};
+    dst.texture = imageTexture_;
+    dst.mipLevel = 0;
+    dst.origin = {0, 0, 0};
+    dst.aspect = wgpu::TextureAspect::All;
+
+    wgpu::TexelCopyBufferLayout layout{};
+    layout.offset = 0;
+    layout.bytesPerRow = bytesPerRow;
+    layout.rowsPerImage = imgHeight;
+
+    wgpu::Extent3D extent = {imgWidth, imgHeight, 1};
+
+    if (bytesPerRow == unpadded) {
+        // No padding needed -- upload directly
+        device.GetQueue().WriteTexture(&dst, pixels, unpadded * imgHeight, &layout, &extent);
+    } else {
+        // Padding needed -- create padded buffer with correct row stride
+        std::vector<uint8_t> padded(bytesPerRow * imgHeight, 0);
+        for (uint32_t row = 0; row < imgHeight; row++) {
+            memcpy(padded.data() + row * bytesPerRow, pixels + row * unpadded, unpadded);
+        }
+        device.GetQueue().WriteTexture(&dst, padded.data(), padded.size(), &layout, &extent);
+    }
+
+    // Create texture view
+    imageTextureView_ = imageTexture_.CreateView();
+
+    hasImageTexture_ = true;
+
+    // (Re)create bind group with the new texture view
+    createImageBlitBindGroup();
+}
+
+void BackgroundEngine::setBackgroundMode(BackgroundMode mode) {
+    backgroundMode_ = mode;
 }
 
 void BackgroundEngine::createUniforms() {
@@ -300,7 +455,7 @@ void BackgroundEngine::render() {
 
     wgpu::CommandEncoder encoder = device.CreateCommandEncoder();
 
-    // === PASS 1: Render noise to offscreen texture ===
+    // === PASS 1: Render background to offscreen texture ===
     {
         wgpu::RenderPassColorAttachment attachment{};
         attachment.view = offscreenTextureView;
@@ -313,8 +468,16 @@ void BackgroundEngine::render() {
         passDesc.colorAttachments = &attachment;
 
         wgpu::RenderPassEncoder pass = encoder.BeginRenderPass(&passDesc);
-        pass.SetPipeline(noisePipeline);
-        pass.SetBindGroup(0, noiseBindGroup);
+
+        if (backgroundMode_ == BackgroundMode::Image && hasImageTexture_) {
+            // Image mode: blit image texture to offscreen
+            pass.SetPipeline(imageBlitPipeline_);
+            pass.SetBindGroup(0, imageBlitBindGroup_);
+        } else {
+            // Noise mode (or image not loaded yet -- fallback to noise)
+            pass.SetPipeline(noisePipeline);
+            pass.SetBindGroup(0, noiseBindGroup);
+        }
         pass.Draw(3);
         pass.End();
     }
