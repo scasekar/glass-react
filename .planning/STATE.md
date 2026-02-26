@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: Visual Parity
 status: unknown
-last_updated: "2026-02-26T04:38:23.854Z"
+last_updated: "2026-02-26T20:50:50Z"
 progress:
   total_phases: 11
   completed_phases: 11
@@ -18,17 +18,17 @@ progress:
 See: .planning/PROJECT.md (updated 2026-02-25)
 
 **Core value:** Glass components that look and feel like Apple's Liquid Glass -- visually convincing refraction at 60FPS, now with pixel-level parity against native iOS rendering.
-**Current focus:** Phase 12 - Live Tuning UI
+**Current focus:** Phase 12 complete, ready for Phase 13
 
 ## Current Position
 
-Phase: 12 of 14 (Live Tuning UI) -- IN PROGRESS
-Plan: 1 of 2 in current phase (Plan 01 complete)
+Phase: 12 of 14 (Live Tuning UI) -- COMPLETE
+Plan: 2 of 2 in current phase (all plans complete)
 Milestone: v2.0 Visual Parity (Phases 9-14)
-Status: Phase 12 Plan 01 complete -- presets data layer and full 16-parameter tuning ControlPanel
-Last activity: 2026-02-26 -- Completed 12-01 Presets & Control Panel
+Status: Phase 12 complete -- full live tuning UI with 16-parameter controls, presets, import/export, URL param injection
+Last activity: 2026-02-26 -- Completed 12-02 App Wiring & Visual Verification
 
-Progress: [██████░░░░] 58% (v2.0)
+Progress: [███████░░░] 67% (v2.0)
 
 ## Performance Metrics
 
@@ -53,9 +53,10 @@ Progress: [██████░░░░] 58% (v2.0)
 | 11 | P01 | 45min | 2 | 5 |
 | 11 | P02 | 2min | 2 | 3 |
 | 12 | P01 | 3min | 2 | 3 |
+| 12 | P02 | 2min | 2 | 1 |
 
 **Recent Trend:**
-- Phase 12 Plan 01 complete (presets data layer + full tuning ControlPanel)
+- Phase 12 complete (2 plans: presets data layer + app wiring with visual verification)
 - Trend: Stable
 
 ## Accumulated Context
@@ -87,6 +88,8 @@ v2.0 decisions:
 - [12-01] GlassParams re-exported from ControlPanel for backward compat with App.tsx imports
 - [12-01] Flat JSON export format (no nesting, no metadata) per locked decision
 - [12-01] All 16 GlassParams fields required -- tuning panel always holds concrete values
+- [12-02] URL params parsed once on mount via lazy useState initializer -- no re-parsing on navigation
+- [12-02] Human-verified complete tuning experience: sliders, resets, presets, import/export, URL params all functional
 
 ### Pending Todos
 
@@ -101,5 +104,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-26
-Stopped at: Completed 12-01-PLAN.md -- Presets data layer and full 16-parameter tuning ControlPanel
+Stopped at: Completed 12-02-PLAN.md -- App wiring and visual verification, Phase 12 complete
 Resume file: None
