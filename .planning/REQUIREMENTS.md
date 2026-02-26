@@ -43,8 +43,8 @@
 
 ### Automated Tuning
 
-- [ ] **AUTO-01**: Tuning script drives Playwright with URL-based parameter injection (no rebuild needed)
-- [ ] **AUTO-02**: Script performs coordinate descent, adjusting one parameter at a time to minimize diff score
+- [x] **AUTO-01**: Tuning script drives Playwright with URL-based parameter injection (no rebuild needed)
+- [x] **AUTO-02**: Script performs coordinate descent, adjusting one parameter at a time to minimize diff score
 - [ ] **AUTO-03**: Script logs convergence per iteration and outputs best-found parameter set as JSON
 
 ## Future Requirements
@@ -100,8 +100,8 @@
 | DIFF-02 | Phase 13 | Complete |
 | DIFF-03 | Phase 13 | Complete |
 | DIFF-04 | Phase 13 | Complete |
-| AUTO-01 | Phase 14 | Pending |
-| AUTO-02 | Phase 14 | Pending |
+| AUTO-01 | Phase 14 | Complete |
+| AUTO-02 | Phase 14 | Complete |
 | AUTO-03 | Phase 14 | Pending |
 
 **Coverage:**

@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: Visual Parity
 status: unknown
-last_updated: "2026-02-26T21:58:26.140Z"
+last_updated: "2026-02-26T22:17:36Z"
 progress:
-  total_phases: 13
+  total_phases: 14
   completed_phases: 13
-  total_plans: 27
-  completed_plans: 27
+  total_plans: 29
+  completed_plans: 28
 ---
 
 # Project State
@@ -18,17 +18,17 @@ progress:
 See: .planning/PROJECT.md (updated 2026-02-25)
 
 **Core value:** Glass components that look and feel like Apple's Liquid Glass -- visually convincing refraction at 60FPS, now with pixel-level parity against native iOS rendering.
-**Current focus:** Phase 13 complete -- screenshot diff pipeline finished
+**Current focus:** Phase 14 in progress -- automated tuning loop scorer and tuner built
 
 ## Current Position
 
-Phase: 13 of 14 (Screenshot Diff Pipeline) -- COMPLETE
-Plan: 2 of 2 in current phase (all complete)
+Phase: 14 of 14 (Automated Tuning Loop) -- IN PROGRESS
+Plan: 1 of 2 in current phase (14-01 complete)
 Milestone: v2.0 Visual Parity (Phases 9-14)
-Status: Phase 13 complete -- full screenshot diff pipeline operational
-Last activity: 2026-02-26 -- Completed 13-02 iOS Capture, Diff Pipeline & Report
+Status: Phase 14 Plan 01 complete -- scorer and tuner engine modules built
+Last activity: 2026-02-26 -- Completed 14-01 Scorer & Tuner Engine
 
-Progress: [█████████░] 92% (v2.0)
+Progress: [██████████] 96% (v2.0)
 
 ## Performance Metrics
 
@@ -56,9 +56,10 @@ Progress: [█████████░] 92% (v2.0)
 | 12 | P02 | 2min | 2 | 1 |
 | 13 | P01 | 3min | 2 | 7 |
 | 13 | P02 | 3min | 2 | 6 |
+| 14 | P01 | 3min | 2 | 2 |
 
 **Recent Trend:**
-- Phase 13 complete (both plans: pipeline infrastructure + iOS capture/diff/report)
+- Phase 14 Plan 01 complete (scorer + tuner engine modules)
 - Trend: Stable
 
 ## Accumulated Context
@@ -100,6 +101,10 @@ v2.0 decisions:
 - [13-02] Pipeline always exits 0 regardless of mismatch (report-only, no pass/fail gating)
 - [13-02] Sequential capture (web then iOS) per mode to avoid resource contention
 - [13-02] 3s settle time after iOS appearance change for rendering completion
+- [14-01] 2s settle time for warm browser scorer (vs 3s cold start in capture-web)
+- [14-01] Tint decomposed into 3 independent axes (tint_r, tint_g, tint_b) for coordinate descent
+- [14-01] Scorer uses os.tmpdir() for intermediate capture/normalize/diff images
+- [14-01] Step halving applied uniformly to all params when no improvement in a cycle
 
 ### Pending Todos
 
@@ -114,5 +119,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-26
-Stopped at: Completed 13-02-PLAN.md -- iOS capture, diff pipeline, HTML report, unified entry point
+Stopped at: Completed 14-01-PLAN.md -- scorer and tuner engine modules
 Resume file: None
