@@ -10,12 +10,12 @@ See: .planning/PROJECT.md (updated 2026-02-25)
 ## Current Position
 
 Phase: 9 of 14 (Image Background Engine)
-Plan: 0 of TBD in current phase
+Plan: 1 of 2 in current phase
 Milestone: v2.0 Visual Parity (Phases 9-14)
-Status: Ready to plan
-Last activity: 2026-02-25 -- Roadmap created for v2.0
+Status: Executing
+Last activity: 2026-02-25 -- Completed 09-01 Image Background Engine
 
-Progress: [░░░░░░░░░░] 0% (v2.0)
+Progress: [█░░░░░░░░░] 8% (v2.0)
 
 ## Performance Metrics
 
@@ -39,10 +39,13 @@ Progress: [░░░░░░░░░░] 0% (v2.0)
 ### Decisions
 
 All v1.0 decisions logged in PROJECT.md Key Decisions table.
-v2.0 pending decisions:
+v2.0 decisions:
 - Image loading via JS decode + C++ upload (not C++ stb_image) -- confirmed by research
 - Separate Xcode project for SwiftUI reference (not inside glass-react repo)
 - leva for tuning UI, pixelmatch + pngjs for diff pipeline
+- [09-01] Image is default BackgroundMode; falls back to noise until texture uploaded
+- [09-01] Dawn C++ API uses TexelCopyTextureInfo/TexelCopyBufferLayout (not Web API names)
+- [09-01] Embind free functions (not class methods) for uploadImageData/setBackgroundMode for uintptr_t support
 
 ### Pending Todos
 
@@ -57,5 +60,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-25
-Stopped at: v2.0 roadmap created, ready to plan Phase 9
+Stopped at: Completed 09-01-PLAN.md
 Resume file: None
