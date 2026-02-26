@@ -26,7 +26,7 @@ Full details: [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md)
 ### v2.0 Visual Parity
 
 - [x] **Phase 9: Image Background Engine** — Load and render real images as background textures with sRGB-correct pipeline
-- [ ] **Phase 10: Shader Parameter Exposure** — Expose all glass shader uniforms as typed React props with sensible defaults
+- [x] **Phase 10: Shader Parameter Exposure** — Expose all glass shader uniforms as typed React props with sensible defaults (completed 2026-02-26)
 - [ ] **Phase 11: SwiftUI Reference App** — Native iOS reference app capturing authentic Apple Liquid Glass for visual comparison
 - [ ] **Phase 12: Live Tuning UI** — Real-time shader parameter controls with presets and JSON export/import in demo app
 - [ ] **Phase 13: Screenshot Diff Pipeline** — Automated screenshot capture and pixel-diff comparison between web and iOS renders
@@ -119,7 +119,7 @@ Phases 9 and 10 can execute in parallel. Phase 11 can execute in parallel with 9
 | 7. Visual Polish | v1.0 | 2/2 | Complete | 2026-02-10 |
 | 8. Library Packaging & Demo | v1.0 | 2/2 | Complete | 2026-02-10 |
 | 9. Image Background Engine | v2.0 | 3/3 | Complete | 2026-02-25 |
-| 10. Shader Parameter Exposure | 1/2 | In Progress|  | - |
+| 10. Shader Parameter Exposure | 2/2 | Complete   | 2026-02-26 | - |
 | 11. SwiftUI Reference App | v2.0 | 0/TBD | Not started | - |
 | 12. Live Tuning UI | v2.0 | 0/TBD | Not started | - |
 | 13. Screenshot Diff Pipeline | v2.0 | 0/TBD | Not started | - |

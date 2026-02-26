@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: Visual Parity
 status: unknown
-last_updated: "2026-02-26T02:39:55Z"
+last_updated: "2026-02-26T02:48:02.445Z"
 progress:
   total_phases: 10
-  completed_phases: 9
+  completed_phases: 10
   total_plans: 21
-  completed_plans: 20
+  completed_plans: 21
 ---
 
 # Project State
@@ -22,13 +22,13 @@ See: .planning/PROJECT.md (updated 2026-02-25)
 
 ## Current Position
 
-Phase: 10 of 14 (Shader Parameter Exposure)
-Plan: 1 of 2 in current phase (Plan 01 complete)
+Phase: 10 of 14 (Shader Parameter Exposure) -- COMPLETE
+Plan: 2 of 2 in current phase (all plans complete)
 Milestone: v2.0 Visual Parity (Phases 9-14)
-Status: Phase 10 in progress -- Plan 01 complete, Plan 02 remaining
-Last activity: 2026-02-25 -- Completed 10-01 C++ Engine Parameter Exposure
+Status: Phase 10 complete -- all shader parameters exposed from C++ through React API
+Last activity: 2026-02-25 -- Completed 10-02 TypeScript/React Wiring
 
-Progress: [███░░░░░░░] 33% (v2.0)
+Progress: [████░░░░░░] 40% (v2.0)
 
 ## Performance Metrics
 
@@ -49,9 +49,10 @@ Progress: [███░░░░░░░] 33% (v2.0)
 |-------|------|----------|-------|-------|
 | 09 | P03 | 1min | 2 | 1 |
 | 10 | P01 | 6min | 2 | 4 |
+| 10 | P02 | 3min | 2 | 8 |
 
 **Recent Trend:**
-- Phase 10 Plan 01 complete (C++ engine parameter exposure)
+- Phase 10 complete (Plan 01 engine + Plan 02 React wiring)
 - Trend: Stable
 
 ## Accumulated Context
@@ -72,6 +73,10 @@ v2.0 decisions:
 - [10-01] Fresnel edge reflection is additive on top of existing specular, not a replacement
 - [10-01] blurRadius uniform is in absolute pixels, JS computes from props
 - [10-01] glareAngle has no clamping -- wraps naturally via cos/sin
+- [10-02] glareDirection uses degrees in API, converted to radians in useGlassRegion
+- [10-02] blurRadius (pixels) takes precedence over blur (normalized) when both set
+- [10-02] No hover effects on new shader params -- physical material properties, not interaction feedback
+- [10-02] Same defaults across dark/light mode for new params (physical properties)
 
 ### Pending Todos
 
@@ -86,5 +91,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-25
-Stopped at: Completed 10-01-PLAN.md -- C++ engine parameter exposure (7 new shader uniforms + Fresnel model)
+Stopped at: Completed 10-02-PLAN.md -- TypeScript/React wiring of 7 shader parameters (Phase 10 complete)
 Resume file: None
