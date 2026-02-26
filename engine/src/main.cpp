@@ -142,6 +142,13 @@ EMSCRIPTEN_BINDINGS(background_engine) {
         .function("setRegionRim", &BackgroundEngine::setRegionRim)
         .function("setRegionMode", &BackgroundEngine::setRegionMode)
         .function("setRegionMorphSpeed", &BackgroundEngine::setRegionMorphSpeed)
+        .function("setRegionContrast", &BackgroundEngine::setRegionContrast)
+        .function("setRegionSaturation", &BackgroundEngine::setRegionSaturation)
+        .function("setRegionFresnelIOR", &BackgroundEngine::setRegionFresnelIOR)
+        .function("setRegionFresnelExponent", &BackgroundEngine::setRegionFresnelExponent)
+        .function("setRegionEnvReflectionStrength", &BackgroundEngine::setRegionEnvReflectionStrength)
+        .function("setRegionGlareAngle", &BackgroundEngine::setRegionGlareAngle)
+        .function("setRegionBlurRadius", &BackgroundEngine::setRegionBlurRadius)
         .function("setPaused", &BackgroundEngine::setPaused)
         .function("setReducedTransparency", &BackgroundEngine::setReducedTransparency);
 }

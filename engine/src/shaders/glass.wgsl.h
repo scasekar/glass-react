@@ -22,6 +22,16 @@ struct GlassUniforms {
     _pad4: f32,
     _pad5: f32,
     _pad6: f32,
+    // --- New block at byte offset 80 ---
+    contrast: f32,               // offset 80
+    saturation: f32,             // offset 84
+    fresnelIOR: f32,             // offset 88
+    fresnelExponent: f32,        // offset 92
+    // --- New block at byte offset 96 ---
+    envReflectionStrength: f32,  // offset 96
+    glareAngle: f32,             // offset 100
+    blurRadius: f32,             // offset 104
+    _pad7: f32,                  // offset 108
 };
 
 @group(0) @binding(0) var texSampler: sampler;
@@ -97,7 +107,7 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
 
     // --- 25-tap (5x5) Gaussian blur at green UV + 2 aberration samples ---
     let texelSize = 1.0 / glass.resolution;
-    let blurRadius = glass.blurIntensity * 30.0;
+    let blurRadius = glass.blurRadius;
 
     var blurColor = vec4f(0.0);
     var totalWeight = 0.0;
@@ -129,8 +139,8 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
     // --- Contrast reduction + saturation boost ---
     // Reference: backdrop-filter: contrast(85%) saturate(140%)
     let luminance = dot(aberratedColor, vec3f(0.299, 0.587, 0.114));
-    let saturated = mix(vec3f(luminance), aberratedColor, 1.4);
-    let contrasted = mix(vec3f(0.5), saturated, 0.85);
+    let saturated = mix(vec3f(luminance), aberratedColor, glass.saturation);
+    let contrasted = mix(vec3f(0.5), saturated, glass.contrast);
 
     // --- Tint ---
     let tinted = mix(contrasted, glass.tint, glass.opacity);
@@ -145,8 +155,9 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
     let normLen = max(length(normPos), 0.001);
     let normDir = normPos / normLen;
 
-    // Light from upper-left
-    let lightDot = dot(normDir, vec2f(-0.707, -0.707));
+    // Light direction from glareAngle uniform (replaces hardcoded upper-left)
+    let lightDir = vec2f(cos(glass.glareAngle), sin(glass.glareAngle));
+    let lightDot = dot(normDir, lightDir);
     let topLeftFactor = clamp(lightDot * 0.5 + 0.5, 0.0, 1.0);
 
     let coolSpec = broadGlow * topLeftFactor * glass.specularIntensity * specularMul;
@@ -154,6 +165,11 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
 
     let warmSpec = broadGlow * (1.0 - topLeftFactor) * glass.specularIntensity * 0.5 * specularMul;
     let warmColor = vec3f(0.95, 1.0, 0.75);
+
+    // Fresnel edge reflection (IOR-based)
+    let fresnelBase = 1.0 - clamp(abs(lightDot), 0.0, 1.0);
+    let fresnelTerm = pow(fresnelBase, glass.fresnelExponent);
+    let envRef = fresnelTerm * glass.envReflectionStrength;
 
     // Sharp rim at glass boundary
     let rimGlow = exp(-dist * dist / rimSpread) * glass.rimIntensity;
@@ -165,7 +181,9 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
     // For glass regions: output glass color with alpha=mask so alpha blending
     // composites only the glass area over the previously drawn background.
     let isBlit = glass.rect.z <= 0.0;
-    let glassRgb = clamp(tinted + specular, vec3f(0.0), vec3f(1.0));
+    var glassColor = tinted + specular;
+    glassColor += envRef;
+    let glassRgb = clamp(glassColor, vec3f(0.0), vec3f(1.0));
     let outColor = select(glassRgb, bgColor.rgb, isBlit);
     let outAlpha = select(mask, 1.0, isBlit);
     return vec4f(outColor, outAlpha);
