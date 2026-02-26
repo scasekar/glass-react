@@ -22,10 +22,10 @@
 
 ### Live Tuning UI
 
-- [ ] **TUNE-01**: Demo app shows real-time slider controls for all shader parameters, grouped by section
-- [ ] **TUNE-02**: User can reset parameters to defaults per section and globally
-- [ ] **TUNE-03**: Demo app offers named presets (Apple Clear Light, Apple Clear Dark) for one-click parameter loading
-- [ ] **TUNE-04**: User can export current parameters as JSON and import a JSON config
+- [x] **TUNE-01**: Demo app shows real-time slider controls for all shader parameters, grouped by section
+- [x] **TUNE-02**: User can reset parameters to defaults per section and globally
+- [x] **TUNE-03**: Demo app offers named presets (Apple Clear Light, Apple Clear Dark) for one-click parameter loading
+- [x] **TUNE-04**: User can export current parameters as JSON and import a JSON config
 
 ### SwiftUI Reference
 
@@ -88,10 +88,10 @@
 | SHDR-03 | Phase 10 | Complete |
 | SHDR-04 | Phase 10 | Complete |
 | SHDR-05 | Phase 10 | Complete |
-| TUNE-01 | Phase 12 | Pending |
-| TUNE-02 | Phase 12 | Pending |
-| TUNE-03 | Phase 12 | Pending |
-| TUNE-04 | Phase 12 | Pending |
+| TUNE-01 | Phase 12 | Complete |
+| TUNE-02 | Phase 12 | Complete |
+| TUNE-03 | Phase 12 | Complete |
+| TUNE-04 | Phase 12 | Complete |
 | REF-01 | Phase 11 | Pending |
 | REF-02 | Phase 11 | Pending |
 | REF-03 | Phase 11 | Pending |
