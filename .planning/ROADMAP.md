@@ -39,10 +39,9 @@ Full details: [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md)
 **Depends on**: Phase 8 (v1.0 complete)
 **Requirements**: IMG-01, IMG-02, IMG-03, IMG-04
 **Success Criteria** (what must be TRUE):
-  1. User can pass a `backgroundSrc` URL to GlassProvider and see that image rendered behind glass components with correct refraction
+  1. The library's bundled default wallpaper renders as the background behind glass components with correct refraction in image mode
   2. User can switch between `backgroundMode="noise"` and `backgroundMode="image"` without reloading the page, and both modes render correctly
-  3. When no `backgroundSrc` is provided, the library's bundled default wallpaper image loads automatically in image mode
-  4. A 50% gray test image passed through the glass pipeline with zero effects produces 50% gray output (sRGB/linear color space correctness verified)
+  3. A 50% gray test image passed through the glass pipeline with zero effects produces 50% gray output (sRGB/linear color space correctness verified)
 **Plans**: 2 plans
   - [ ] 09-01-PLAN.md -- C++ image blit pipeline, mode switching, upload API, Embind bindings
   - [ ] 09-02-PLAN.md -- JS image decode/upload, GlassProvider backgroundMode prop, bundled wallpaper, demo toggle
