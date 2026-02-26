@@ -9,7 +9,7 @@
 
 - [x] **IMG-01**: User can render a loaded image as the background texture through glass components
 - [x] **IMG-02**: User can toggle between noise and image background modes via `backgroundMode` prop
-- [ ] **IMG-03**: Library ships a bundled default wallpaper image (~200KB) as a Vite asset
+- [x] **IMG-03**: Library ships a bundled default wallpaper image (~200KB) as a Vite asset
 - [x] **IMG-04**: Image textures use sRGB-correct pipeline (rgba8unorm-srgb format, linear shader math)
 
 ### Shader Parameters
@@ -81,7 +81,7 @@
 |-------------|-------|--------|
 | IMG-01 | Phase 9 | Complete |
 | IMG-02 | Phase 9 | Complete |
-| IMG-03 | Phase 9 | Pending |
+| IMG-03 | Phase 9 | Complete |
 | IMG-04 | Phase 9 | Complete |
 | SHDR-01 | Phase 10 | Pending |
 | SHDR-02 | Phase 10 | Pending |
