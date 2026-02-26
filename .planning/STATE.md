@@ -10,12 +10,12 @@ See: .planning/PROJECT.md (updated 2026-02-25)
 ## Current Position
 
 Phase: 9 of 14 (Image Background Engine)
-Plan: 1 of 2 in current phase
+Plan: 2 of 2 in current phase (all complete)
 Milestone: v2.0 Visual Parity (Phases 9-14)
-Status: Executing
-Last activity: 2026-02-25 -- Completed 09-01 Image Background Engine
+Status: Executing — phase verification pending
+Last activity: 2026-02-25 -- Completed 09-02 JS/React Image Integration
 
-Progress: [█░░░░░░░░░] 8% (v2.0)
+Progress: [██░░░░░░░░] 17% (v2.0)
 
 ## Performance Metrics
 
@@ -46,6 +46,8 @@ v2.0 decisions:
 - [09-01] Image is default BackgroundMode; falls back to noise until texture uploaded
 - [09-01] Dawn C++ API uses TexelCopyTextureInfo/TexelCopyBufferLayout (not Web API names)
 - [09-01] Embind free functions (not class methods) for uploadImageData/setBackgroundMode for uintptr_t support
+- [09-02] HEAPU8 must be in EXPORTED_RUNTIME_METHODS for JS→WASM pixel transfer (not just EXPORTED_FUNCTIONS)
+- [09-02] Wallpaper loaded via fetch + createImageBitmap(colorSpaceConversion:'none') + OffscreenCanvas for sRGB preservation
 
 ### Pending Todos
 
@@ -60,5 +62,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-25
-Stopped at: Completed 09-01-PLAN.md
+Stopped at: Completed 09-02-PLAN.md — all plans in Phase 9 done, awaiting verification
 Resume file: None
