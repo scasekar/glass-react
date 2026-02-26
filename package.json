@@ -24,7 +24,8 @@
     "build:lib": "vite build",
     "build": "npm run build:wasm && npm run build:lib",
     "prepublishOnly": "npm run build",
-    "diff": "npx tsx pipeline/diff.ts"
+    "diff": "npx tsx pipeline/diff.ts",
+    "tune": "npx tsx pipeline/tune.ts"
   },
   "peerDependencies": {
     "react": "^18.0.0 || ^19.0.0",
