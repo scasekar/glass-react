@@ -15,6 +15,15 @@ export interface EngineModule {
     setReducedTransparency(enabled: boolean): void;
   } | null;
   destroyEngine(): void;
+
+  // Image background upload (Plan 01 Embind free functions)
+  uploadImageData(pixelPtr: number, width: number, height: number): void;
+  setBackgroundMode(mode: number): void; // 0 = Image, 1 = Noise
+
+  // Emscripten heap access for pixel data transfer
+  _malloc(size: number): number;
+  _free(ptr: number): void;
+  HEAPU8: Uint8Array;
 }
 
 export async function initEngine(): Promise<EngineModule> {
