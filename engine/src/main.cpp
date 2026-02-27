@@ -93,7 +93,21 @@ void OnAdapterAcquired(wgpu::RequestAdapterStatus status, wgpu::Adapter adapter,
                             OnDeviceAcquired);
 }
 
+// Whether JS requested we skip standalone init (external device will be provided)
+static bool g_useExternalDevice = false;
+
 int main() {
+    if (g_useExternalDevice) {
+        // External device mode: JS will call initWithExternalDevice() after
+        // injecting the host GPUDevice into the emdawnwebgpu object table.
+        // Just start the main loop; engine init happens later.
+#ifdef __EMSCRIPTEN__
+        emscripten_set_main_loop(MainLoop, 0, false);
+#endif
+        return 0;
+    }
+
+    // Standalone mode: create our own adapter/device
     wgpu::Instance instance = wgpu::CreateInstance();
     instance.RequestAdapter(nullptr, wgpu::CallbackMode::AllowSpontaneous,
                             OnAdapterAcquired);
@@ -106,6 +120,42 @@ int main() {
 
 // --- Embind bindings ---
 #ifdef __EMSCRIPTEN__
+
+// Called by JS BEFORE main() to skip standalone init
+void setExternalDeviceMode() {
+    g_useExternalDevice = true;
+}
+
+// Called by JS after inserting the host device into emdawnwebgpu.
+// The WGPUDevice handle comes from WebGPU.Internals.jsObjectInsert(gpuDevice).
+void initWithExternalDevice(uintptr_t deviceHandle) {
+    // Convert handle to wgpu::Device via the C API bridge
+    wgpu::Device device = wgpu::Device::Acquire(reinterpret_cast<WGPUDevice>(deviceHandle));
+
+    // Create surface from the glass canvas
+    wgpu::Instance instance = wgpu::CreateInstance();
+    wgpu::SurfaceDescriptor surfaceDesc{};
+    wgpu::EmscriptenSurfaceSourceCanvasHTMLSelector canvasSource{};
+    canvasSource.selector = "#gpu-canvas";
+    surfaceDesc.nextInChain = &canvasSource;
+    wgpu::Surface surface = instance.CreateSurface(&surfaceDesc);
+
+    // BGRA8Unorm is the standard WebGPU surface format
+    wgpu::TextureFormat format = wgpu::TextureFormat::BGRA8Unorm;
+
+    wgpu::SurfaceConfiguration config{};
+    config.device = device;
+    config.format = format;
+    config.width = 512;
+    config.height = 512;
+    surface.Configure(&config);
+
+    g_engine = new BackgroundEngine();
+    g_engine->init(device, surface, format, 512, 512);
+
+    std::cout << "BackgroundEngine initialized (external device)" << std::endl;
+}
+
 BackgroundEngine* getEngine() { return g_engine; }
 
 void destroyEngine() {
@@ -131,20 +181,17 @@ void setExternalTextureModeJS(bool enabled) {
 }
 
 // Returns the emdawnwebgpu handle for the offscreen background texture.
-// The JavaScript side resolves this via WebGPU.mgrTexture.get(handle).
+// The JavaScript side resolves this via WebGPU.getJsObject(handle).
 uintptr_t getBackgroundTextureHandleJS() {
     if (!g_engine) return 0;
     wgpu::Texture tex = g_engine->getBackgroundTexture();
-    // emdawnwebgpu stores the raw JS GPUTexture behind the wgpu::Texture wrapper.
-    // The .MoveToCHandle() returns the Emscripten handle (uint32 pointer into
-    // the WebGPU.Internals.jsObjects table).
-    // IMPORTANT: MoveToCHandle transfers ownership, so we must re-acquire
-    // a reference first to avoid destroying the engine's texture.
     wgpu::Texture clone = tex;      // copy increments ref
     return reinterpret_cast<uintptr_t>(clone.MoveToCHandle());
 }
 
 EMSCRIPTEN_BINDINGS(background_engine) {
+    emscripten::function("setExternalDeviceMode", &setExternalDeviceMode);
+    emscripten::function("initWithExternalDevice", &initWithExternalDevice);
     emscripten::function("getEngine", &getEngine, emscripten::allow_raw_pointers());
     emscripten::function("destroyEngine", &destroyEngine);
     emscripten::function("uploadImageData", &uploadImageDataJS);

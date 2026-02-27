@@ -142,8 +142,8 @@ export function GlassProvider({ children, backgroundMode = 'image', device, exte
     // Resolve the engine's background texture via its WASM handle
     const handle = module.getBackgroundTextureHandle();
     let bgTexture: GPUTexture | undefined;
-    if (handle && module.WebGPU?.mgrTexture) {
-      bgTexture = module.WebGPU.mgrTexture.get(handle);
+    if (handle && module.WebGPU?.getJsObject) {
+      bgTexture = module.WebGPU.getJsObject(handle) as GPUTexture | undefined;
     }
 
     if (!bgTexture) {

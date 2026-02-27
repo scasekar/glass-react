@@ -31,7 +31,11 @@ export interface EngineModule {
   } | null;
   destroyEngine(): void;
 
-  // Image background upload (Plan 01 Embind free functions)
+  // Lifecycle
+  setExternalDeviceMode(): void;
+  initWithExternalDevice(handle: number): void;
+
+  // Image background upload
   uploadImageData(pixelPtr: number, width: number, height: number): void;
   setBackgroundMode(mode: number): void; // 0 = Image, 1 = Noise
   setExternalTextureMode(enabled: boolean): void;
@@ -42,11 +46,13 @@ export interface EngineModule {
   _free(ptr: number): void;
   HEAPU8: Uint8Array;
 
-  /** Emscripten WebGPU manager (for texture handle interop) */
+  /** emdawnwebgpu interop — for injecting/resolving JS WebGPU objects */
   WebGPU?: {
-    mgrTexture: {
-      get(handle: number): GPUTexture;
+    Internals: {
+      jsObjectInsert(obj: unknown): number;
+      jsObjects: Record<number, unknown>;
     };
+    getJsObject(handle: number): unknown;
   };
 }
 
@@ -59,13 +65,23 @@ export async function initEngine(options?: EngineInitOptions): Promise<EngineMod
   // @ts-expect-error -- Emscripten generated module, no type declarations
   const createEngineModule = (await import('../../engine/build-web/engine.js')).default;
 
-  // When an external device is provided, pass it via preinitializedWebGPUDevice
-  // so the Emscripten module reuses the host's device instead of creating its own.
+  // When an external device is provided, tell the C++ main() to skip standalone
+  // init. We do this via a preRun hook that fires before main().
   const moduleOptions: Record<string, unknown> = {};
   if (options?.device) {
-    moduleOptions.preinitializedWebGPUDevice = options.device;
+    moduleOptions.preRun = [(mod: EngineModule) => {
+      mod.setExternalDeviceMode();
+    }];
   }
 
-  const module = await createEngineModule(moduleOptions);
-  return module as EngineModule;
+  const module = await createEngineModule(moduleOptions) as EngineModule;
+
+  // If external device was provided, inject it into emdawnwebgpu's object table
+  // and call C++ initWithExternalDevice(handle).
+  if (options?.device && module.WebGPU?.Internals?.jsObjectInsert) {
+    const handle = module.WebGPU.Internals.jsObjectInsert(options.device);
+    module.initWithExternalDevice(handle);
+  }
+
+  return module;
 }
