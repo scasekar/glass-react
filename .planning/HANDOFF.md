@@ -1,86 +1,101 @@
 # Visual Parity Tuning — Handoff
 
-**Date:** 2026-02-26
+**Date:** 2026-02-27
 **Goal:** Get web glass shader as close to Apple Liquid Glass (Clear) as possible
 
-## What Was Done
+## Current State
 
-1. **Fixed pipeline infrastructure** (committed `b09afc1`):
-   - Chrome WebGPU was rendering black — fixed by using `--use-angle=metal` instead of `--use-gl=egl`
-   - iOS capture was failing — fixed `DEVELOPER_DIR` for `xcrun simctl`
-   - Updated device to iPhone 17 Pro
-   - Changed iOS reference app to default to `.clear` glass variant
+- Pipeline infrastructure **fixed and working** (commit `b09afc1`)
+- Chrome WebGPU: `--use-angle=metal` (macOS Metal backend)
+- iOS capture: `DEVELOPER_DIR` fix for `xcrun simctl`, device = iPhone 17 Pro
+- iOS reference app: rebuilt with `.clear` glass variant default
+- **Baseline**: Light 72.75% mismatch, Dark 72.75%
+- The dev server is expected to be running at http://localhost:5173 (start with `npm run dev` if not)
 
-2. **Baseline captured**: Light 72.75% mismatch, Dark 72.75%
+## Why Mismatch Is So High (72.75%)
 
-## Key Visual Findings
+Two problems — **structural mismatch** AND **visual mismatch**:
 
-Comparing iOS Clear glass vs web rendering:
+### Structural (inflates score, not about glass quality):
+- Web capture: centered 360×240 glass panel in 800×800 viewport
+- iOS capture: cropped 800×800 from full-screen app with text overlays, nav bars, etc.
+- The images show completely different compositions
 
+### Visual (the actual glass effect differences):
 | Aspect | iOS (Clear) | Web (Current) | Action Needed |
 |--------|-------------|---------------|---------------|
-| **Blur** | Very subtle — background clearly visible | Way too blurry/frosted | Reduce `blurRadius` significantly (15→3-5?) |
-| **Tint opacity** | Nearly transparent | Too opaque dark blue tint | Reduce `opacity` (0.25→0.05-0.10?) |
-| **Tint color** | Neutral/warm, barely visible | Dark blue [0.15,0.15,0.2] | Shift warmer, reduce saturation |
-| **Refraction** | Subtle edge distortion | Visible but OK | May be close already |
-| **Specular** | Very subtle edge gleam | Present | May need reduction |
-| **Overall** | Glass is nearly invisible, just slightly frosted | Heavy frosted glass look | Major parameter reduction needed |
+| **Blur** | Very subtle — background clearly visible | Way too blurry/frosted | Reduce `blurRadius` (15→3-5) |
+| **Tint opacity** | Nearly transparent | Too opaque dark blue tint | Reduce `opacity` (0.25→0.05-0.08) |
+| **Tint color** | Neutral/warm, barely visible | Dark blue [0.15,0.15,0.2] | Shift lighter/warmer |
+| **Specular/Rim** | Very subtle edge gleam | Too strong | Reduce both |
+| **Overall** | Glass is nearly invisible, just slightly frosted | Heavy frosted glass look | Major reduction needed |
 
-## Structural Comparison Issues
+## IMMEDIATE Next Steps (do these in order)
 
-The diff score (72.75%) is inflated because **web and iOS show different compositions**:
-- Web: centered 360×240 glass panel in 800×800 viewport
-- iOS: cropped 800×800 from full-screen app with text overlays
+### Step 1: Align capture compositions
+Both screenshots must show comparable content for the diff score to be meaningful.
 
-### To Fix For Meaningful Comparison:
-1. **Option A**: Make web capture full-viewport glass (match iOS layout)
-2. **Option B**: Crop iOS to just the glass card area, exclude text
-3. **Option C**: Focus ROI mask on a text-free glass area only
-4. **Best**: Combine — make web panel bigger + tighten iOS crop + smaller ROI on glass-only area
+**A) Make web capture panel fill the viewport:**
+- Edit `demo/App.tsx` line 61: change `width: 360, height: 240` to `width: '100%', height: '100%'`
+- This makes the glass panel fill the 800×800 capture viewport
 
-## Next Steps (Priority Order)
+**B) Calibrate iOS crop region:**
+- View the raw iOS screenshot at `/tmp/glass_pipeline_ios_raw.png` (1206×2622)
+- Find the large glass card (the one with "Glass Panel" text)
+- Update `iosCropRegion` in `pipeline/lib/config.ts` to isolate just that card
+- The card is roughly at: `{ left: 40, top: 400, width: 1126, height: 500 }` (needs visual calibration)
 
-### 1. Fix Comparison (make diff scores meaningful)
-- Adjust web capture mode to render larger glass panel (e.g., 600×400 instead of 360×240)
-- Recalibrate `iosCropRegion` in config.ts to isolate just the large glass card
-- Tighten `roiMask` to focus on center of glass (avoid text areas)
-- Goal: get structural mismatch down so parameter tuning shows real improvement
+**C) Tighten ROI mask:**
+- Focus on the center of the glass where there's no text on either image
+- Something like `{ x: 200, y: 250, width: 400, height: 300 }` (centered, avoids text)
 
-### 2. Rough Manual Tuning (big parameter changes)
-Based on visual comparison, update "Apple Clear Light" preset:
+### Step 2: Rough-tune presets
+Update `demo/controls/presets.ts` "Apple Clear Light":
 ```
 blur: 0.5 → 0.3
-opacity: 0.25 → 0.08
+opacity: 0.25 → 0.06
 blurRadius: 15 → 4
-tint: [0.15, 0.15, 0.2] → [0.4, 0.4, 0.45] (lighter, less saturated)
-contrast: 0.85 → 0.95 (less contrast reduction)
-saturation: 1.4 → 1.1 (less boost)
-specular: 0.2 → 0.1
-rim: 0.15 → 0.05
+tint: [0.15, 0.15, 0.2] → [0.5, 0.5, 0.55]
+contrast: 0.85 → 0.95
+saturation: 1.4 → 1.1
+specular: 0.2 → 0.08
+rim: 0.15 → 0.04
 ```
 
-### 3. Run Automated Tuner
-After manual rough-tune gets score down, run `npm run tune -- --mode light` to fine-tune all 16 parameters via coordinate descent.
+### Step 3: Run diff, look at screenshots, iterate
+```bash
+npm run diff   # Capture both modes, generate reports
+```
+Then read the output images visually:
+- `pipeline/output/web/light_norm.png` — web screenshot
+- `pipeline/output/ios/light_norm.png` — iOS screenshot
+- `pipeline/output/diffs/light_diff.png` — diff overlay
 
-### 4. Shader Code Changes (if parameters aren't enough)
-May need to modify `engine/src/shaders/glass.wgsl.h`:
-- Apple's glass has a very subtle "vibrancy" effect (slight color boost without heavy tint)
-- The blur might need to be a different kernel shape
-- Edge effects (rim, specular) might need different falloff curves
+### Step 4: Run automated tuner
+```bash
+npm run tune -- --mode light --max-cycles 20
+```
+Apply best params from `pipeline/output/tuning/best-params-light.json` back to presets.ts.
 
-### 5. Iterate
-Run diff → inspect screenshots visually → adjust → repeat
+### Step 5: Shader code changes (if parameters aren't enough)
+- `engine/src/shaders/glass.wgsl.h` — the WGSL glass shader
+- May need: blur kernel shape changes, vibrancy effect, edge falloff curves
 
 ## Key Files
-- `pipeline/lib/config.ts` — crop regions, ROI mask, presets
+- `demo/App.tsx` — capture mode layout (line 48-83)
 - `demo/controls/presets.ts` — Apple Clear Light/Dark parameter presets
+- `pipeline/lib/config.ts` — crop regions, ROI mask, presets
+- `pipeline/lib/capture-ios.ts` — iOS simulator capture
+- `pipeline/lib/capture-web.ts` — Playwright web capture
+- `pipeline/lib/scorer.ts` — tuning loop scorer (persistent browser)
 - `engine/src/shaders/glass.wgsl.h` — WGSL glass shader (7.8KB)
 - `pipeline/tune.ts` — automated tuning entry point
 - `pipeline/diff.ts` — diff pipeline entry point
 
 ## Commands
 ```bash
-npm run diff          # Capture + compare both modes
-npm run tune          # Run automated tuner (light mode default)
-npm run tune -- --mode dark --max-cycles 20  # Dark mode, more cycles
+npm run dev               # Start dev server (needed for capture)
+npm run diff              # Capture + compare both modes
+npm run tune              # Run automated tuner (light mode default)
+npm run tune -- --mode dark --max-cycles 20
 ```
