@@ -61,13 +61,13 @@ export const CONFIG: PipelineConfig = {
   devServerPort: 5173,
 
   presets: {
-    light: 'Apple Clear Light',
-    dark: 'Apple Clear Dark',
+    light: 'Clear Light',
+    dark: 'Clear Dark',
   },
 
   presetUrls: {
-    light: presetToQueryString('Apple Clear Light'),
-    dark: presetToQueryString('Apple Clear Dark'),
+    light: presetToQueryString('Clear Light'),
+    dark: presetToQueryString('Clear Dark'),
   },
 
   // ROI mask: full image — includes glass edges, border highlights, and background.

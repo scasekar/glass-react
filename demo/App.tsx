@@ -106,7 +106,7 @@ export default function App() {
             margin: 0,
             letterSpacing: '-0.02em',
           }}>
-            LiquidGlass React
+            Glass React
           </h1>
           <p style={{
             fontSize: '0.85rem',

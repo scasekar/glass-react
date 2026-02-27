@@ -48,7 +48,7 @@ export const DEFAULTS: GlassParams = {
 
 /** Named presets mapping to complete parameter configurations. */
 export const PRESETS: Record<string, GlassParams> = {
-  'Apple Clear Light': {
+  'Clear Light': {
     ...DEFAULTS,
     blur: 0.3,
     opacity: 0.17,
@@ -65,7 +65,7 @@ export const PRESETS: Record<string, GlassParams> = {
     fresnelIOR: 1.5,
     glareDirection: 285,
   },
-  'Apple Clear Dark': {
+  'Clear Dark': {
     ...DEFAULTS,
     blur: 0.08,
     opacity: 0.10,
