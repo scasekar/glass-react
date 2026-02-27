@@ -1,5 +1,6 @@
 // Components
 export { GlassProvider } from './components/GlassProvider';
+export type { GlassProviderProps } from './components/GlassProvider';
 export { GlassPanel } from './components/GlassPanel';
 export { GlassButton } from './components/GlassButton';
 export { GlassCard } from './components/GlassCard';

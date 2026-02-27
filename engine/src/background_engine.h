@@ -81,6 +81,10 @@ public:
     void uploadImageData(const uint8_t* pixels, uint32_t imgWidth, uint32_t imgHeight);
     void setBackgroundMode(BackgroundMode mode);
 
+    // External texture mode: host app provides background via getBackgroundTexture()
+    void setExternalTextureMode(bool enabled);
+    wgpu::Texture getBackgroundTexture() const { return offscreenTexture; }
+
 private:
     static void lerpUniforms(GlassUniforms& current, const GlassUniforms& target, float t);
     void createNoisePipeline();
@@ -132,4 +136,5 @@ private:
 
     bool paused_ = false;
     bool reducedTransparency_ = false;
+    bool externalTextureMode_ = false;
 };

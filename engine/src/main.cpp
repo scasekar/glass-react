@@ -125,11 +125,32 @@ void setBackgroundModeJS(int mode) {
     g_engine->setBackgroundMode(static_cast<BackgroundMode>(mode));
 }
 
+void setExternalTextureModeJS(bool enabled) {
+    if (!g_engine) return;
+    g_engine->setExternalTextureMode(enabled);
+}
+
+// Returns the emdawnwebgpu handle for the offscreen background texture.
+// The JavaScript side resolves this via WebGPU.mgrTexture.get(handle).
+uintptr_t getBackgroundTextureHandleJS() {
+    if (!g_engine) return 0;
+    wgpu::Texture tex = g_engine->getBackgroundTexture();
+    // emdawnwebgpu stores the raw JS GPUTexture behind the wgpu::Texture wrapper.
+    // The .MoveToCHandle() returns the Emscripten handle (uint32 pointer into
+    // the WebGPU.Internals.jsObjects table).
+    // IMPORTANT: MoveToCHandle transfers ownership, so we must re-acquire
+    // a reference first to avoid destroying the engine's texture.
+    wgpu::Texture clone = tex;      // copy increments ref
+    return reinterpret_cast<uintptr_t>(clone.MoveToCHandle());
+}
+
 EMSCRIPTEN_BINDINGS(background_engine) {
     emscripten::function("getEngine", &getEngine, emscripten::allow_raw_pointers());
     emscripten::function("destroyEngine", &destroyEngine);
     emscripten::function("uploadImageData", &uploadImageDataJS);
     emscripten::function("setBackgroundMode", &setBackgroundModeJS);
+    emscripten::function("setExternalTextureMode", &setExternalTextureModeJS);
+    emscripten::function("getBackgroundTextureHandle", &getBackgroundTextureHandleJS);
     emscripten::class_<BackgroundEngine>("BackgroundEngine")
         .function("resize", &BackgroundEngine::resize)
         .function("addGlassRegion", &BackgroundEngine::addGlassRegion)
@@ -150,6 +171,9 @@ EMSCRIPTEN_BINDINGS(background_engine) {
         .function("setRegionGlareAngle", &BackgroundEngine::setRegionGlareAngle)
         .function("setRegionBlurRadius", &BackgroundEngine::setRegionBlurRadius)
         .function("setPaused", &BackgroundEngine::setPaused)
-        .function("setReducedTransparency", &BackgroundEngine::setReducedTransparency);
+        .function("setReducedTransparency", &BackgroundEngine::setReducedTransparency)
+        .function("setExternalTextureMode", &BackgroundEngine::setExternalTextureMode)
+        .function("update", &BackgroundEngine::update)
+        .function("render", &BackgroundEngine::render);
 }
 #endif

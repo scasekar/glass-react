@@ -278,7 +278,8 @@ void BackgroundEngine::createOffscreenTexture() {
     texDesc.size = {width, height, 1};
     texDesc.format = surfaceFormat;
     texDesc.usage = wgpu::TextureUsage::RenderAttachment |
-                    wgpu::TextureUsage::TextureBinding;
+                    wgpu::TextureUsage::TextureBinding |
+                    wgpu::TextureUsage::CopyDst;
     texDesc.dimension = wgpu::TextureDimension::e2D;
     texDesc.mipLevelCount = 1;
     texDesc.sampleCount = 1;
@@ -458,6 +459,10 @@ void BackgroundEngine::setReducedTransparency(bool enabled) {
     reducedTransparency_ = enabled;
 }
 
+void BackgroundEngine::setExternalTextureMode(bool enabled) {
+    externalTextureMode_ = enabled;
+}
+
 void BackgroundEngine::render() {
     // Update uniform buffer with current time and resolution
     Uniforms uniforms{currentTime, 0.0f, static_cast<float>(width), static_cast<float>(height)};
@@ -466,7 +471,9 @@ void BackgroundEngine::render() {
     wgpu::CommandEncoder encoder = device.CreateCommandEncoder();
 
     // === PASS 1: Render background to offscreen texture ===
-    {
+    // Skip when external texture mode is active -- the host has already
+    // written the scene into offscreenTexture via copyTextureToTexture.
+    if (!externalTextureMode_) {
         wgpu::RenderPassColorAttachment attachment{};
         attachment.view = offscreenTextureView;
         attachment.loadOp = wgpu::LoadOp::Clear;

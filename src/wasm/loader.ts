@@ -1,3 +1,8 @@
+export interface EngineInitOptions {
+  /** External WebGPU device. When provided, engine uses this instead of creating its own. */
+  device?: GPUDevice;
+}
+
 export interface EngineModule {
   getEngine(): {
     resize(w: number, h: number): void;
@@ -20,20 +25,32 @@ export interface EngineModule {
     setRegionBlurRadius(id: number, radius: number): void;
     setPaused(paused: boolean): void;
     setReducedTransparency(enabled: boolean): void;
+    setExternalTextureMode(enabled: boolean): void;
+    update(deltaTime: number): void;
+    render(): void;
   } | null;
   destroyEngine(): void;
 
   // Image background upload (Plan 01 Embind free functions)
   uploadImageData(pixelPtr: number, width: number, height: number): void;
   setBackgroundMode(mode: number): void; // 0 = Image, 1 = Noise
+  setExternalTextureMode(enabled: boolean): void;
+  getBackgroundTextureHandle(): number;
 
   // Emscripten heap access for pixel data transfer
   _malloc(size: number): number;
   _free(ptr: number): void;
   HEAPU8: Uint8Array;
+
+  /** Emscripten WebGPU manager (for texture handle interop) */
+  WebGPU?: {
+    mgrTexture: {
+      get(handle: number): GPUTexture;
+    };
+  };
 }
 
-export async function initEngine(): Promise<EngineModule> {
+export async function initEngine(options?: EngineInitOptions): Promise<EngineModule> {
   if (!navigator.gpu) {
     throw new Error('WebGPU is not supported in this browser. Use Chrome 113+ or Edge 113+.');
   }
@@ -41,6 +58,14 @@ export async function initEngine(): Promise<EngineModule> {
   // MODULARIZE=1 + EXPORT_ES6=1 makes the Emscripten output an ESM factory function
   // @ts-expect-error -- Emscripten generated module, no type declarations
   const createEngineModule = (await import('../../engine/build-web/engine.js')).default;
-  const module = await createEngineModule();
+
+  // When an external device is provided, pass it via preinitializedWebGPUDevice
+  // so the Emscripten module reuses the host's device instead of creating its own.
+  const moduleOptions: Record<string, unknown> = {};
+  if (options?.device) {
+    moduleOptions.preinitializedWebGPUDevice = options.device;
+  }
+
+  const module = await createEngineModule(moduleOptions);
   return module as EngineModule;
 }

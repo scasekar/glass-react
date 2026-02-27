@@ -4,9 +4,13 @@ import { initEngine, type EngineModule } from '../wasm/loader';
 import { useAccessibilityPreferences } from '../hooks/useAccessibilityPreferences';
 import wallpaperUrl from '../assets/wallpaper.jpg';
 
-interface GlassProviderProps {
-  backgroundMode?: 'image' | 'noise'; // default: 'image'
+export interface GlassProviderProps {
   children: React.ReactNode;
+  backgroundMode?: 'image' | 'noise'; // default: 'image'
+  /** External WebGPU device. When provided, engine uses this instead of creating its own. */
+  device?: GPUDevice;
+  /** External background texture. When provided, noise pass is skipped and this texture is used as background. */
+  externalTexture?: GPUTexture;
 }
 
 async function loadAndUploadWallpaper(module: EngineModule): Promise<void> {
@@ -41,7 +45,7 @@ async function loadAndUploadWallpaper(module: EngineModule): Promise<void> {
   module._free(ptr);
 }
 
-export function GlassProvider({ children, backgroundMode = 'image' }: GlassProviderProps) {
+export function GlassProvider({ children, backgroundMode = 'image', device, externalTexture }: GlassProviderProps) {
   const [ready, setReady] = useState(false);
   const moduleRef = useRef<EngineModule | null>(null);
   const regionsRef = useRef(new Map<number, RegisteredRegion>());
@@ -51,7 +55,7 @@ export function GlassProvider({ children, backgroundMode = 'image' }: GlassProvi
   // Initialize WASM engine
   useEffect(() => {
     let cancelled = false;
-    initEngine().then(async module => {
+    initEngine(device ? { device } : undefined).then(async module => {
       if (cancelled) return;
       // The C++ main() fires RequestAdapter → RequestDevice asynchronously.
       // Poll until getEngine() returns non-null (device acquired, engine created).
@@ -71,7 +75,7 @@ export function GlassProvider({ children, backgroundMode = 'image' }: GlassProvi
         moduleRef.current = null;
       }
     };
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ResizeObserver for canvas
   useEffect(() => {
@@ -111,20 +115,67 @@ export function GlassProvider({ children, backgroundMode = 'image' }: GlassProvi
     engine.setPaused(prefs.reducedMotion);
   }, [prefs.reducedMotion, ready]);
 
-  // Load and upload wallpaper image when engine is ready
+  // Load and upload wallpaper image when engine is ready (only in standalone mode)
   useEffect(() => {
-    if (!ready || !moduleRef.current) return;
+    if (!ready || !moduleRef.current || externalTexture) return;
     loadAndUploadWallpaper(moduleRef.current).catch(err => {
       console.error('GlassProvider: wallpaper upload failed', err);
     });
-  }, [ready]);
+  }, [ready, externalTexture]);
 
-  // Sync backgroundMode prop to C++ engine
+  // Sync backgroundMode prop to C++ engine (only in standalone mode)
   useEffect(() => {
-    if (!ready || !moduleRef.current) return;
+    if (!ready || !moduleRef.current || externalTexture) return;
     // 0 = Image, 1 = Noise (matches C++ BackgroundMode enum)
     moduleRef.current.setBackgroundMode(backgroundMode === 'image' ? 0 : 1);
-  }, [backgroundMode, ready]);
+  }, [backgroundMode, ready, externalTexture]);
+
+  // Enable external texture mode and copy externalTexture → engine background each frame
+  useEffect(() => {
+    if (!ready || !moduleRef.current || !externalTexture || !device) return;
+    const module = moduleRef.current;
+    const engine = module.getEngine();
+    if (!engine) return;
+
+    engine.setExternalTextureMode(true);
+
+    // Resolve the engine's background texture via its WASM handle
+    const handle = module.getBackgroundTextureHandle();
+    let bgTexture: GPUTexture | undefined;
+    if (handle && module.WebGPU?.mgrTexture) {
+      bgTexture = module.WebGPU.mgrTexture.get(handle);
+    }
+
+    if (!bgTexture) {
+      console.warn('GlassProvider: could not resolve engine background texture handle');
+      return;
+    }
+
+    let rafId: number;
+    const copyLoop = () => {
+      // Copy external scene texture → engine's offscreen background texture
+      if (bgTexture && externalTexture.width > 0 && externalTexture.height > 0) {
+        const copyWidth = Math.min(externalTexture.width, bgTexture.width);
+        const copyHeight = Math.min(externalTexture.height, bgTexture.height);
+        if (copyWidth > 0 && copyHeight > 0) {
+          const encoder = device.createCommandEncoder();
+          encoder.copyTextureToTexture(
+            { texture: externalTexture },
+            { texture: bgTexture },
+            { width: copyWidth, height: copyHeight },
+          );
+          device.queue.submit([encoder.finish()]);
+        }
+      }
+      rafId = requestAnimationFrame(copyLoop);
+    };
+    rafId = requestAnimationFrame(copyLoop);
+
+    return () => {
+      cancelAnimationFrame(rafId);
+      engine.setExternalTextureMode(false);
+    };
+  }, [ready, externalTexture, device]);
 
   // rAF position sync loop
   useEffect(() => {
