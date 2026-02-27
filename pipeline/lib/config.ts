@@ -70,15 +70,14 @@ export const CONFIG: PipelineConfig = {
     dark: presetToQueryString('Apple Clear Dark'),
   },
 
-  // ROI mask covering the main glass panel area (centered in 800x800 viewport).
-  // NOTE: These coordinates should be adjusted after first pipeline run.
-  roiMask: { x: 150, y: 100, width: 500, height: 500 },
+  // ROI mask: full image — includes glass edges, border highlights, and background.
+  roiMask: { x: 0, y: 0, width: 800, height: 800 },
 
-  // iOS Simulator crop region (in native 1206x2622 coordinates).
-  // NOTE: Calibration needed after first iOS capture.
-  iosCropRegion: { left: 203, top: 600, width: 800, height: 800 },
+  // iOS Simulator crop region: centered 1206x1206 square from 1206x2622 screenshot.
+  // Capture mode renders a square viewport (screen width) centered vertically.
+  iosCropRegion: { left: 0, top: Math.floor((2622 - 1206) / 2), width: 1206, height: 1206 },
 
   iosDevice: 'iPhone 17 Pro',
   outputDir: 'output',
-  diffThreshold: 0.1,
+  diffThreshold: 0.05,
 };

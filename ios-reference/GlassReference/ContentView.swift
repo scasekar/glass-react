@@ -3,10 +3,36 @@ import SwiftUI
 struct ContentView: View {
     @Binding var colorScheme: ColorScheme
     @State private var glassVariant: Glass = .clear
-    @State private var captureMode: Bool = false
+    @State private var captureMode: Bool = true
     @State private var wallpaperName: String = "wallpaper"
 
     var body: some View {
+        if captureMode {
+            // Capture mode: square viewport with wallpaper stretched to fill
+            // (matching web demo's 800x800 UV mapping) + centered 70% glass panel.
+            // No text, no UI chrome — purely for pipeline comparison.
+            GeometryReader { geo in
+                let side = geo.size.width // square = screen width
+                let glassSize = side * 0.7
+                ZStack {
+                    Image(wallpaperName)
+                        .resizable()
+                        .frame(width: side, height: side)
+                    Color.clear
+                        .frame(width: glassSize, height: glassSize)
+                        .glassEffect(glassVariant, in: RoundedRectangle(cornerRadius: 24))
+                }
+                .frame(width: side, height: side)
+                .position(x: geo.size.width / 2, y: geo.size.height / 2)
+            }
+            .ignoresSafeArea()
+            .background(.black)
+        } else {
+            normalBody
+        }
+    }
+
+    private var normalBody: some View {
         ZStack {
             // Layer 1: Full-bleed wallpaper
             // The landscape wallpaper (1920x1080) fills the portrait screen via
@@ -75,13 +101,11 @@ struct ContentView: View {
                 .padding()
             }
 
-            // Layer 3: Controls overlay (hidden in capture mode)
-            if !captureMode {
-                VStack {
-                    Spacer()
-                    controlsOverlay
-                        .padding(.bottom, 60)
-                }
+            // Layer 3: Controls overlay
+            VStack {
+                Spacer()
+                controlsOverlay
+                    .padding(.bottom, 60)
             }
         }
     }

@@ -1,101 +1,95 @@
 # Visual Parity Tuning — Handoff
 
 **Date:** 2026-02-27
-**Goal:** Get web glass shader as close to Apple Liquid Glass (Clear) as possible
+**Status:** Light mode converged (3.52%), Dark mode needs iOS dark capture fix
 
-## Current State
+## Current Scores
+- **Light: 3.52%** — strong match, remaining diff at borders/edges only
+- **Dark: 34.48%** — iOS light/dark captures are identical (dark mode bug)
 
-- Pipeline infrastructure **fixed and working** (commit `b09afc1`)
-- Chrome WebGPU: `--use-angle=metal` (macOS Metal backend)
-- iOS capture: `DEVELOPER_DIR` fix for `xcrun simctl`, device = iPhone 17 Pro
-- iOS reference app: rebuilt with `.clear` glass variant default
-- **Baseline**: Light 72.75% mismatch, Dark 72.75%
-- The dev server is expected to be running at http://localhost:5173 (start with `npm run dev` if not)
+## What Changed This Session
 
-## Why Mismatch Is So High (72.75%)
+### Pipeline Fixes
+1. **Capture mode**: Glass panel now 70% viewport with cornerRadius=24 (was 100% + cornerRadius=0)
+   - Allows testing edge highlights, rim glow, refraction at borders
+   - Both web (`demo/App.tsx`) and iOS (`ContentView.swift`) updated to match
+2. **ROI**: Full 800x800 image (was 50,50,700,700 — missing edges)
+3. **Diff threshold**: 0.05 (was 0.1)
 
-Two problems — **structural mismatch** AND **visual mismatch**:
+### Tuner Rewrite
+- **Phased descent**: interior → edges → distortion (coupled params tuned together)
+- **Line search**: When direction helps, keeps going (was: test ±1 step only)
+- **Per-param step halving**: Only shrinks the stuck param (was: global halve)
+- **Hybrid scoring**: `fraction_mismatching × mean_error_magnitude` (not pixelmatch binary count or MSE)
+- See `pipeline/lib/tuner.ts` for full implementation
 
-### Structural (inflates score, not about glass quality):
-- Web capture: centered 360×240 glass panel in 800×800 viewport
-- iOS capture: cropped 800×800 from full-screen app with text overlays, nav bars, etc.
-- The images show completely different compositions
+### Tuned Apple Clear Light Params (major changes from pre-tuning)
+| Param | Before | After | Insight |
+|-------|--------|-------|---------|
+| contrast | 0.88 | 1.28 | iOS BOOSTS contrast, doesn't reduce |
+| opacity | 0.08 | 0.17 | iOS tint more visible than assumed |
+| rim | 0.10 | 0.40 | iOS has strong bright border rim |
+| blurRadius | 8 | 3.5 | iOS barely blurs background |
+| saturation | 1.2 | 0.9 | iOS slightly desaturates |
+| specular | 0.15 | 0.05 | iOS specular subtle, rim does heavy lifting |
+| refraction | 0.08 | 0.0 | iOS Clear = no lens distortion |
+| envReflection | 0.10 | 0.02 | iOS minimal env reflection |
+| fresnelExp | 3.0 | 0.5 | Very broad falloff |
 
-### Visual (the actual glass effect differences):
-| Aspect | iOS (Clear) | Web (Current) | Action Needed |
-|--------|-------------|---------------|---------------|
-| **Blur** | Very subtle — background clearly visible | Way too blurry/frosted | Reduce `blurRadius` (15→3-5) |
-| **Tint opacity** | Nearly transparent | Too opaque dark blue tint | Reduce `opacity` (0.25→0.05-0.08) |
-| **Tint color** | Neutral/warm, barely visible | Dark blue [0.15,0.15,0.2] | Shift lighter/warmer |
-| **Specular/Rim** | Very subtle edge gleam | Too strong | Reduce both |
-| **Overall** | Glass is nearly invisible, just slightly frosted | Heavy frosted glass look | Major reduction needed |
+## Known Issues
 
-## IMMEDIATE Next Steps (do these in order)
+### iOS Dark Mode Capture
+`pipeline/lib/capture-ios.ts` uses `simctl ui booted appearance dark` but iOS light and dark screenshots are byte-identical. Either:
+1. The app's `@Binding var colorScheme` isn't responding to system appearance changes
+2. `.glassEffect(.clear)` looks identical in light/dark mode (unlikely)
+3. The app needs to be terminated and relaunched after appearance change
 
-### Step 1: Align capture compositions
-Both screenshots must show comparable content for the diff score to be meaningful.
+**Fix attempt needed**: Try `simctl terminate booted com.glassreference.app` before `simctl launch` when switching modes.
 
-**A) Make web capture panel fill the viewport:**
-- Edit `demo/App.tsx` line 61: change `width: 360, height: 240` to `width: '100%', height: '100%'`
-- This makes the glass panel fill the 800×800 capture viewport
+## IMMEDIATE Next Steps
 
-**B) Calibrate iOS crop region:**
-- View the raw iOS screenshot at `/tmp/glass_pipeline_ios_raw.png` (1206×2622)
-- Find the large glass card (the one with "Glass Panel" text)
-- Update `iosCropRegion` in `pipeline/lib/config.ts` to isolate just that card
-- The card is roughly at: `{ left: 40, top: 400, width: 1126, height: 500 }` (needs visual calibration)
-
-**C) Tighten ROI mask:**
-- Focus on the center of the glass where there's no text on either image
-- Something like `{ x: 200, y: 250, width: 400, height: 300 }` (centered, avoids text)
-
-### Step 2: Rough-tune presets
-Update `demo/controls/presets.ts` "Apple Clear Light":
-```
-blur: 0.5 → 0.3
-opacity: 0.25 → 0.06
-blurRadius: 15 → 4
-tint: [0.15, 0.15, 0.2] → [0.5, 0.5, 0.55]
-contrast: 0.85 → 0.95
-saturation: 1.4 → 1.1
-specular: 0.2 → 0.08
-rim: 0.15 → 0.04
+### 1. Fix iOS dark mode capture
+Edit `pipeline/lib/capture-ios.ts` — terminate and relaunch app between light/dark:
+```typescript
+simctl('terminate booted com.glassreference.app');
+// wait...
+simctl('launch booted com.glassreference.app');
 ```
 
-### Step 3: Run diff, look at screenshots, iterate
+### 2. Tune Dark preset
+Once dark capture works, run:
 ```bash
-npm run diff   # Capture both modes, generate reports
+npm run tune -- --mode dark
 ```
-Then read the output images visually:
-- `pipeline/output/web/light_norm.png` — web screenshot
-- `pipeline/output/ios/light_norm.png` — iOS screenshot
-- `pipeline/output/diffs/light_diff.png` — diff overlay
 
-### Step 4: Run automated tuner
-```bash
-npm run tune -- --mode light --max-cycles 20
-```
-Apply best params from `pipeline/output/tuning/best-params-light.json` back to presets.ts.
-
-### Step 5: Shader code changes (if parameters aren't enough)
-- `engine/src/shaders/glass.wgsl.h` — the WGSL glass shader
-- May need: blur kernel shape changes, vibrancy effect, edge falloff curves
-
-## Key Files
-- `demo/App.tsx` — capture mode layout (line 48-83)
-- `demo/controls/presets.ts` — Apple Clear Light/Dark parameter presets
-- `pipeline/lib/config.ts` — crop regions, ROI mask, presets
-- `pipeline/lib/capture-ios.ts` — iOS simulator capture
-- `pipeline/lib/capture-web.ts` — Playwright web capture
-- `pipeline/lib/scorer.ts` — tuning loop scorer (persistent browser)
-- `engine/src/shaders/glass.wgsl.h` — WGSL glass shader (7.8KB)
-- `pipeline/tune.ts` — automated tuning entry point
-- `pipeline/diff.ts` — diff pipeline entry point
+### 3. Further light refinement (optional)
+The remaining 3.52% is at edges. Could try:
+- Tighter step sizes in edges phase
+- Separate edge-only ROI scoring
 
 ## Commands
 ```bash
-npm run dev               # Start dev server (needed for capture)
+npm run dev               # Dev server
 npm run diff              # Capture + compare both modes
-npm run tune              # Run automated tuner (light mode default)
-npm run tune -- --mode dark --max-cycles 20
+npm run tune -- --mode light   # Tune light preset
+npm run tune -- --mode dark    # Tune dark preset
+
+# Rebuild iOS app:
+DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild \
+  -project ios-reference/GlassReference.xcodeproj \
+  -scheme GlassReference -sdk iphonesimulator \
+  -destination 'platform=iOS Simulator,name=iPhone 17 Pro' \
+  -derivedDataPath ios-reference/build clean build
+DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcrun simctl install booted \
+  ios-reference/build/Build/Products/Debug-iphonesimulator/GlassReference.app
 ```
+
+## Key Files
+- `demo/controls/presets.ts` — Apple Clear Light/Dark presets (TUNED)
+- `pipeline/lib/tuner.ts` — Phased descent optimizer
+- `pipeline/lib/scorer.ts` — Hybrid MSE scorer
+- `pipeline/lib/config.ts` — crop, ROI, threshold
+- `pipeline/tune.ts` — Tuner entry point
+- `demo/App.tsx` — capture mode layout (70% panel, cornerRadius=24)
+- `ios-reference/GlassReference/ContentView.swift` — capture mode (70% panel, RoundedRectangle)
+- `engine/src/shaders/glass.wgsl.h` — WGSL shader

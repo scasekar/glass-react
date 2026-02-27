@@ -5,7 +5,7 @@ import { startDevServer, stopDevServer } from './lib/dev-server.js';
 import { captureIOS } from './lib/capture-ios.js';
 import { normalize } from './lib/normalize.js';
 import { createCaptureContext, closeCaptureContext, createScorer } from './lib/scorer.js';
-import { coordinateDescent, TUNABLE_PARAMS } from './lib/tuner.js';
+import { phasedDescent, TUNING_PHASES } from './lib/tuner.js';
 import type { TuningConfig } from './lib/tuner.js';
 import { PRESETS } from '../demo/controls/presets.js';
 
@@ -13,11 +13,10 @@ import { PRESETS } from '../demo/controls/presets.js';
 // CLI argument parsing
 // ---------------------------------------------------------------------------
 
-function parseArgs(): { mode: 'light' | 'dark'; maxCycles: number; threshold: number } {
+function parseArgs(): { mode: 'light' | 'dark'; threshold: number } {
   const args = process.argv.slice(2);
   let mode: 'light' | 'dark' = 'light';
-  let maxCycles = 15;
-  let threshold = 0.05;
+  let threshold = 0.001;
 
   for (let i = 0; i < args.length; i++) {
     if (args[i] === '--mode' && args[i + 1]) {
@@ -26,16 +25,13 @@ function parseArgs(): { mode: 'light' | 'dark'; maxCycles: number; threshold: nu
         mode = val;
       }
       i++;
-    } else if (args[i] === '--max-cycles' && args[i + 1]) {
-      maxCycles = Number(args[i + 1]);
-      i++;
     } else if (args[i] === '--threshold' && args[i + 1]) {
       threshold = Number(args[i + 1]);
       i++;
     }
   }
 
-  return { mode, maxCycles, threshold };
+  return { mode, threshold };
 }
 
 // ---------------------------------------------------------------------------
@@ -43,15 +39,18 @@ function parseArgs(): { mode: 'light' | 'dark'; maxCycles: number; threshold: nu
 // ---------------------------------------------------------------------------
 
 async function main(): Promise<void> {
-  const { mode, maxCycles, threshold } = parseArgs();
+  const { mode, threshold } = parseArgs();
   const presetName = CONFIG.presets[mode];
   const outputDir = resolve(import.meta.dirname, 'output', 'tuning');
 
+  const totalMaxCycles = TUNING_PHASES.reduce((sum, p) => sum + p.maxCycles, 0);
+
   console.log('');
-  console.log('=== Automated Tuning Loop ===');
+  console.log('=== Phased Tuning Loop ===');
   console.log(`  Mode: ${mode}`);
   console.log(`  Starting preset: ${presetName}`);
-  console.log(`  Max cycles: ${maxCycles}`);
+  console.log(`  Phases: ${TUNING_PHASES.map(p => `${p.name}(${p.maxCycles})`).join(' → ')}`);
+  console.log(`  Total max cycles: ${totalMaxCycles}`);
   console.log(`  Convergence threshold: ${threshold}%`);
   console.log('');
 
@@ -80,27 +79,27 @@ async function main(): Promise<void> {
 
     // 6. Build tuning config
     const config: TuningConfig = {
-      params: TUNABLE_PARAMS,
-      maxCycles,
+      phases: TUNING_PHASES,
       convergenceThreshold: threshold,
     };
 
-    // 7. Run coordinate descent with real-time console logging
+    // 7. Run phased descent with real-time console logging
     console.log('');
-    console.log('  Starting coordinate descent...');
-    console.log('');
+    console.log('  Starting phased descent...');
 
-    const result = await coordinateDescent(
+    const result = await phasedDescent(
       startParams, config, mode, presetName, score,
       (entry) => {
-        const arrow = entry.direction === 'none' ? '='
-          : entry.direction === 'plus' ? '+' : '-';
+        const arrow = entry.direction === 'none' ? '·'
+          : entry.direction === 'plus' ? '↑' : '↓';
         const delta = entry.delta < 0
-          ? `improved ${(-entry.delta).toFixed(3)}%`
-          : 'no change';
+          ? `\x1b[32m-${(-entry.delta).toFixed(3)}%\x1b[0m`
+          : entry.delta > 0
+            ? `\x1b[31m+${entry.delta.toFixed(3)}%\x1b[0m`
+            : '—';
         console.log(
-          `  [${entry.cycle}/${entry.paramIndex}] ${entry.param} ${arrow} `
-          + `${entry.newValue.toFixed(4)} | ${delta} | best: ${entry.bestScore.toFixed(2)}%`,
+          `    [${entry.phase}/${entry.cycle}] ${entry.param.padEnd(22)} ${arrow} `
+          + `${entry.newValue.toFixed(4).padStart(8)} | ${delta.padStart(18)} | best: ${entry.bestScore.toFixed(2)}%`,
         );
       },
     );
@@ -123,9 +122,15 @@ async function main(): Promise<void> {
     console.log(`  Initial score: ${result.initialScore.toFixed(2)}%`);
     console.log(`  Final score:   ${result.finalScore.toFixed(2)}%`);
     console.log(`  Improvement:   ${result.improvement.toFixed(2)}% (${relativeImprovement}% relative)`);
-    console.log(`  Cycles:        ${result.cycles}`);
+    console.log(`  Cycles:        ${result.totalCycles}`);
     console.log(`  Evaluations:   ${result.totalEvaluations}`);
     console.log(`  Elapsed:       ${result.elapsed}`);
+    console.log('');
+    console.log('  Phase breakdown:');
+    for (const pr of result.phaseResults) {
+      console.log(`    ${pr.name.padEnd(15)} ${pr.startScore.toFixed(2)}% → ${pr.endScore.toFixed(2)}%`);
+    }
+    console.log('');
     console.log(`  Best params:   pipeline/output/tuning/best-params-${mode}.json`);
     console.log(`  Full log:      pipeline/output/tuning/tune-log-${mode}.json`);
     console.log('');

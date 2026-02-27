@@ -90,25 +90,25 @@ export function useGlassRegion(
       // Normal mode: dark/light defaults for unset props
       const defaults = prefs.darkMode ? DARK_DEFAULTS : LIGHT_DEFAULTS;
 
-      effectiveBlur = props.blur ?? 0.5;
+      effectiveBlur = props.blur ?? 0.3;
       effectiveOpacity = props.opacity ?? defaults.opacity;
       effectiveTint = props.tint ?? defaults.tint;
-      effectiveRefraction = props.refraction ?? 0.15;
+      effectiveRefraction = props.refraction ?? 0.0;
 
       // Sync new visual effect props
-      handle.updateAberration(props.aberration ?? 3);
-      handle.updateSpecular(props.specular ?? 0.2);
-      handle.updateRim(props.rim ?? 0.15);
+      handle.updateAberration(props.aberration ?? 0.7);
+      handle.updateSpecular(props.specular ?? 0.05);
+      handle.updateRim(props.rim ?? 0.40);
       handle.updateMode(props.refractionMode === 'prominent' ? 1.0 : 0.0);
-      handle.updateContrast(props.contrast ?? 0.85);
-      handle.updateSaturation(props.saturation ?? 1.4);
+      handle.updateContrast(props.contrast ?? 1.28);
+      handle.updateSaturation(props.saturation ?? 0.9);
       handle.updateFresnelIOR(props.fresnelIOR ?? 1.5);
-      handle.updateFresnelExponent(props.fresnelExponent ?? 5.0);
-      handle.updateEnvReflectionStrength(props.envReflectionStrength ?? 0.12);
+      handle.updateFresnelExponent(props.fresnelExponent ?? 0.5);
+      handle.updateEnvReflectionStrength(props.envReflectionStrength ?? 0.02);
       // glareDirection prop is degrees; convert to radians for shader
-      handle.updateGlareAngle((props.glareDirection ?? 315) * Math.PI / 180);
+      handle.updateGlareAngle((props.glareDirection ?? 285) * Math.PI / 180);
       // blurRadius (pixels) takes precedence; falls back to blur (normalized) * 30
-      handle.updateBlurRadius(props.blurRadius ?? (props.blur ?? 0.5) * 30);
+      handle.updateBlurRadius(props.blurRadius ?? (props.blur ?? 0.3) * 30);
     }
 
     handle.updateParams(
@@ -141,5 +141,6 @@ export function useGlassRegion(
     props.glareDirection,
     prefs.reducedTransparency,
     prefs.darkMode,
+    ctx.ready,
   ]);
 }

@@ -58,7 +58,7 @@ export default function App() {
           zIndex: 1,
         }}>
           <GlassPanel
-            style={{ width: 360, height: 240 }}
+            style={{ width: '70%', height: '70%' }}
             blur={params.blur}
             opacity={params.opacity}
             cornerRadius={params.cornerRadius}
