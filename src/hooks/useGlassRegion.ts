@@ -93,20 +93,20 @@ export function useGlassRegion(
       effectiveBlur = props.blur ?? 0.3;
       effectiveOpacity = props.opacity ?? defaults.opacity;
       effectiveTint = props.tint ?? defaults.tint;
-      effectiveRefraction = props.refraction ?? 0.0;
+      effectiveRefraction = props.refraction ?? 0.06;
 
       // Sync new visual effect props
-      handle.updateAberration(props.aberration ?? 0.7);
-      handle.updateSpecular(props.specular ?? 0.05);
-      handle.updateRim(props.rim ?? 0.40);
+      handle.updateAberration(props.aberration ?? 0.0);
+      handle.updateSpecular(props.specular ?? 0.075);
+      handle.updateRim(props.rim ?? 0.50);
       handle.updateMode(props.refractionMode === 'prominent' ? 1.0 : 0.0);
-      handle.updateContrast(props.contrast ?? 1.28);
-      handle.updateSaturation(props.saturation ?? 0.9);
+      handle.updateContrast(props.contrast ?? 1.22);
+      handle.updateSaturation(props.saturation ?? 1.05);
       handle.updateFresnelIOR(props.fresnelIOR ?? 1.5);
       handle.updateFresnelExponent(props.fresnelExponent ?? 0.5);
       handle.updateEnvReflectionStrength(props.envReflectionStrength ?? 0.02);
       // glareDirection prop is degrees; convert to radians for shader
-      handle.updateGlareAngle((props.glareDirection ?? 285) * Math.PI / 180);
+      handle.updateGlareAngle((props.glareDirection ?? 360) * Math.PI / 180);
       // blurRadius (pixels) takes precedence; falls back to blur (normalized) * 30
       handle.updateBlurRadius(props.blurRadius ?? (props.blur ?? 0.3) * 30);
     }
