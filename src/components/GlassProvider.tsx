@@ -94,6 +94,10 @@ export function GlassProvider({ children, backgroundMode = 'image', device, exte
     if (!ready) return;
     const canvas = canvasRef.current;
     if (!canvas) return;
+    // Set DPR immediately on engine init (before first resize)
+    const engine0 = moduleRef.current?.getEngine();
+    if (engine0) engine0.setDpr(devicePixelRatio);
+
     const observer = new ResizeObserver((entries) => {
       const engine = moduleRef.current?.getEngine();
       if (!engine) return;
@@ -109,9 +113,10 @@ export function GlassProvider({ children, backgroundMode = 'image', device, exte
           canvas.width = w;
           canvas.height = h;
           engine.resize(w, h);
-          engine.setDpr(devicePixelRatio);
         }
       }
+      // Always sync DPR (may change when moving between displays)
+      engine.setDpr(devicePixelRatio);
     });
     try {
       observer.observe(canvas, { box: 'device-pixel-content-box' as ResizeObserverBoxOptions });
