@@ -85,6 +85,9 @@ public:
     void setExternalTextureMode(bool enabled);
     wgpu::Texture getBackgroundTexture() const { return offscreenTexture; }
 
+    // Direct external background texture: host injects scene texture, no copy needed
+    void setExternalBackgroundTexture(wgpu::Texture tex);
+
 private:
     static void lerpUniforms(GlassUniforms& current, const GlassUniforms& target, float t);
     void createNoisePipeline();
@@ -137,4 +140,8 @@ private:
     bool paused_ = false;
     bool reducedTransparency_ = false;
     bool externalTextureMode_ = false;
+
+    // Direct external background texture (no copy needed)
+    wgpu::Texture externalBgTexture_;
+    wgpu::TextureView externalBgTextureView_;
 };

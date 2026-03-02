@@ -384,6 +384,10 @@ void BackgroundEngine::createGlassPipeline() {
 }
 
 void BackgroundEngine::createGlassBindGroup() {
+    // Pick texture view: prefer external background, fall back to offscreen
+    wgpu::TextureView bgView = externalBgTextureView_ ? externalBgTextureView_ : offscreenTextureView;
+    if (!bgView) return;  // neither available yet
+
     wgpu::BindGroupEntry entries[3]{};
 
     // Sampler at binding 0
@@ -392,7 +396,7 @@ void BackgroundEngine::createGlassBindGroup() {
 
     // Texture view at binding 1
     entries[1].binding = 1;
-    entries[1].textureView = offscreenTextureView;
+    entries[1].textureView = bgView;
 
     // Uniform buffer at binding 2
     entries[2].binding = 2;
@@ -463,6 +467,19 @@ void BackgroundEngine::setExternalTextureMode(bool enabled) {
     externalTextureMode_ = enabled;
 }
 
+void BackgroundEngine::setExternalBackgroundTexture(wgpu::Texture tex) {
+    externalBgTexture_ = std::move(tex);
+    if (externalBgTexture_) {
+        externalBgTextureView_ = externalBgTexture_.CreateView();
+    } else {
+        externalBgTextureView_ = nullptr;
+    }
+    // Recreate glass bind group to reference the new texture view
+    if (glassBindGroupLayout) {
+        createGlassBindGroup();
+    }
+}
+
 void BackgroundEngine::render() {
     // Update uniform buffer with current time and resolution
     Uniforms uniforms{currentTime, 0.0f, static_cast<float>(width), static_cast<float>(height)};
@@ -471,9 +488,9 @@ void BackgroundEngine::render() {
     wgpu::CommandEncoder encoder = device.CreateCommandEncoder();
 
     // === PASS 1: Render background to offscreen texture ===
-    // Skip when external texture mode is active -- the host has already
-    // written the scene into offscreenTexture via copyTextureToTexture.
-    if (!externalTextureMode_) {
+    // Skip when external background texture is injected directly, or when
+    // legacy external texture mode is active (host copied into offscreenTexture).
+    if (!externalBgTexture_ && !externalTextureMode_) {
         wgpu::RenderPassColorAttachment attachment{};
         attachment.view = offscreenTextureView;
         attachment.loadOp = wgpu::LoadOp::Clear;

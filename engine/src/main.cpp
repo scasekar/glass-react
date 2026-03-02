@@ -93,10 +93,9 @@ void OnAdapterAcquired(wgpu::RequestAdapterStatus status, wgpu::Adapter adapter,
                             OnDeviceAcquired);
 }
 
-// Whether JS requested we skip standalone init (external device will be provided)
-static bool g_useExternalDevice = false;
-
 int main() {
+    // Check if JS set Module.externalDeviceMode = true before initialization
+    bool g_useExternalDevice = EM_ASM_INT({ return Module.externalDeviceMode ? 1 : 0; });
     if (g_useExternalDevice) {
         // External device mode: JS will call initWithExternalDevice() after
         // injecting the host GPUDevice into the emdawnwebgpu object table.
@@ -121,9 +120,10 @@ int main() {
 // --- Embind bindings ---
 #ifdef __EMSCRIPTEN__
 
-// Called by JS BEFORE main() to skip standalone init
+// Legacy embind shim — kept for API compatibility; the real flag is now
+// Module.externalDeviceMode read in main() via EM_ASM.
 void setExternalDeviceMode() {
-    g_useExternalDevice = true;
+    // no-op: flag is read directly from Module.externalDeviceMode in main()
 }
 
 // Called by JS after inserting the host device into emdawnwebgpu.
@@ -189,6 +189,18 @@ uintptr_t getBackgroundTextureHandleJS() {
     return reinterpret_cast<uintptr_t>(clone.MoveToCHandle());
 }
 
+// Inject an external background texture directly (no copy needed).
+// The handle comes from JS via WebGPU.importJsTexture(gpuTexture).
+void setExternalBackgroundTextureJS(uintptr_t textureHandle) {
+    if (!g_engine) return;
+    if (!textureHandle) {
+        g_engine->setExternalBackgroundTexture(nullptr);
+        return;
+    }
+    wgpu::Texture tex = wgpu::Texture::Acquire(reinterpret_cast<WGPUTexture>(textureHandle));
+    g_engine->setExternalBackgroundTexture(tex);
+}
+
 EMSCRIPTEN_BINDINGS(background_engine) {
     emscripten::function("setExternalDeviceMode", &setExternalDeviceMode);
     emscripten::function("initWithExternalDevice", &initWithExternalDevice);
@@ -198,6 +210,7 @@ EMSCRIPTEN_BINDINGS(background_engine) {
     emscripten::function("setBackgroundMode", &setBackgroundModeJS);
     emscripten::function("setExternalTextureMode", &setExternalTextureModeJS);
     emscripten::function("getBackgroundTextureHandle", &getBackgroundTextureHandleJS);
+    emscripten::function("setExternalBackgroundTexture", &setExternalBackgroundTextureJS);
     emscripten::class_<BackgroundEngine>("BackgroundEngine")
         .function("resize", &BackgroundEngine::resize)
         .function("addGlassRegion", &BackgroundEngine::addGlassRegion)

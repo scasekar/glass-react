@@ -57,11 +57,20 @@ export default function App() {
           position: 'relative',
           zIndex: 1,
         }}>
-          <GlassPanel
-            style={{ width: '70%', height: '70%' }}
+          <GlassButton
+            style={{
+              width: '50vmin',
+              height: '50vmin',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '4rem',
+              fontWeight: 300,
+              padding: 0,
+            }}
             blur={params.blur}
             opacity={params.opacity}
-            cornerRadius={params.cornerRadius}
+            cornerRadius={9999}
             tint={params.tint}
             refraction={params.refraction}
             aberration={params.aberration}
@@ -76,7 +85,9 @@ export default function App() {
             fresnelExponent={params.fresnelExponent}
             envReflectionStrength={params.envReflectionStrength}
             glareDirection={params.glareDirection}
-          />
+          >
+            5
+          </GlassButton>
         </div>
       </GlassProvider>
     );
@@ -199,6 +210,45 @@ export default function App() {
           >
             Prominent Button
           </GlassButton>
+        </div>
+
+        {/* Circular dial buttons */}
+        <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', justifyContent: 'center' }}>
+          {['1', '2', '3'].map(digit => (
+            <GlassButton
+              key={digit}
+              style={{
+                width: 64,
+                height: 64,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '1.4rem',
+                fontWeight: 300,
+                padding: 0,
+              }}
+              blur={params.blur}
+              opacity={params.opacity}
+              cornerRadius={32}
+              tint={params.tint}
+              refraction={params.refraction}
+              aberration={params.aberration}
+              specular={params.specular}
+              rim={params.rim}
+              refractionMode="standard"
+              morphSpeed={params.morphSpeed}
+              contrast={params.contrast}
+              saturation={params.saturation}
+              blurRadius={params.blurRadius}
+              fresnelIOR={params.fresnelIOR}
+              fresnelExponent={params.fresnelExponent}
+              envReflectionStrength={params.envReflectionStrength}
+              glareDirection={params.glareDirection}
+              onClick={() => console.log(`Dial ${digit} clicked`)}
+            >
+              {digit}
+            </GlassButton>
+          ))}
         </div>
 
         {/* Glass Card */}

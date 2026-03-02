@@ -20,3 +20,6 @@ export { useGlassEngine } from './hooks/useGlassEngine';
 
 // Context types (advanced usage)
 export type { GlassContextValue, GlassRegionHandle } from './context/GlassContext';
+
+// Engine module type (for engineRef usage)
+export type { EngineModule } from './wasm/loader';

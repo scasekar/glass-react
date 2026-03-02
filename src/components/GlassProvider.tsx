@@ -11,6 +11,8 @@ export interface GlassProviderProps {
   device?: GPUDevice;
   /** External background texture. When provided, noise pass is skipped and this texture is used as background. */
   externalTexture?: GPUTexture;
+  /** Ref populated with the WASM engine module once ready. Enables per-frame texture updates from outside. */
+  engineRef?: React.MutableRefObject<EngineModule | null>;
 }
 
 async function loadAndUploadWallpaper(module: EngineModule): Promise<void> {
@@ -45,7 +47,7 @@ async function loadAndUploadWallpaper(module: EngineModule): Promise<void> {
   module._free(ptr);
 }
 
-export function GlassProvider({ children, backgroundMode = 'image', device, externalTexture }: GlassProviderProps) {
+export function GlassProvider({ children, backgroundMode = 'image', device, externalTexture, engineRef }: GlassProviderProps) {
   const [ready, setReady] = useState(false);
   const moduleRef = useRef<EngineModule | null>(null);
   const regionsRef = useRef(new Map<number, RegisteredRegion>());
@@ -64,12 +66,14 @@ export function GlassProvider({ children, backgroundMode = 'image', device, exte
         await new Promise(r => setTimeout(r, 50));
       }
       moduleRef.current = module;
+      if (engineRef) engineRef.current = module;
       setReady(true);
     }).catch(err => {
       console.error('GlassProvider: engine init failed', err);
     });
     return () => {
       cancelled = true;
+      if (engineRef) engineRef.current = null;
       if (moduleRef.current) {
         moduleRef.current.destroyEngine();
         moduleRef.current = null;
@@ -115,67 +119,45 @@ export function GlassProvider({ children, backgroundMode = 'image', device, exte
     engine.setPaused(prefs.reducedMotion);
   }, [prefs.reducedMotion, ready]);
 
+  // When using external device, skip background rendering (Pass 1) immediately.
+  // This prevents noise/wallpaper from flashing before the scene texture arrives.
+  useEffect(() => {
+    if (!ready || !moduleRef.current || !device) return;
+    const engine = moduleRef.current.getEngine();
+    if (!engine) return;
+    engine.setExternalTextureMode(true);
+  }, [ready, device]);
+
   // Load and upload wallpaper image when engine is ready (only in standalone mode)
   useEffect(() => {
-    if (!ready || !moduleRef.current || externalTexture) return;
+    if (!ready || !moduleRef.current || device || externalTexture) return;
     loadAndUploadWallpaper(moduleRef.current).catch(err => {
       console.error('GlassProvider: wallpaper upload failed', err);
     });
-  }, [ready, externalTexture]);
+  }, [ready, device, externalTexture]);
 
   // Sync backgroundMode prop to C++ engine (only in standalone mode)
   useEffect(() => {
-    if (!ready || !moduleRef.current || externalTexture) return;
+    if (!ready || !moduleRef.current || device || externalTexture) return;
     // 0 = Image, 1 = Noise (matches C++ BackgroundMode enum)
     moduleRef.current.setBackgroundMode(backgroundMode === 'image' ? 0 : 1);
-  }, [backgroundMode, ready, externalTexture]);
+  }, [backgroundMode, ready, device, externalTexture]);
 
-  // Enable external texture mode and copy externalTexture → engine background each frame
+  // Inject external texture directly into the glass engine's bind group (no copy)
   useEffect(() => {
-    if (!ready || !moduleRef.current || !externalTexture || !device) return;
+    if (!ready || !moduleRef.current || !externalTexture) return;
     const module = moduleRef.current;
-    const engine = module.getEngine();
-    if (!engine) return;
+    if (!module.WebGPU?.importJsTexture) return;
 
-    engine.setExternalTextureMode(true);
-
-    // Resolve the engine's background texture via its WASM handle
-    const handle = module.getBackgroundTextureHandle();
-    let bgTexture: GPUTexture | undefined;
-    if (handle && module.WebGPU?.getJsObject) {
-      bgTexture = module.WebGPU.getJsObject(handle) as GPUTexture | undefined;
-    }
-
-    if (!bgTexture) {
-      console.warn('GlassProvider: could not resolve engine background texture handle');
-      return;
-    }
-
-    let rafId: number;
-    const copyLoop = () => {
-      // Copy external scene texture → engine's offscreen background texture
-      if (bgTexture && externalTexture.width > 0 && externalTexture.height > 0) {
-        const copyWidth = Math.min(externalTexture.width, bgTexture.width);
-        const copyHeight = Math.min(externalTexture.height, bgTexture.height);
-        if (copyWidth > 0 && copyHeight > 0) {
-          const encoder = device.createCommandEncoder();
-          encoder.copyTextureToTexture(
-            { texture: externalTexture },
-            { texture: bgTexture },
-            { width: copyWidth, height: copyHeight },
-          );
-          device.queue.submit([encoder.finish()]);
-        }
-      }
-      rafId = requestAnimationFrame(copyLoop);
-    };
-    rafId = requestAnimationFrame(copyLoop);
+    // Import the JS GPUTexture into emdawnwebgpu's object table → returns a WASM handle
+    const handle = module.WebGPU.importJsTexture(externalTexture);
+    module.setExternalBackgroundTexture(handle);
 
     return () => {
-      cancelAnimationFrame(rafId);
-      engine.setExternalTextureMode(false);
+      // Clear external texture on unmount so engine falls back to offscreen
+      module.setExternalBackgroundTexture(0);
     };
-  }, [ready, externalTexture, device]);
+  }, [ready, externalTexture]);
 
   // rAF position sync loop
   useEffect(() => {

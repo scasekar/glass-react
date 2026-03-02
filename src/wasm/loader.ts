@@ -40,6 +40,7 @@ export interface EngineModule {
   setBackgroundMode(mode: number): void; // 0 = Image, 1 = Noise
   setExternalTextureMode(enabled: boolean): void;
   getBackgroundTextureHandle(): number;
+  setExternalBackgroundTexture(handle: number): void;
 
   // Emscripten heap access for pixel data transfer
   _malloc(size: number): number;
@@ -49,9 +50,11 @@ export interface EngineModule {
   /** emdawnwebgpu interop — for injecting/resolving JS WebGPU objects */
   WebGPU?: {
     Internals: {
-      jsObjectInsert(obj: unknown): number;
+      jsObjectInsert(ptr: number, obj: unknown): void;
       jsObjects: Record<number, unknown>;
     };
+    importJsDevice(device: GPUDevice, parentPtr?: number): number;
+    importJsTexture(texture: GPUTexture, parentPtr?: number): number;
     getJsObject(handle: number): unknown;
   };
 }
@@ -69,17 +72,18 @@ export async function initEngine(options?: EngineInitOptions): Promise<EngineMod
   // init. We do this via a preRun hook that fires before main().
   const moduleOptions: Record<string, unknown> = {};
   if (options?.device) {
-    moduleOptions.preRun = [(mod: EngineModule) => {
-      mod.setExternalDeviceMode();
-    }];
+    // Set as a Module property that C++ main() reads via EM_ASM.
+    // This avoids calling any function in preRun (neither embind nor C exports
+    // are available before the runtime initializes).
+    (moduleOptions as any).externalDeviceMode = true;
   }
 
   const module = await createEngineModule(moduleOptions) as EngineModule;
 
   // If external device was provided, inject it into emdawnwebgpu's object table
   // and call C++ initWithExternalDevice(handle).
-  if (options?.device && module.WebGPU?.Internals?.jsObjectInsert) {
-    const handle = module.WebGPU.Internals.jsObjectInsert(options.device);
+  if (options?.device && module.WebGPU?.importJsDevice) {
+    const handle = module.WebGPU.importJsDevice(options.device);
     module.initWithExternalDevice(handle);
   }
 
