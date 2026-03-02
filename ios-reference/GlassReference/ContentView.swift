@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct ContentView: View {
-    @Binding var colorScheme: ColorScheme
+    @Environment(\.colorScheme) var colorScheme
     @State private var glassVariant: Glass = .clear
     @State private var captureMode: Bool = true
     @State private var wallpaperName: String = "wallpaper"
@@ -13,14 +13,14 @@ struct ContentView: View {
             // No text, no UI chrome — purely for pipeline comparison.
             GeometryReader { geo in
                 let side = geo.size.width // square = screen width
-                let glassSize = side * 0.7
+                let dialSize = side * 0.5
                 ZStack {
                     Image(wallpaperName)
                         .resizable()
                         .frame(width: side, height: side)
                     Color.clear
-                        .frame(width: glassSize, height: glassSize)
-                        .glassEffect(glassVariant, in: RoundedRectangle(cornerRadius: 24))
+                        .frame(width: dialSize, height: dialSize)
+                        .glassEffect(glassVariant, in: Circle())
                 }
                 .frame(width: side, height: side)
                 .position(x: geo.size.width / 2, y: geo.size.height / 2)
@@ -115,9 +115,8 @@ struct ContentView: View {
             Button(glassVariant == .regular ? "Regular" : "Clear") {
                 glassVariant = (glassVariant == .regular) ? .clear : .regular
             }
-            Button(colorScheme == .light ? "Light" : "Dark") {
-                colorScheme = (colorScheme == .light) ? .dark : .light
-            }
+            Text(colorScheme == .light ? "Light" : "Dark")
+                .foregroundStyle(.secondary)
             Button(captureMode ? "Show UI" : "Capture") {
                 captureMode.toggle()
             }

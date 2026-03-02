@@ -58,11 +58,19 @@ export function GlassProvider({ children, backgroundMode = 'image', device, exte
   useEffect(() => {
     let cancelled = false;
     initEngine(device ? { device } : undefined).then(async module => {
-      if (cancelled) return;
+      if (cancelled) {
+        // StrictMode cleanup ran before initEngine resolved — destroy the
+        // orphaned engine to stop its rAF render loop.
+        module.destroyEngine();
+        return;
+      }
       // The C++ main() fires RequestAdapter → RequestDevice asynchronously.
       // Poll until getEngine() returns non-null (device acquired, engine created).
       while (!module.getEngine()) {
-        if (cancelled) return;
+        if (cancelled) {
+          module.destroyEngine();
+          return;
+        }
         await new Promise(r => setTimeout(r, 50));
       }
       moduleRef.current = module;

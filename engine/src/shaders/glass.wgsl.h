@@ -69,7 +69,8 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
     let pixelPos = uv * glass.resolution;
     let rectCenter = (glass.rect.xy + glass.rect.zw * 0.5) * glass.resolution;
     let rectHalf = glass.rect.zw * 0.5 * glass.resolution;
-    let dist = sdRoundedBox(pixelPos - rectCenter, rectHalf, glass.cornerRadius);
+    let clampedRadius = min(glass.cornerRadius, min(rectHalf.x, rectHalf.y));
+    let dist = sdRoundedBox(pixelPos - rectCenter, rectHalf, clampedRadius);
 
     let fw = fwidth(dist);
     let mask = smoothstep(fw, -fw, dist);

@@ -25,7 +25,19 @@ export async function captureIOS(mode: 'light' | 'dark'): Promise<string> {
     // Already booted -- ignore
   }
 
-  // Launch the GlassReference app (ensures it's in foreground, not home screen)
+  // Set appearance mode BEFORE launching the app so it picks up the scheme
+  console.log(`  Setting iOS appearance to ${mode}...`);
+  simctl(`ui booted appearance ${mode}`);
+
+  // Terminate any running instance so it relaunches with the new appearance
+  try {
+    simctl('terminate booted com.glassreference.app');
+    await new Promise(r => setTimeout(r, 1000));
+  } catch {
+    // App wasn't running -- ignore
+  }
+
+  // Launch the GlassReference app (picks up current system appearance)
   try {
     simctl('launch booted com.glassreference.app');
     console.log('  Launched GlassReference app');
@@ -36,11 +48,7 @@ export async function captureIOS(mode: 'light' | 'dark'): Promise<string> {
   // Override status bar for consistency
   simctl('status_bar booted override --time "9:41" --batteryState charged --batteryLevel 100 --wifiBars 3 --operatorName ""');
 
-  // Set appearance mode
-  console.log(`  Setting iOS appearance to ${mode}...`);
-  simctl(`ui booted appearance ${mode}`);
-
-  // Wait for rendering to settle after appearance change
+  // Wait for rendering to settle after launch
   console.log('  Waiting 3s for iOS rendering to settle...');
   await new Promise(r => setTimeout(r, 3000));
 
