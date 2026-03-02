@@ -107,18 +107,24 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
     let gUV = localPos * gScale + glassCenter;
     let bUV = localPos * bScale + glassCenter;
 
-    // --- 25-tap (5x5) Gaussian blur at green UV + 2 aberration samples ---
+    // --- 81-tap (9x9) Gaussian blur at green UV + 2 aberration samples ---
+    // The loop covers the same spatial extent as the old 5x5 kernel (±2*blurRadius
+    // texels from center) but with 2x denser sampling. On Retina displays the DPR-
+    // scaled blurRadius makes the old 5-tap spacing too coarse (visible grid).
+    // 9 taps per axis with step = blurRadius/2 keeps gaps ≤ ~4.5 texels even at
+    // the highest supported blur, which bilinear filtering smooths out.
     let texelSize = 1.0 / glass.resolution;
     let blurRadius = glass.blurRadius * dpr;
+    let sampleStep = blurRadius * 0.5;  // half spacing, same total extent
 
     var blurColor = vec4f(0.0);
     var totalWeight = 0.0;
 
-    for (var x = -2; x <= 2; x++) {
-        for (var y = -2; y <= 2; y++) {
+    for (var x = -4; x <= 4; x++) {
+        for (var y = -4; y <= 4; y++) {
             let r2 = f32(x * x + y * y);
-            let weight = exp(-r2 * 0.5);
-            let sampleUV = gUV + vec2f(f32(x), f32(y)) * texelSize * blurRadius;
+            let weight = exp(-r2 * 0.125);  // sigma=2 matches old Gaussian profile
+            let sampleUV = gUV + vec2f(f32(x), f32(y)) * texelSize * sampleStep;
             blurColor += textureSample(texBackground, texSampler, sampleUV) * weight;
             totalWeight += weight;
         }
