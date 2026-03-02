@@ -31,7 +31,7 @@ struct GlassUniforms {
     envReflectionStrength: f32,  // offset 96
     glareAngle: f32,             // offset 100
     blurRadius: f32,             // offset 104
-    _pad7: f32,                  // offset 108
+    dpr: f32,                    // offset 108: device pixel ratio
 };
 
 @group(0) @binding(0) var texSampler: sampler;
@@ -69,7 +69,8 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
     let pixelPos = uv * glass.resolution;
     let rectCenter = (glass.rect.xy + glass.rect.zw * 0.5) * glass.resolution;
     let rectHalf = glass.rect.zw * 0.5 * glass.resolution;
-    let clampedRadius = min(glass.cornerRadius, min(rectHalf.x, rectHalf.y));
+    let dpr = max(glass.dpr, 1.0);
+    let clampedRadius = min(glass.cornerRadius * dpr, min(rectHalf.x, rectHalf.y));
     let dist = sdRoundedBox(pixelPos - rectCenter, rectHalf, clampedRadius);
 
     let fw = fwidth(dist);
@@ -108,7 +109,7 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
 
     // --- 25-tap (5x5) Gaussian blur at green UV + 2 aberration samples ---
     let texelSize = 1.0 / glass.resolution;
-    let blurRadius = glass.blurRadius;
+    let blurRadius = glass.blurRadius * dpr;
 
     var blurColor = vec4f(0.0);
     var totalWeight = 0.0;
@@ -148,7 +149,9 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
 
     // --- Directional Fresnel specular ---
     // Reference uses paired inset box-shadows: cool blue top-left, warm bottom-right
-    let innerDist = max(-dist, 0.0);
+    // Use CSS-pixel-space distance so effects look the same at any DPR
+    let cssDist = dist / dpr;
+    let innerDist = max(-cssDist, 0.0);
     let broadGlow = exp(-innerDist * 0.08);
 
     let halfSize = glass.rect.zw * 0.5;
@@ -173,7 +176,7 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
     let envRef = fresnelTerm * glass.envReflectionStrength;
 
     // Sharp rim at glass boundary
-    let rimGlow = exp(-dist * dist / rimSpread) * glass.rimIntensity;
+    let rimGlow = exp(-cssDist * cssDist / rimSpread) * glass.rimIntensity;
 
     let specular = coolSpec * coolColor + warmSpec * warmColor + vec3f(rimGlow);
 

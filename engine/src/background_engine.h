@@ -33,7 +33,7 @@ struct GlassUniforms {
     float envReflectionStrength;                 // offset 96: ambient reflection strength (default 0.12)
     float glareAngle;                            // offset 100: light direction in radians (default -PI/4)
     float blurRadius;                            // offset 104: blur radius in pixels (default 15.0)
-    float _pad7;                                 // offset 108: padding to 112 bytes (7 x 16)
+    float dpr;                                   // offset 108: device pixel ratio (default 1.0)
 };
 // Total: 112 bytes (7 x vec4f aligned)
 
@@ -77,6 +77,7 @@ public:
 
     void setPaused(bool paused);
     void setReducedTransparency(bool enabled);
+    void setDpr(float dpr);
 
     void uploadImageData(const uint8_t* pixels, uint32_t imgWidth, uint32_t imgHeight);
     void setBackgroundMode(BackgroundMode mode);
@@ -137,6 +138,7 @@ private:
     wgpu::BindGroup imageBlitBindGroup_;
     wgpu::Sampler imageBlitSampler_;
 
+    float dpr_ = 1.0f;
     bool paused_ = false;
     bool reducedTransparency_ = false;
     bool externalTextureMode_ = false;

@@ -463,6 +463,10 @@ void BackgroundEngine::setReducedTransparency(bool enabled) {
     reducedTransparency_ = enabled;
 }
 
+void BackgroundEngine::setDpr(float dpr) {
+    dpr_ = dpr;
+}
+
 void BackgroundEngine::setExternalTextureMode(bool enabled) {
     externalTextureMode_ = enabled;
 }
@@ -542,6 +546,7 @@ void BackgroundEngine::render() {
             GlassUniforms passthrough{};
             passthrough.resolutionX = static_cast<float>(width);
             passthrough.resolutionY = static_cast<float>(height);
+            passthrough.dpr = dpr_;
             uint32_t blitOffset = MAX_GLASS_REGIONS * uniformStride;
             device.GetQueue().WriteBuffer(glassUniformBuffer, blitOffset,
                                           &passthrough, sizeof(GlassUniforms));
@@ -556,6 +561,7 @@ void BackgroundEngine::render() {
             if (!regions[i].active) continue;
             regions[i].current.resolutionX = static_cast<float>(width);
             regions[i].current.resolutionY = static_cast<float>(height);
+            regions[i].current.dpr = dpr_;
             device.GetQueue().WriteBuffer(glassUniformBuffer, i * uniformStride,
                                           &regions[i].current, sizeof(GlassUniforms));
             uint32_t dynamicOffset = i * uniformStride;
@@ -612,7 +618,7 @@ int BackgroundEngine::addGlassRegion() {
             defaults.envReflectionStrength = 0.12f;
             defaults.glareAngle = -0.785398f;  // -PI/4 radians = 315 degrees (upper-left)
             defaults.blurRadius = 15.0f;
-            defaults._pad7 = 0.0f;
+            defaults.dpr = 1.0f;
             regions[i].current = defaults;
             regions[i].target = defaults;
             regions[i].morphSpeed = 8.0f;

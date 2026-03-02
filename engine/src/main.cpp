@@ -230,6 +230,7 @@ EMSCRIPTEN_BINDINGS(background_engine) {
         .function("setRegionEnvReflectionStrength", &BackgroundEngine::setRegionEnvReflectionStrength)
         .function("setRegionGlareAngle", &BackgroundEngine::setRegionGlareAngle)
         .function("setRegionBlurRadius", &BackgroundEngine::setRegionBlurRadius)
+        .function("setDpr", &BackgroundEngine::setDpr)
         .function("setPaused", &BackgroundEngine::setPaused)
         .function("setReducedTransparency", &BackgroundEngine::setReducedTransparency)
         .function("setExternalTextureMode", &BackgroundEngine::setExternalTextureMode)

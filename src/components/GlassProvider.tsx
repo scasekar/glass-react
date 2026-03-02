@@ -109,6 +109,7 @@ export function GlassProvider({ children, backgroundMode = 'image', device, exte
           canvas.width = w;
           canvas.height = h;
           engine.resize(w, h);
+          engine.setDpr(devicePixelRatio);
         }
       }
     });
