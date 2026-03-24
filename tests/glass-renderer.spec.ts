@@ -91,3 +91,88 @@ test.describe('GlassRenderer visual harness', () => {
     expect(ratio).toBeGreaterThan(0.1);
   });
 });
+
+test.describe('GlassProvider integration', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/');
+    await page.waitForSelector('#gpu-canvas', { state: 'visible', timeout: 15_000 });
+    await page.waitForTimeout(2000);
+  });
+
+  test('GlassPanel renders non-black pixels over live background', async ({ page }) => {
+    // Wait for GlassPanel to appear in DOM
+    await page.waitForSelector('[data-testid="glass-panel"]', { state: 'attached', timeout: 10_000 });
+
+    const screenshotDir = join(process.cwd(), 'tests', 'screenshots');
+    await mkdir(screenshotDir, { recursive: true });
+
+    // Save full-page screenshot for reference
+    await page.screenshot({ path: join(screenshotDir, 'glass-integration.png') });
+
+    // Screenshot the gpu-canvas element and sample for non-black pixels
+    const canvas = page.locator('#gpu-canvas');
+    const screenshot = await canvas.screenshot();
+
+    let nonBlackCount = 0;
+    let totalSampled = 0;
+
+    for (let i = 0; i < screenshot.length - 3; i += 40) {
+      const r = screenshot[i];
+      const g = screenshot[i + 1];
+      const b = screenshot[i + 2];
+      if (r > 20 || g > 20 || b > 20) {
+        nonBlackCount++;
+      }
+      totalSampled++;
+    }
+
+    const ratio = nonBlackCount / totalSampled;
+    console.log(`Non-black ratio (integration): ${(ratio * 100).toFixed(1)}%`);
+
+    // At least 10% of pixels must be non-black
+    expect(ratio).toBeGreaterThan(0.1);
+  });
+
+  test('GlassPanel element is visible in DOM', async ({ page }) => {
+    const panel = page.locator('[data-testid="glass-panel"]');
+    await expect(panel).toBeAttached();
+  });
+
+  test('resize does not produce black canvas (GLASS-05 smoke)', async ({ page }) => {
+    // Resize viewport
+    await page.setViewportSize({ width: 1200, height: 800 });
+    await page.waitForTimeout(500);
+
+    // Screenshot the gpu-canvas and verify non-black output
+    const canvas = page.locator('#gpu-canvas');
+    const screenshot = await canvas.screenshot();
+
+    let nonBlackCount = 0;
+    let totalSampled = 0;
+
+    for (let i = 0; i < screenshot.length - 3; i += 40) {
+      const r = screenshot[i];
+      const g = screenshot[i + 1];
+      const b = screenshot[i + 2];
+      if (r > 20 || g > 20 || b > 20) nonBlackCount++;
+      totalSampled++;
+    }
+
+    const ratio = nonBlackCount / totalSampled;
+    console.log(`Post-resize non-black ratio (integration): ${(ratio * 100).toFixed(1)}%`);
+    expect(ratio).toBeGreaterThan(0.1);
+  });
+
+  test('saves integration screenshot for manual review', async ({ page }) => {
+    const screenshotDir = join(process.cwd(), 'tests', 'screenshots');
+    await mkdir(screenshotDir, { recursive: true });
+
+    const screenshotPath = join(screenshotDir, 'glass-integration-full.png');
+    await page.screenshot({ path: screenshotPath, fullPage: true });
+    console.log(`Integration screenshot saved to: ${screenshotPath}`);
+
+    // Verify the file was created
+    const { existsSync } = await import('fs');
+    expect(existsSync(screenshotPath)).toBe(true);
+  });
+});
