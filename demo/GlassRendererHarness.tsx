@@ -15,6 +15,7 @@ export function GlassRendererHarness() {
     let device: GPUDevice | null = null;
     let regionId: number | null = null;
     let canvasContext: GPUCanvasContext | null = null;
+    let sceneTexture: GPUTexture | null = null;
 
     (async () => {
       if (!navigator.gpu) {
@@ -44,7 +45,7 @@ export function GlassRendererHarness() {
 
       // 4. Create synthetic 512x512 rgba8unorm scene texture filled with warm gray
       // rgba8unorm is REQUIRED -- matches C++ offscreen texture format (NOT bgra)
-      const syntheticTexture = device.createTexture({
+      sceneTexture = device.createTexture({
         label: 'synthetic scene texture',
         size: [512, 512, 1],
         format: 'rgba8unorm',
@@ -64,14 +65,14 @@ export function GlassRendererHarness() {
         fillData[i * 4 + 3] = 255; // A
       }
       device.queue.writeTexture(
-        { texture: syntheticTexture },
+        { texture: sceneTexture },
         fillData,
         { bytesPerRow: 512 * 4 },
         [512, 512, 1],
       );
 
       // 5. Wire synthetic texture into renderer (GLASS-05 mechanism)
-      renderer.setSceneTexture(syntheticTexture);
+      renderer.setSceneTexture(sceneTexture);
 
       // 6. Add one glass region -- a div overlaid on the canvas center
       const glassPanel = document.getElementById('glass-panel');
@@ -110,9 +111,10 @@ export function GlassRendererHarness() {
     // but the bind group rebuild path is exercised.
     const canvas = canvasRef.current!;
     const observer = new ResizeObserver(() => {
-      if (!renderer || !device) return;
-      // For Phase 16: re-set the same synthetic texture to exercise the bind group rebuild path
+      if (!renderer || !device || !sceneTexture) return;
+      // Re-set the same synthetic texture to exercise the bind group rebuild path (GLASS-05)
       // In Phase 17 this will re-fetch the resized C++ texture
+      renderer.setSceneTexture(sceneTexture);
     });
     observer.observe(canvas);
 
