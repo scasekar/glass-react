@@ -31,7 +31,7 @@
 ### Visual Validation
 
 - [ ] **VIS-01**: Re-tune presets against iOS Simulator ground truth using coordinate-descent pipeline
-- [ ] **VIS-02**: Automated diff confirms convergence against iOS reference (not v2.0 baseline)
+- [x] **VIS-02**: Automated diff confirms convergence against iOS reference (not v2.0 baseline)
 
 ### Tuning Page
 
@@ -86,7 +86,7 @@
 | REACT-03 | Phase 17 | Complete |
 | REACT-04 | Phase 17 | Pending |
 | VIS-01 | Phase 18 | Pending |
-| VIS-02 | Phase 18 | Pending |
+| VIS-02 | Phase 18 | Complete |
 | PAGE-01 | Phase 19 | Complete |
 | PAGE-02 | Phase 19 | Complete |
 
