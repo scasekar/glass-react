@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v3.0
 milestone_name: Architecture Redesign
 status: executing
-stopped_at: Completed 15-01-PLAN.md
-last_updated: "2026-03-24T21:28:25.741Z"
-last_activity: "2026-03-24 -- Completed 15-01 (C++ engine thinning: glass pass deleted, WASM 60% smaller)"
+stopped_at: Completed 16-01-PLAN.md
+last_updated: "2026-03-24T22:02:21.637Z"
+last_activity: 2026-03-24 -- Completed 16-01 (vitest harness + WGSL shader port + GlassUniforms layout)
 progress:
   total_phases: 5
   completed_phases: 1
-  total_plans: 3
-  completed_plans: 3
-  percent: 95
+  total_plans: 6
+  completed_plans: 4
+  percent: 91
 ---
 
 # Project State
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-24)
 
 **Core value:** Glass components that look and feel like Apple's Liquid Glass -- visually convincing refraction at 60FPS.
-**Current focus:** Phase 15 -- WASM Thinning (v3.0 Architecture Redesign)
+**Current focus:** Phase 16 -- JS Glass Renderer (v3.0 Architecture Redesign)
 
 ## Current Position
 
-Phase: 15 of 19 (WASM Thinning) -- first of 5 v3.0 phases
-Plan: 3 of 3 in current phase
+Phase: 16 of 19 (JS Glass Renderer) -- second of 5 v3.0 phases
+Plan: 1 of 3 in current phase (16-01 complete)
 Status: Executing
-Last activity: 2026-03-24 -- Completed 15-01 (C++ engine thinning: glass pass deleted, WASM 60% smaller)
+Last activity: 2026-03-24 -- Completed 16-01 (vitest harness + WGSL shader port + GlassUniforms layout)
 
-Progress: [██████████] 95% (v3.0 milestone)
+Progress: [█████████░] 91% (v3.0 milestone)
 
 ## Performance Metrics
 
@@ -41,6 +41,7 @@ Progress: [██████████] 95% (v3.0 milestone)
 | v1.0 MVP | 8 | 16 | 2026-02-10 |
 | v2.0 Visual Parity | 6 | 13 | 2026-03-24 |
 | v3.0 Architecture Redesign | 5 | TBD | In progress |
+| Phase 16-01 P01 | 7min | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -57,6 +58,8 @@ v3.0 decisions:
 - [Phase 15]: Removed region ResizeObserver since registerRegion returns null (stubbed)
 - [Phase 15-01]: RGBA8Unorm via kOffscreenFormat constant replaces surfaceFormat in all pipeline sites
 - [Phase 15-01]: Dead glass.wgsl.h left on disk (not included) -- cleanup deferred
+- [Phase 16-01]: Node readFileSync for shader tests (vitest runs in Node, not Vite ?raw)
+- [Phase 16-01]: Explicit per-index assignment in buildGlassUniformData to prevent layout drift
 
 ### Pending Todos
 
@@ -69,6 +72,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-24T21:08:14.575Z
-Stopped at: Completed 15-01-PLAN.md
+Last session: 2026-03-24T22:02:21.635Z
+Stopped at: Completed 16-01-PLAN.md
 Resume file: None

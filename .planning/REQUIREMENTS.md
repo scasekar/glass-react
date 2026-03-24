@@ -15,9 +15,9 @@
 
 ### Glass Pipeline
 
-- [ ] **GLASS-01**: WGSL glass shader ported verbatim from C++ glass.wgsl.h to JS-loaded module (no algorithmic changes)
+- [x] **GLASS-01**: WGSL glass shader ported verbatim from C++ glass.wgsl.h to JS-loaded module (no algorithmic changes)
 - [ ] **GLASS-02**: GPURenderPipeline created with explicit bind group layouts (not layout:'auto') for multi-region texture sharing
-- [ ] **GLASS-03**: Per-region uniform buffers with 256-byte dynamic offset stride, written via device.queue.writeBuffer()
+- [x] **GLASS-03**: Per-region uniform buffers with 256-byte dynamic offset stride, written via device.queue.writeBuffer()
 - [ ] **GLASS-04**: JS-owned canvas context configured with GPU.getPreferredCanvasFormat()
 - [ ] **GLASS-05**: Bind groups invalidated and recreated when C++ recreates offscreen texture on resize
 
@@ -76,9 +76,9 @@
 | DEV-03 | Phase 15 | Complete |
 | DEV-04 | Phase 15 | Complete |
 | DEV-05 | Phase 15 | Complete |
-| GLASS-01 | Phase 16 | Pending |
+| GLASS-01 | Phase 16 | Complete |
 | GLASS-02 | Phase 16 | Pending |
-| GLASS-03 | Phase 16 | Pending |
+| GLASS-03 | Phase 16 | Complete |
 | GLASS-04 | Phase 16 | Pending |
 | GLASS-05 | Phase 16 | Pending |
 | REACT-01 | Phase 17 | Pending |
