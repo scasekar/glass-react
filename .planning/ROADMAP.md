@@ -94,7 +94,12 @@ Plans:
   2. All existing React props work identically to v2.0 — no breaking API changes for consumers
   3. All 16 shader parameters are functional as typed React props through the JS pipeline
   4. Accessibility features work: reduced-motion disables animation, reduced-transparency simplifies effects, dark/light mode switches correctly, WCAG contrast maintained
-**Plans**: TBD
+**Plans**: 3 plans
+
+Plans:
+- [ ] 17-01-PLAN.md — Add 14 setRegionXxx setter methods to GlassRenderer with unit tests
+- [ ] 17-02-PLAN.md — Extend Playwright E2E spec with GlassProvider integration screenshot tests
+- [ ] 17-03-PLAN.md — Rewrite GlassProvider: replace blit with GlassRenderer, live registerRegion, GLASS-05 resize
 
 ### Phase 18: Visual Validation
 **Goal**: Visual parity with iOS reference is confirmed after architecture change — presets re-tuned if needed, automated diff passes
@@ -137,6 +142,6 @@ Phases 15 and 16 can execute in parallel. Phase 17 requires both. Phases 18 and 
 | 14. Automated Tuning Loop | v2.0 | 2/2 | Complete | 2026-02-26 |
 | 15. WASM Thinning | 3/3 | Complete    | 2026-03-24 | - |
 | 16. JS Glass Renderer | 3/3 | Complete    | 2026-03-24 | - |
-| 17. React Integration | v3.0 | 0/? | Not started | - |
+| 17. React Integration | v3.0 | 0/3 | Not started | - |
 | 18. Visual Validation | v3.0 | 0/? | Not started | - |
 | 19. Tuning Page Redesign | v3.0 | 0/? | Not started | - |
