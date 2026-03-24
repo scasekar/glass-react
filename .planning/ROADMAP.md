@@ -108,7 +108,11 @@ Plans:
 **Success Criteria** (what must be TRUE):
   1. Automated screenshot diff (npm run diff) produces convergence scores against iOS Simulator reference — not regressed from v2.0 baseline
   2. Clear Light and Clear Dark presets are tuned against iOS ground truth using coordinate-descent pipeline
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+- [ ] 18-01-PLAN.md — Build WASM, run diff pipeline, establish v3.0 baseline scores and verify wallpaper capture
+- [ ] 18-02-PLAN.md — Conditionally tune regressed presets, confirm final diff scores, human sign-off
 
 ### Phase 19: Tuning Page Redesign
 **Goal**: Dev tuning page is redesigned with polished UI/UX while preserving all functional tuning capabilities
