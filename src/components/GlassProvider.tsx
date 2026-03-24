@@ -212,9 +212,32 @@ export function GlassProvider({ children, backgroundMode = 'image', engineRef }:
     moduleRef.current.setBackgroundMode(backgroundMode === 'image' ? 0 : 1);
   }, [backgroundMode, ready]);
 
-  const registerRegion = useCallback((_element: HTMLElement): GlassRegionHandle | null => {
-    // TODO Phase 17: wire to JS GlassRenderer — implemented in Task 2
-    return null;
+  const registerRegion = useCallback((element: HTMLElement): GlassRegionHandle | null => {
+    const renderer = rendererRef.current;
+    if (!renderer) return null;
+    const id = renderer.addRegion(element);
+    const handle: GlassRegionHandle = {
+      id,
+      // updateRect is a documented no-op: render() reads getBoundingClientRect() live every frame.
+      // Writing to target.rect here would cause morphLerp to fight the live DOM position (jitter).
+      updateRect: (_x, _y, _w, _h) => { /* no-op: DOM position is authoritative via getBoundingClientRect */ },
+      updateParams: (cr, blur, op, refr) => renderer.setRegionParams(id, cr, blur, op, refr),
+      updateTint: (r, g, b) => renderer.setRegionTint(id, r, g, b),
+      updateAberration: (v) => renderer.setRegionAberration(id, v),
+      updateSpecular: (v) => renderer.setRegionSpecular(id, v),
+      updateRim: (v) => renderer.setRegionRim(id, v),
+      updateMode: (v) => renderer.setRegionMode(id, v),
+      updateMorphSpeed: (speed) => renderer.setRegionMorphSpeed(id, speed),
+      updateContrast: (v) => renderer.setRegionContrast(id, v),
+      updateSaturation: (v) => renderer.setRegionSaturation(id, v),
+      updateBlurRadius: (v) => renderer.setRegionBlurRadius(id, v),
+      updateFresnelIOR: (v) => renderer.setRegionFresnelIOR(id, v),
+      updateFresnelExponent: (v) => renderer.setRegionFresnelExponent(id, v),
+      updateEnvReflectionStrength: (v) => renderer.setRegionEnvReflectionStrength(id, v),
+      updateGlareAngle: (v) => renderer.setRegionGlareAngle(id, v),
+      remove: () => renderer.removeRegion(id),
+    };
+    return handle;
   }, [ready]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const unregisterRegion = useCallback((id: number) => {
