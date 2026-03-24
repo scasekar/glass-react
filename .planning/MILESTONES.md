@@ -1,5 +1,26 @@
 # Milestones
 
+## v2.0 Visual Parity (Shipped: 2026-03-24)
+
+**Phases completed:** 6 phases (9-14), 13 plans
+**Files changed:** 90 files, +15,393 / -2,084 lines
+**Git range:** 75 commits (2026-02-10 → 2026-03-01)
+
+**Delivered:** Image background rendering, full shader parameter exposure, SwiftUI reference app for iOS visual comparison, live tuning UI with presets, automated screenshot-diff pipeline, and coordinate-descent tuning loop for converging toward Apple's native Liquid Glass.
+
+**Key accomplishments:**
+1. Image background engine with sRGB-correct pipeline (RGBA8UnormSrgb textures, linear shader math)
+2. 7 new shader parameters exposed as typed React props (contrast, saturation, Fresnel IOR/exponent, env reflection, glare direction, blur radius)
+3. SwiftUI reference app with `.clear` glass variant, capture script producing pixel-identical screenshots
+4. Live tuning UI with 16 parameter sliders, grouped sections, presets (Clear Light/Dark), JSON import/export
+5. Screenshot diff pipeline: Playwright web capture + iOS Simulator capture + sRGB normalization + pixelmatch with ROI masking
+6. Automated coordinate-descent tuning loop minimizing visual diff against iOS reference
+
+**Known Gaps:**
+- REF-01, REF-02, REF-03: SwiftUI reference requirements unchecked in REQUIREMENTS.md (functionality delivered in Phase 11 but checkboxes not updated)
+
+---
+
 ## v1.0 MVP (Shipped: 2026-02-10)
 
 **Phases completed:** 8 phases, 16 plans

@@ -2,20 +2,7 @@
 
 ## What This Is
 
-A React component library implementing Apple's "Liquid Glass" visual aesthetic using a shared WebGPU context between a C++20/WASM background engine and React UI components. The C++ engine renders either procedural simplex noise or a loaded image to a GPU texture via a two-pass architecture, and React glass components (GlassPanel, GlassButton, GlassCard) sample that texture through refraction/blur/tint shaders with premium visual effects including chromatic aberration, specular highlights, rim lighting, and smooth morphing transitions.
-
-## Current Milestone: v2.0 Visual Parity
-
-**Goal:** Achieve pixel-level visual parity with Apple's native Liquid Glass by adding image backgrounds, exposing all shader parameters, building a live tuning UI, creating a native iOS reference app for comparison, and automating screenshot-based visual diffing to converge on matching parameters.
-
-**Target features:**
-- Image background mode (load photo as background texture, keep noise as option)
-- Expose all glass shader uniforms as tweakable React props
-- Live controls panel in demo app for real-time shader parameter tuning
-- SwiftUI reference app (separate repo) with same wallpaper + glass panel + rounded element, targeting iPhone 16 Pro Simulator
-- Automated screenshot capture and pixel-diff comparison against iOS Simulator reference
-- Auto-iteration loop: adjust shader params → capture → diff → repeat until converged
-- Bundled default wallpaper image shipped with the library
+A React component library implementing Apple's "Liquid Glass" visual aesthetic using a shared WebGPU context between a C++20/WASM background engine and React UI components. The C++ engine renders either procedural simplex noise or a loaded image to a GPU texture via a two-pass architecture, and React glass components (GlassPanel, GlassButton, GlassCard) sample that texture through refraction/blur/tint shaders with premium visual effects including chromatic aberration, specular highlights, rim lighting, and smooth morphing transitions. Includes a full visual parity toolchain: SwiftUI reference app, automated screenshot diffing, and coordinate-descent tuning loop for converging toward Apple's native Liquid Glass appearance.
 
 ## Core Value
 
@@ -34,32 +21,35 @@ Glass components that look and feel like Apple's Liquid Glass — the refraction
 - ✓ Morphing transitions between glass states — v1.0
 - ✓ Accessibility (reduced-motion, reduced-transparency, WCAG contrast, dark/light mode) — v1.0
 - ✓ npm-publishable package with embedded WASM and interactive demo — v1.0
+- ✓ Image background mode with sRGB-correct pipeline as alternative to procedural noise — v2.0
+- ✓ All glass shader parameters (contrast, saturation, Fresnel, env reflection, glare, blur) exposed as typed React props — v2.0
+- ✓ Live tuning UI with grouped sliders, presets (Clear Light/Dark), JSON import/export — v2.0
+- ✓ SwiftUI reference app rendering `.clear` glass variant for iOS visual comparison — v2.0
+- ✓ Automated screenshot-based visual diffing (Playwright + iOS Simulator + pixelmatch) — v2.0
+- ✓ Coordinate-descent auto-tuning loop to converge shader params toward Apple's Liquid Glass — v2.0
+- ✓ Bundled default wallpaper image — v2.0
 
 ### Active
 
-- [ ] Image background mode as alternative to procedural noise
-- [ ] All glass shader parameters exposed as React component props
-- [ ] Live controls UI in demo app for real-time shader tuning
-- [ ] SwiftUI reference app with glass panel + rounded element on same wallpaper
-- [ ] Automated screenshot-based visual diffing against iOS Simulator reference
-- [ ] Auto-tuning loop to converge shader params toward Apple's Liquid Glass look
-- [ ] Bundled default wallpaper image
+(None — planning next milestone)
 
 ### Out of Scope
 
-- Gyroscope/device tilt interaction — deferred to v2, get static visuals right first
-- Content-blur mode (frosted glass over page content) — v2, procedural backgrounds only for v1
+- Gyroscope/device tilt interaction — deferred, get static visuals right first
+- Content-blur mode (frosted glass over page content) — requires additional compositor
 - Server-side rendering — WebGPU is client-only
 - WebGL fallback — WebGPU-only is the value proposition; doubles shader work
 - CSS-only glassmorphism mode — defeats purpose of GPU pipeline
 - Non-WebGPU browser support — target modern browsers only
+- Physical device reference screenshots — iOS 26 `.glassEffect()` renders dark on device (confirmed bug)
 
 ## Context
 
-Shipped v1.0 with 2,727 LOC across C++, TypeScript, and WGSL.
-Tech stack: React 19, Vite 6.4, Emscripten 4.0.16, emdawnwebgpu, C++20, WebGPU.
-Architecture: C++ engine renders simplex noise to offscreen texture → glass shader samples with refraction/blur → multi-region rendering with dynamic uniform buffer offsets → React components track DOM positions via rAF.
-Package: ESM bundle with SINGLE_FILE embedded WASM (~674KB), peer dependency on React ^18/^19.
+Shipped v2.0 with ~18K lines changed across C++, TypeScript, WGSL, and Swift.
+Tech stack: React 19, Vite 6.4, Emscripten 4.0.16, emdawnwebgpu, C++20, WebGPU, Playwright, pixelmatch.
+Architecture: C++ engine renders noise or image to offscreen texture → glass shader samples with refraction/blur/Fresnel/env reflection → multi-region rendering with dynamic uniform buffer offsets → React components track DOM positions via rAF.
+Tuning toolchain: Playwright captures web screenshots, xcrun simctl captures iOS Simulator, sRGB normalization + pixelmatch diffing with ROI masking, coordinate-descent optimizer.
+Package: ESM bundle with SINGLE_FILE embedded WASM, peer dependency on React ^18/^19.
 
 ## Constraints
 
@@ -88,9 +78,14 @@ Package: ESM bundle with SINGLE_FILE embedded WASM (~674KB), peer dependency on 
 | Exponential decay lerp for morphing | Frame-rate independent transitions, works with reduced-motion | ✓ Good — smooth transitions at any FPS |
 | useSyncExternalStore for a11y preferences | Concurrent-safe media query detection without useEffect race conditions | ✓ Good — stable React 18/19 compatible |
 | GlassProvider owns canvas element | Removes canvas from index.html, component controls full lifecycle | ✓ Good — clean encapsulation |
-| Image + noise background modes | Users need real images for visual parity comparison; noise stays as option | — Pending |
-| Separate Xcode project for reference | Keep iOS reference app outside glass-react repo to avoid polluting npm package | — Pending |
-| Automated visual diffing | Screenshot capture + pixel diff enables objective convergence toward Apple's look | — Pending |
+| Image + noise background modes | Users need real images for visual parity comparison; noise stays as option | ✓ Good — sRGB pipeline works correctly |
+| Separate Xcode project for reference | Keep iOS reference app outside glass-react repo to avoid polluting npm package | ✓ Good — clean separation |
+| Automated visual diffing | Screenshot capture + pixel diff enables objective convergence toward Apple's look | ✓ Good — measurable convergence achieved |
+| JS image decode + C++ upload | Leverage browser's image decoding; avoids bundling stb_image in WASM | ✓ Good — smaller WASM, sRGB-correct |
+| Embind free functions for image API | uintptr_t support for WASM heap pixel transfer | ✓ Good — clean JS→C++ bridge |
+| Fresnel as additive specular layer | Physics-based edge reflection on top of existing specular, not replacement | ✓ Good — visually accurate |
+| Chrome channel for Playwright WebGPU | Bundled Chromium lacks GPU; system Chrome with --enable-gpu flags works | ✓ Good — reliable headless captures |
+| Coordinate descent with tint decomposition | Tint split into 3 independent axes for per-channel optimization | ✓ Good — converges efficiently |
 
 ---
-*Last updated: 2026-02-25 after v2.0 milestone start*
+*Last updated: 2026-03-24 after v2.0 milestone completion*
