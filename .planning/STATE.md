@@ -2,15 +2,16 @@
 gsd_state_version: 1.0
 milestone: v3.0
 milestone_name: Architecture Redesign
-status: ready_to_plan
-last_updated: "2026-03-24T21:00:00.000Z"
-last_activity: 2026-03-24 -- v3.0 roadmap created
+status: executing
+stopped_at: Completed 15-02-PLAN.md
+last_updated: "2026-03-24T21:02:19.663Z"
+last_activity: 2026-03-24 -- Completed 15-02 (TS layer update for thinned C++ API)
 progress:
   total_phases: 5
   completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
-  percent: 0
+  total_plans: 3
+  completed_plans: 1
+  percent: 89
 ---
 
 # Project State
@@ -25,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-03-24)
 ## Current Position
 
 Phase: 15 of 19 (WASM Thinning) -- first of 5 v3.0 phases
-Plan: 0 of ? in current phase
-Status: Ready to plan
-Last activity: 2026-03-24 -- v3.0 roadmap created (5 phases, 18 requirements mapped)
+Plan: 2 of 3 in current phase
+Status: Executing
+Last activity: 2026-03-24 -- Completed 15-02 (TS layer update for thinned C++ API)
 
-Progress: [░░░░░░░░░░] 0% (v3.0 milestone)
+Progress: [█████████░] 89% (v3.0 milestone)
 
 ## Performance Metrics
 
@@ -52,6 +53,8 @@ v3.0 decisions:
 - Architecture matches ../sc/scTarsiusWeb pattern for future pluggability
 - Phases 15+16 can run in parallel (GlassRenderer tests against synthetic texture)
 - Phases 18+19 can run in parallel (tuning page redesign independent of visual validation)
+- [Phase 15]: Kept importJsTexture in WebGPU type for Phase 17 reuse
+- [Phase 15]: Removed region ResizeObserver since registerRegion returns null (stubbed)
 
 ### Pending Todos
 
@@ -64,6 +67,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-24
-Stopped at: v3.0 roadmap created, ready to plan Phase 15 (or Phase 16 in parallel)
+Last session: 2026-03-24T21:02:19.661Z
+Stopped at: Completed 15-02-PLAN.md
 Resume file: None

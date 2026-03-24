@@ -7,11 +7,11 @@
 
 ### Device & Engine
 
-- [ ] **DEV-01**: JS creates GPUDevice via navigator.gpu.requestAdapter/requestDevice before WASM initialization
-- [ ] **DEV-02**: JS injects GPUDevice into C++ WASM engine via importJsDevice/initWithExternalDevice pattern
+- [x] **DEV-01**: JS creates GPUDevice via navigator.gpu.requestAdapter/requestDevice before WASM initialization
+- [x] **DEV-02**: JS injects GPUDevice into C++ WASM engine via importJsDevice/initWithExternalDevice pattern
 - [ ] **DEV-03**: C++ engine renders only background (noise/image) to offscreen texture — all glass shader code removed
-- [ ] **DEV-04**: C++ exposes scene texture handle via getSceneTextureHandle() for JS consumption
-- [ ] **DEV-05**: JS owns the requestAnimationFrame render loop — emscripten_set_main_loop removed, C++ becomes call-driven
+- [x] **DEV-04**: C++ exposes scene texture handle via getSceneTextureHandle() for JS consumption
+- [x] **DEV-05**: JS owns the requestAnimationFrame render loop — emscripten_set_main_loop removed, C++ becomes call-driven
 
 ### Glass Pipeline
 
@@ -71,11 +71,11 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| DEV-01 | Phase 15 | Pending |
-| DEV-02 | Phase 15 | Pending |
+| DEV-01 | Phase 15 | Complete |
+| DEV-02 | Phase 15 | Complete |
 | DEV-03 | Phase 15 | Pending |
-| DEV-04 | Phase 15 | Pending |
-| DEV-05 | Phase 15 | Pending |
+| DEV-04 | Phase 15 | Complete |
+| DEV-05 | Phase 15 | Complete |
 | GLASS-01 | Phase 16 | Pending |
 | GLASS-02 | Phase 16 | Pending |
 | GLASS-03 | Phase 16 | Pending |
