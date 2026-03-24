@@ -4,14 +4,14 @@ milestone: v3.0
 milestone_name: Architecture Redesign
 status: executing
 stopped_at: Completed 16-02-PLAN.md
-last_updated: "2026-03-24T22:06:34.254Z"
-last_activity: 2026-03-24 -- Completed 16-01 (vitest harness + WGSL shader port + GlassUniforms layout)
+last_updated: "2026-03-24T22:32:09.943Z"
+last_activity: 2026-03-24 -- Completed 16-02 (GlassRenderer WebGPU pipeline with dynamic offset uniform buffer)
 progress:
   total_phases: 5
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 6
-  completed_plans: 5
-  percent: 91
+  completed_plans: 6
+  percent: 95
 ---
 
 # Project State
