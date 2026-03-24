@@ -104,7 +104,7 @@ export default function App() {
         minHeight: '100vh',
         gap: 24,
         padding: '48px 48px 48px 48px',
-        paddingRight: 328,
+        paddingRight: 348, // 300px panel + 48px content padding -- keep in sync with ControlPanel width
         position: 'relative',
         zIndex: 1,
       }}>
