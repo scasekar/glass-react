@@ -1,114 +1,100 @@
-# Requirements: LiquidGlass-React-WASM v2.0
+# Requirements: LiquidGlass-React-WASM v3.0
 
-**Defined:** 2026-02-25
-**Core Value:** Glass components that look and feel like Apple's Liquid Glass -- visually convincing refraction at 60FPS, now with pixel-level parity against native iOS rendering.
+**Defined:** 2026-03-24
+**Core Value:** Glass components that look and feel like Apple's Liquid Glass — visually convincing refraction at 60FPS, now with a pluggable architecture where any C++ WebGPU engine can provide the background texture.
 
-## v2.0 Requirements
+## v3.0 Requirements
 
-### Image Background
+### Device & Engine
 
-- [x] **IMG-01**: User can render a loaded image as the background texture through glass components
-- [x] **IMG-02**: User can toggle between noise and image background modes via `backgroundMode` prop
-- [x] **IMG-03**: Library ships a bundled default wallpaper image (~200KB) as a Vite asset
-- [x] **IMG-04**: Image textures use sRGB-correct pipeline (rgba8unorm-srgb format, linear shader math)
+- [ ] **DEV-01**: JS creates GPUDevice via navigator.gpu.requestAdapter/requestDevice before WASM initialization
+- [ ] **DEV-02**: JS injects GPUDevice into C++ WASM engine via importJsDevice/initWithExternalDevice pattern
+- [ ] **DEV-03**: C++ engine renders only background (noise/image) to offscreen texture — all glass shader code removed
+- [ ] **DEV-04**: C++ exposes scene texture handle via getSceneTextureHandle() for JS consumption
+- [ ] **DEV-05**: JS owns the requestAnimationFrame render loop — emscripten_set_main_loop removed, C++ becomes call-driven
 
-### Shader Parameters
+### Glass Pipeline
 
-- [x] **SHDR-01**: User can control contrast, saturation, and blurRadius via React props on glass components
-- [x] **SHDR-02**: All existing glass shader uniforms are exposed as documented, typed React props with sensible defaults
-- [x] **SHDR-03**: Glass shader supports Fresnel IOR and exponent parameters for edge reflection
-- [x] **SHDR-04**: Glass shader supports environment reflection strength parameter
-- [x] **SHDR-05**: Glass shader supports glare direction angle parameter
+- [ ] **GLASS-01**: WGSL glass shader ported verbatim from C++ glass.wgsl.h to JS-loaded module (no algorithmic changes)
+- [ ] **GLASS-02**: GPURenderPipeline created with explicit bind group layouts (not layout:'auto') for multi-region texture sharing
+- [ ] **GLASS-03**: Per-region uniform buffers with 256-byte dynamic offset stride, written via device.queue.writeBuffer()
+- [ ] **GLASS-04**: JS-owned canvas context configured with GPU.getPreferredCanvasFormat()
+- [ ] **GLASS-05**: Bind groups invalidated and recreated when C++ recreates offscreen texture on resize
 
-### Live Tuning UI
+### React Integration
 
-- [x] **TUNE-01**: Demo app shows real-time slider controls for all shader parameters, grouped by section
-- [x] **TUNE-02**: User can reset parameters to defaults per section and globally
-- [x] **TUNE-03**: Demo app offers named presets (Apple Clear Light, Apple Clear Dark) for one-click parameter loading
-- [x] **TUNE-04**: User can export current parameters as JSON and import a JSON config
+- [ ] **REACT-01**: GlassContext and GlassRegionHandle internals re-backed by JS GlassRenderer class
+- [ ] **REACT-02**: Public React API unchanged — GlassPanel, GlassButton, GlassCard props identical to v2.0
+- [ ] **REACT-03**: All 16 shader parameters functional as typed React props through JS pipeline
+- [ ] **REACT-04**: Accessibility features preserved (reduced-motion, reduced-transparency, WCAG contrast, dark/light mode)
 
-### SwiftUI Reference
+### Visual Validation
 
-- [ ] **REF-01**: Separate Xcode project renders `.clear` glass variant over the same wallpaper image (`.regular` available but not a tuning target)
-- [ ] **REF-02**: Reference app includes a glass panel and a rounded element (search bar / pill button)
-- [ ] **REF-03**: Reference app supports light and dark mode variants
-- [x] **REF-04**: Screenshots can be captured via `xcrun simctl io` script targeting iPhone 16 Pro Simulator
+- [ ] **VIS-01**: Re-tune presets against iOS Simulator ground truth using coordinate-descent pipeline
+- [ ] **VIS-02**: Automated diff confirms convergence against iOS reference (not v2.0 baseline)
 
-### Visual Diffing
+### Tuning Page
 
-- [x] **DIFF-01**: Playwright script captures WebGPU canvas screenshot at standardized pixel dimensions
-- [x] **DIFF-02**: Diff script normalizes both web and iOS screenshots to sRGB color space before comparison
-- [x] **DIFF-03**: pixelmatch comparison produces diff image output with mismatch percentage
-- [x] **DIFF-04**: Diff pipeline supports region-of-interest masking to compare only the glass area
-
-### Automated Tuning
-
-- [x] **AUTO-01**: Tuning script drives Playwright with URL-based parameter injection (no rebuild needed)
-- [x] **AUTO-02**: Script performs coordinate descent, adjusting one parameter at a time to minimize diff score
-- [x] **AUTO-03**: Script logs convergence per iteration and outputs best-found parameter set as JSON
+- [ ] **PAGE-01**: Dev tuning page redesigned using frontend-design + ui-ux-pro-max skills
+- [ ] **PAGE-02**: All existing tuning features preserved (sliders, presets, JSON import/export, URL params)
 
 ## Future Requirements
 
-### Visual Quality
+### Pluggability
 
-- **VQ-01**: Dual Kawase blur for wider, higher-quality blur radius
-- **VQ-02**: Mipmap generation on background texture for blur shimmer reduction
-- **VQ-03**: SSIM perceptual scoring alongside pixel diff
+- **PLUG-01**: Typed BackgroundEngine TypeScript interface for pluggable C++ engines
+- **PLUG-02**: Zero-arg glass pipeline — externalTexture prop support without WASM
+- **PLUG-03**: Integration with sc/scTarsiusWeb engine
 
-### Tuning UI Enhancements
+### Resilience
 
-- **TUI-01**: A/B split-screen parameter comparison
-- **TUI-02**: Undo/redo for parameter changes
-- **TUI-03**: Image drag-and-drop / file picker for wallpaper swapping
+- **RES-01**: GPUDevice loss recovery — recreate adapter, device, and all resources on loss
+- **RES-02**: Graceful fallback when WebGPU unavailable
 
-### CI Integration
+### Showcase
 
-- **CI-01**: Visual regression tests in CI pipeline using committed preset values
+- **SHOW-01**: Production showcase/landing page (beyond dev tuning tool)
 
 ## Out of Scope
 
 | Feature | Reason |
 |---------|--------|
-| Gyroscope/device tilt interaction | Deferred -- get visual parity on static glass first |
-| Content-blur mode (frosted glass over page content) | Requires additional compositor; procedural/image backgrounds only |
-| Physical device reference screenshots | iOS 26 `.glassEffect()` renders dark on device (confirmed bug) -- simulator only |
+| sc engine integration | Architecture supports it; integration deferred to later milestone |
+| Showcase/landing page | Deferred until after re-tuning validated |
+| Device loss recovery | v3.x follow-on; architecture enables it but not required for migration |
+| Zero-arg pipeline (no WASM) | v3.x follow-on; pluggable interface deferred |
+| Gyroscope/device tilt interaction | Deferred — get architecture right first |
+| Content-blur mode | Requires additional compositor |
 | WebGL fallback | WebGPU-only is the value proposition |
-| Server-side rendering | WebGPU is client-only |
 
 ## Traceability
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| IMG-01 | Phase 9 | Complete |
-| IMG-02 | Phase 9 | Complete |
-| IMG-03 | Phase 9 | Complete |
-| IMG-04 | Phase 9 | Complete |
-| SHDR-01 | Phase 10 | Complete |
-| SHDR-02 | Phase 10 | Complete |
-| SHDR-03 | Phase 10 | Complete |
-| SHDR-04 | Phase 10 | Complete |
-| SHDR-05 | Phase 10 | Complete |
-| TUNE-01 | Phase 12 | Complete |
-| TUNE-02 | Phase 12 | Complete |
-| TUNE-03 | Phase 12 | Complete |
-| TUNE-04 | Phase 12 | Complete |
-| REF-01 | Phase 11 | Pending |
-| REF-02 | Phase 11 | Pending |
-| REF-03 | Phase 11 | Pending |
-| REF-04 | Phase 11 | Complete |
-| DIFF-01 | Phase 13 | Complete |
-| DIFF-02 | Phase 13 | Complete |
-| DIFF-03 | Phase 13 | Complete |
-| DIFF-04 | Phase 13 | Complete |
-| AUTO-01 | Phase 14 | Complete |
-| AUTO-02 | Phase 14 | Complete |
-| AUTO-03 | Phase 14 | Complete |
+| DEV-01 | — | Pending |
+| DEV-02 | — | Pending |
+| DEV-03 | — | Pending |
+| DEV-04 | — | Pending |
+| DEV-05 | — | Pending |
+| GLASS-01 | — | Pending |
+| GLASS-02 | — | Pending |
+| GLASS-03 | — | Pending |
+| GLASS-04 | — | Pending |
+| GLASS-05 | — | Pending |
+| REACT-01 | — | Pending |
+| REACT-02 | — | Pending |
+| REACT-03 | — | Pending |
+| REACT-04 | — | Pending |
+| VIS-01 | — | Pending |
+| VIS-02 | — | Pending |
+| PAGE-01 | — | Pending |
+| PAGE-02 | — | Pending |
 
 **Coverage:**
-- v2.0 requirements: 24 total
-- Mapped to phases: 24
-- Unmapped: 0
+- v3.0 requirements: 18 total
+- Mapped to phases: 0
+- Unmapped: 18
 
 ---
-*Requirements defined: 2026-02-25*
-*Last updated: 2026-02-25 after roadmap creation*
+*Requirements defined: 2026-03-24*
+*Last updated: 2026-03-24 after initial definition*
