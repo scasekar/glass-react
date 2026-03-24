@@ -13,6 +13,63 @@
       overflow-x: hidden;
     }
     #root { min-height: 100vh; }
+
+    /* Range input global styles */
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 3px;
+      background: transparent;
+      outline: none;
+      cursor: pointer;
+    }
+
+    input[type="range"]::-webkit-slider-runnable-track {
+      height: 3px;
+      border-radius: 2px;
+      background: linear-gradient(
+        to right,
+        #5ba3f5 var(--pct, 0%),
+        rgba(255, 255, 255, 0.12) var(--pct, 0%)
+      );
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 13px;
+      height: 13px;
+      border-radius: 50%;
+      background: #fff;
+      border: none;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+      margin-top: -5px;
+      transition: transform 0.12s ease, box-shadow 0.12s ease;
+    }
+
+    input[type="range"]:active::-webkit-slider-thumb {
+      transform: scale(1.2);
+      box-shadow: 0 2px 8px rgba(91, 163, 245, 0.5);
+    }
+
+    input[type="range"]::-moz-range-track {
+      height: 3px;
+      border-radius: 2px;
+      background: rgba(255, 255, 255, 0.12);
+      border: none;
+    }
+
+    input[type="range"]::-moz-range-thumb {
+      width: 13px;
+      height: 13px;
+      border-radius: 50%;
+      background: #fff;
+      border: none;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+    }
+
+    /* Select dark color-scheme */
+    select { color-scheme: dark; }
   </style>
 </head>
 <body>
