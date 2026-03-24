@@ -1,16 +1,16 @@
 ---
 gsd_state_version: 1.0
-milestone: v2.0
-milestone_name: Visual Parity
-status: completed
-last_updated: "2026-03-24T20:00:00.000Z"
-last_activity: 2026-03-24 -- v2.0 milestone archived
+milestone: v3.0
+milestone_name: Architecture Redesign
+status: defining_requirements
+last_updated: "2026-03-24T20:10:00.000Z"
+last_activity: 2026-03-24 -- Milestone v3.0 started
 progress:
-  total_phases: 6
-  completed_phases: 6
-  total_plans: 13
-  completed_plans: 13
-  percent: 100
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
@@ -20,16 +20,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-24)
 
 **Core value:** Glass components that look and feel like Apple's Liquid Glass -- visually convincing refraction at 60FPS.
-**Current focus:** Planning next milestone
+**Current focus:** v3.0 Architecture Redesign -- defining requirements
 
 ## Current Position
 
-Milestone: v2.0 Visual Parity -- SHIPPED 2026-03-24
-All phases complete. Archived to .planning/milestones/
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-03-24 — Milestone v3.0 started
 
-Next: /gsd:new-milestone to start next milestone cycle.
-
-Progress: [██████████] 100%
+Progress: [░░░░░░░░░░] 0%
 
 ## Performance Metrics
 
@@ -39,12 +39,18 @@ Progress: [██████████] 100%
 |-----------|--------|-------|---------|
 | v1.0 MVP | 8 | 16 | 2026-02-10 |
 | v2.0 Visual Parity | 6 | 13 | 2026-03-24 |
+| v3.0 Architecture Redesign | — | — | In progress |
 
 ## Accumulated Context
 
 ### Decisions
 
-All decisions logged in PROJECT.md Key Decisions table.
+All prior decisions logged in PROJECT.md Key Decisions table.
+v3.0 decisions:
+- JS creates GPUDevice, passes to C++ (flip from v1/v2 where C++ created device)
+- Glass shaders move from C++ to JS/WebGPU (web-only UI concern)
+- Architecture matches ../sc/scTarsiusWeb pattern for future pluggability
+- Showcase page deferred to next milestone; dev tuning tool redesigned with frontend-design + ui-ux-pro-max
 
 ### Pending Todos
 
@@ -57,5 +63,5 @@ None active.
 ## Session Continuity
 
 Last session: 2026-03-24
-Stopped at: v2.0 milestone archived
+Stopped at: Defining v3.0 requirements
 Resume file: None
