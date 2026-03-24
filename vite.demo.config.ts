@@ -11,6 +11,7 @@ export default defineConfig({
     exclude: ['engine'],
   },
   server: {
+    port: 5174,
     fs: {
       allow: ['..'],
     },
