@@ -142,6 +142,6 @@ Phases 15 and 16 can execute in parallel. Phase 17 requires both. Phases 18 and 
 | 14. Automated Tuning Loop | v2.0 | 2/2 | Complete | 2026-02-26 |
 | 15. WASM Thinning | 3/3 | Complete    | 2026-03-24 | - |
 | 16. JS Glass Renderer | 3/3 | Complete    | 2026-03-24 | - |
-| 17. React Integration | v3.0 | 0/3 | Not started | - |
+| 17. React Integration | 2/3 | In Progress|  | - |
 | 18. Visual Validation | v3.0 | 0/? | Not started | - |
 | 19. Tuning Page Redesign | v3.0 | 0/? | Not started | - |

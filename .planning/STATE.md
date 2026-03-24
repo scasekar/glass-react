@@ -4,13 +4,13 @@ milestone: v3.0
 milestone_name: Architecture Redesign
 status: executing
 stopped_at: Completed 16-02-PLAN.md
-last_updated: "2026-03-24T22:32:09.943Z"
+last_updated: "2026-03-24T22:54:16.495Z"
 last_activity: 2026-03-24 -- Completed 16-02 (GlassRenderer WebGPU pipeline with dynamic offset uniform buffer)
 progress:
   total_phases: 5
   completed_phases: 2
-  total_plans: 6
-  completed_plans: 6
+  total_plans: 9
+  completed_plans: 7
   percent: 95
 ---
 
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-24)
 
 **Core value:** Glass components that look and feel like Apple's Liquid Glass -- visually convincing refraction at 60FPS.
-**Current focus:** Phase 16 -- JS Glass Renderer (v3.0 Architecture Redesign)
+**Current focus:** Phase 17 -- React Integration (v3.0 Architecture Redesign)
 
 ## Current Position
 
-Phase: 16 of 19 (JS Glass Renderer) -- second of 5 v3.0 phases
-Plan: 2 of 3 in current phase (16-02 complete)
+Phase: 17 of 19 (React Integration) -- third of 5 v3.0 phases
+Plan: 2 of 3 in current phase (17-02 complete)
 Status: Executing
-Last activity: 2026-03-24 -- Completed 16-02 (GlassRenderer WebGPU pipeline with dynamic offset uniform buffer)
+Last activity: 2026-03-24 -- Completed 17-02 (GlassProvider integration tests as phase gate)
 
-Progress: [██████████] 95% (v3.0 milestone)
+Progress: [█████████░] 92% (v3.0 milestone)
 
 ## Performance Metrics
 
@@ -43,6 +43,7 @@ Progress: [██████████] 95% (v3.0 milestone)
 | v3.0 Architecture Redesign | 5 | TBD | In progress |
 | Phase 16-01 P01 | 7min | 2 tasks | 6 files |
 | Phase 16 P02 | 2min | 1 tasks | 1 files |
+| Phase 17 P02 | 1min | 1 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -63,6 +64,7 @@ v3.0 decisions:
 - [Phase 16-01]: Explicit per-index assignment in buildGlassUniformData to prevent layout drift
 - [Phase 16]: Used ArrayBuffer pass-through for writeBuffer to satisfy @webgpu/types strict typing
 - [Phase 16]: Pipeline created once at init -- resize only rebuilds per-frame bind group
+- [Phase 17-02]: Integration tests target '/' root URL as phase gate -- will pass after Plan 17-03 wiring
 
 ### Pending Todos
 
@@ -75,6 +77,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-24T22:06:34.251Z
-Stopped at: Completed 16-02-PLAN.md
+Last session: 2026-03-24T22:52:33Z
+Stopped at: Completed 17-02-PLAN.md
 Resume file: None

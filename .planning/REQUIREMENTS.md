@@ -19,12 +19,12 @@
 - [x] **GLASS-02**: GPURenderPipeline created with explicit bind group layouts (not layout:'auto') for multi-region texture sharing
 - [x] **GLASS-03**: Per-region uniform buffers with 256-byte dynamic offset stride, written via device.queue.writeBuffer()
 - [x] **GLASS-04**: JS-owned canvas context configured with GPU.getPreferredCanvasFormat()
-- [ ] **GLASS-05**: Bind groups invalidated and recreated when C++ recreates offscreen texture on resize
+- [x] **GLASS-05**: Bind groups invalidated and recreated when C++ recreates offscreen texture on resize
 
 ### React Integration
 
 - [ ] **REACT-01**: GlassContext and GlassRegionHandle internals re-backed by JS GlassRenderer class
-- [ ] **REACT-02**: Public React API unchanged — GlassPanel, GlassButton, GlassCard props identical to v2.0
+- [x] **REACT-02**: Public React API unchanged — GlassPanel, GlassButton, GlassCard props identical to v2.0
 - [ ] **REACT-03**: All 16 shader parameters functional as typed React props through JS pipeline
 - [ ] **REACT-04**: Accessibility features preserved (reduced-motion, reduced-transparency, WCAG contrast, dark/light mode)
 
@@ -80,9 +80,9 @@
 | GLASS-02 | Phase 16 | Complete |
 | GLASS-03 | Phase 16 | Complete |
 | GLASS-04 | Phase 16 | Complete |
-| GLASS-05 | Phase 16 | Pending |
+| GLASS-05 | Phase 16 | Complete |
 | REACT-01 | Phase 17 | Pending |
-| REACT-02 | Phase 17 | Pending |
+| REACT-02 | Phase 17 | Complete |
 | REACT-03 | Phase 17 | Pending |
 | REACT-04 | Phase 17 | Pending |
 | VIS-01 | Phase 18 | Pending |
