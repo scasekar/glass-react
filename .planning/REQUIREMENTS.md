@@ -71,30 +71,30 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| DEV-01 | — | Pending |
-| DEV-02 | — | Pending |
-| DEV-03 | — | Pending |
-| DEV-04 | — | Pending |
-| DEV-05 | — | Pending |
-| GLASS-01 | — | Pending |
-| GLASS-02 | — | Pending |
-| GLASS-03 | — | Pending |
-| GLASS-04 | — | Pending |
-| GLASS-05 | — | Pending |
-| REACT-01 | — | Pending |
-| REACT-02 | — | Pending |
-| REACT-03 | — | Pending |
-| REACT-04 | — | Pending |
-| VIS-01 | — | Pending |
-| VIS-02 | — | Pending |
-| PAGE-01 | — | Pending |
-| PAGE-02 | — | Pending |
+| DEV-01 | Phase 15 | Pending |
+| DEV-02 | Phase 15 | Pending |
+| DEV-03 | Phase 15 | Pending |
+| DEV-04 | Phase 15 | Pending |
+| DEV-05 | Phase 15 | Pending |
+| GLASS-01 | Phase 16 | Pending |
+| GLASS-02 | Phase 16 | Pending |
+| GLASS-03 | Phase 16 | Pending |
+| GLASS-04 | Phase 16 | Pending |
+| GLASS-05 | Phase 16 | Pending |
+| REACT-01 | Phase 17 | Pending |
+| REACT-02 | Phase 17 | Pending |
+| REACT-03 | Phase 17 | Pending |
+| REACT-04 | Phase 17 | Pending |
+| VIS-01 | Phase 18 | Pending |
+| VIS-02 | Phase 18 | Pending |
+| PAGE-01 | Phase 19 | Pending |
+| PAGE-02 | Phase 19 | Pending |
 
 **Coverage:**
 - v3.0 requirements: 18 total
-- Mapped to phases: 0
-- Unmapped: 18
+- Mapped to phases: 18
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-24*
-*Last updated: 2026-03-24 after initial definition*
+*Last updated: 2026-03-24 after roadmap creation*
