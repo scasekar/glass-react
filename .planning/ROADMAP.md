@@ -62,7 +62,12 @@ Full details: [milestones/v2.0-ROADMAP.md](milestones/v2.0-ROADMAP.md)
   3. JS can retrieve the scene texture handle from C++ and obtain a valid GPUTexture object from it
   4. The render loop is driven by JS requestAnimationFrame — no emscripten_set_main_loop in the C++ code
   5. WASM binary size is smaller than v2.0 (glass shader code removed)
-**Plans**: TBD
+**Plans**: 3 plans
+
+Plans:
+- [ ] 15-01-PLAN.md — C++ surgery: delete glass pass, fix RGBA8Unorm format, add renderBackground(), remove surface and main loop
+- [ ] 15-02-PLAN.md — TS/JS wiring: always-external loader.ts, GlassProvider JS device creation and rAF loop
+- [ ] 15-03-PLAN.md — Build thinned WASM and human visual verification
 
 ### Phase 16: JS Glass Renderer
 **Goal**: A standalone GlassRenderer TypeScript class renders glass effects over any GPUTexture using the verbatim-ported WGSL shader, testable in isolation with a synthetic texture
@@ -125,7 +130,7 @@ Phases 15 and 16 can execute in parallel. Phase 17 requires both. Phases 18 and 
 | 12. Live Tuning UI | v2.0 | 2/2 | Complete | 2026-02-26 |
 | 13. Screenshot Diff Pipeline | v2.0 | 2/2 | Complete | 2026-02-26 |
 | 14. Automated Tuning Loop | v2.0 | 2/2 | Complete | 2026-02-26 |
-| 15. WASM Thinning | v3.0 | 0/? | Not started | - |
+| 15. WASM Thinning | v3.0 | 0/3 | In progress | - |
 | 16. JS Glass Renderer | v3.0 | 0/? | Not started | - |
 | 17. React Integration | v3.0 | 0/? | Not started | - |
 | 18. Visual Validation | v3.0 | 0/? | Not started | - |
