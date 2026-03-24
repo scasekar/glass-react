@@ -14,61 +14,74 @@ import {
 export type { GlassParams } from './presets';
 
 import type { GlassParams } from './presets';
+import { tokens } from './tokens';
 
 interface ControlPanelProps {
   params: GlassParams;
   onChange: (params: GlassParams) => void;
 }
 
-function Section({ title, onReset, children }: {
+function SectionAccordion({ title, defaultOpen, onReset, children }: {
   title: string;
+  defaultOpen?: boolean;
   onReset: () => void;
   children: React.ReactNode;
 }) {
+  const [open, setOpen] = useState(defaultOpen ?? true);
+
   return (
-    <div style={{ marginBottom: 16 }}>
-      <div style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        fontSize: '0.7rem',
-        fontWeight: 600,
-        textTransform: 'uppercase',
-        letterSpacing: '0.08em',
-        color: 'rgba(255, 255, 255, 0.4)',
-        marginBottom: 8,
-        paddingBottom: 4,
-        borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
-      }}>
-        <span>{title}</span>
-        <button
-          onClick={onReset}
-          style={{
-            fontSize: '0.65rem',
-            color: 'rgba(255, 255, 255, 0.35)',
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            padding: '2px 6px',
-          }}
-        >
-          Reset
-        </button>
+    <div style={{ marginBottom: tokens.space.sectionGap }}>
+      <div
+        onClick={() => setOpen(!open)}
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          cursor: 'pointer',
+          padding: '3px 0 5px',
+          borderBottom: '1px solid ' + tokens.color.sectionBorder,
+          background: 'none',
+          border: 'none',
+        }}
+      >
+        <span style={{
+          fontSize: tokens.font.sectionTitle,
+          fontWeight: 600,
+          textTransform: 'uppercase',
+          letterSpacing: '0.08em',
+          color: tokens.color.sectionTitle,
+        }}>
+          {title}
+        </span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <button
+            onClick={(e) => { e.stopPropagation(); onReset(); }}
+            style={{
+              fontSize: '0.65rem',
+              color: tokens.color.labelMuted,
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              padding: '2px 6px',
+            }}
+          >
+            Reset
+          </button>
+          <span style={{
+            color: tokens.color.labelMuted,
+            fontSize: '0.7rem',
+            transform: open ? 'rotate(0deg)' : 'rotate(-90deg)',
+            transition: 'transform 0.15s ease',
+            display: 'inline-block',
+          }}>
+            {'\u25BE'}
+          </span>
+        </span>
       </div>
-      {children}
+      {open && <div style={{ paddingTop: 8 }}>{children}</div>}
     </div>
   );
 }
-
-const toolbarButtonStyle: React.CSSProperties = {
-  fontSize: '0.7rem',
-  background: 'rgba(255, 255, 255, 0.08)',
-  border: '1px solid rgba(255, 255, 255, 0.15)',
-  borderRadius: 4,
-  padding: '4px 10px',
-  color: 'rgba(255, 255, 255, 0.7)',
-  cursor: 'pointer',
-};
 
 export function ControlPanel({ params, onChange }: ControlPanelProps) {
   const [open, setOpen] = useState(true);
@@ -91,6 +104,22 @@ export function ControlPanel({ params, onChange }: ControlPanelProps) {
     onChange({ ...params, ...Object.fromEntries(keys.map(k => [k, DEFAULTS[k]])) });
   };
 
+  // Detect which preset (if any) matches current params
+  const activePreset = Object.entries(PRESETS).find(
+    ([, p]) => Object.keys(p).every(k => p[k as keyof GlassParams] === params[k as keyof GlassParams])
+  )?.[0] ?? null;
+
+  const actionButtonStyle: React.CSSProperties = {
+    fontSize: '0.72rem',
+    background: tokens.color.presetChipBg,
+    border: '1px solid rgba(255,255,255,0.12)',
+    borderRadius: tokens.radius.control,
+    padding: '4px 10px',
+    color: tokens.color.labelMuted,
+    cursor: 'pointer',
+    transition: tokens.transition.fast,
+  };
+
   return (
     <>
       {/* Toggle button -- always visible */}
@@ -99,12 +128,12 @@ export function ControlPanel({ params, onChange }: ControlPanelProps) {
         style={{
           position: 'fixed',
           top: 16,
-          right: open ? 296 : 16,
+          right: open ? 316 : 16,
           zIndex: 1001,
           width: 36,
           height: 36,
           borderRadius: 8,
-          border: '1px solid rgba(255, 255, 255, 0.15)',
+          border: '1px solid ' + tokens.color.panelBorder,
           background: 'rgba(0, 0, 0, 0.6)',
           backdropFilter: 'blur(8px)',
           color: '#eee',
@@ -125,61 +154,80 @@ export function ControlPanel({ params, onChange }: ControlPanelProps) {
         position: 'fixed',
         top: 0,
         right: 0,
-        width: 280,
+        width: 300,
         height: '100vh',
         zIndex: 1000,
-        background: 'rgba(0, 0, 0, 0.75)',
+        background: tokens.color.panelBg,
         backdropFilter: 'blur(12px)',
-        borderLeft: '1px solid rgba(255, 255, 255, 0.08)',
+        borderLeft: '1px solid ' + tokens.color.panelBorder,
         overflowY: 'auto',
-        padding: '16px 14px',
+        padding: tokens.space.panelPad,
         transform: open ? 'translateX(0)' : 'translateX(100%)',
-        transition: 'transform 0.25s ease',
+        transition: tokens.transition.panel,
       }}>
         {/* Header */}
         <div style={{
-          fontSize: '0.85rem',
+          fontSize: tokens.font.header,
           fontWeight: 600,
-          color: 'rgba(255, 255, 255, 0.9)',
-          marginBottom: 12,
+          color: tokens.color.labelPrimary,
           paddingBottom: 8,
-          borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+          marginBottom: 10,
+          borderBottom: '1px solid ' + tokens.color.panelBorder,
         }}>
           Glass Parameters
         </div>
 
-        {/* Toolbar: Presets */}
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
-          {Object.keys(PRESETS).map((name) => (
-            <button
-              key={name}
-              onClick={() => onChange(PRESETS[name])}
-              style={toolbarButtonStyle}
-            >
-              {name}
-            </button>
-          ))}
+        {/* Preset chips */}
+        <div style={{ display: 'flex', gap: tokens.space.chipGap, flexWrap: 'wrap', marginBottom: 10 }}>
+          {Object.keys(PRESETS).map((name) => {
+            const isActive = activePreset === name;
+            return (
+              <button
+                key={name}
+                onClick={() => onChange(PRESETS[name])}
+                style={{
+                  fontSize: tokens.font.chip,
+                  padding: '4px 10px',
+                  borderRadius: tokens.radius.chip,
+                  background: isActive ? tokens.color.presetChipBgActive : tokens.color.presetChipBg,
+                  border: '1px solid ' + (isActive ? tokens.color.presetChipBorderActive : tokens.color.presetChipBorder),
+                  color: isActive ? tokens.color.accentBlue : tokens.color.labelPrimary,
+                  fontWeight: isActive ? 600 : 400,
+                  cursor: 'pointer',
+                  transition: tokens.transition.fast,
+                }}
+              >
+                {name}
+              </button>
+            );
+          })}
         </div>
 
-        {/* Toolbar: Reset All, Import, Export */}
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 4 }}>
+        {/* Action toolbar: Reset All, Import JSON, Export JSON, Copy URL */}
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
           <button
             onClick={() => onChange(DEFAULTS)}
-            style={toolbarButtonStyle}
+            style={actionButtonStyle}
           >
             Reset All
           </button>
           <button
             onClick={() => importParams(onChange, (msg) => setImportError(msg))}
-            style={toolbarButtonStyle}
+            style={actionButtonStyle}
           >
             Import JSON
           </button>
           <button
             onClick={() => exportParams(params)}
-            style={toolbarButtonStyle}
+            style={actionButtonStyle}
           >
             Export JSON
+          </button>
+          <button
+            onClick={() => navigator.clipboard.writeText(window.location.href).catch(() => {})}
+            style={actionButtonStyle}
+          >
+            Copy URL
           </button>
         </div>
 
@@ -187,7 +235,7 @@ export function ControlPanel({ params, onChange }: ControlPanelProps) {
         {importError && (
           <div style={{
             fontSize: '0.7rem',
-            color: '#f66',
+            color: tokens.color.errorText,
             marginBottom: 4,
             padding: '2px 0',
           }}>
@@ -197,13 +245,13 @@ export function ControlPanel({ params, onChange }: ControlPanelProps) {
 
         {/* Divider between toolbar and sections */}
         <div style={{
-          borderBottom: '1px solid rgba(255, 255, 255, 0.06)',
+          borderBottom: '1px solid ' + tokens.color.sectionBorder,
           marginBottom: 12,
-          marginTop: 8,
+          marginTop: 4,
         }} />
 
         {/* Blur & Opacity */}
-        <Section title="Blur & Opacity" onReset={() => resetSection('Blur & Opacity')}>
+        <SectionAccordion title="Blur & Opacity" defaultOpen={true} onReset={() => resetSection('Blur & Opacity')}>
           <SliderControl
             label="Blur"
             value={params.blur}
@@ -222,20 +270,20 @@ export function ControlPanel({ params, onChange }: ControlPanelProps) {
             min={0} max={50} step={1}
             onChange={(v) => update('blurRadius', v)}
           />
-        </Section>
+        </SectionAccordion>
 
         {/* Geometry */}
-        <Section title="Geometry" onReset={() => resetSection('Geometry')}>
+        <SectionAccordion title="Geometry" defaultOpen={false} onReset={() => resetSection('Geometry')}>
           <SliderControl
             label="Corner Radius"
             value={params.cornerRadius}
             min={0} max={50} step={1}
             onChange={(v) => update('cornerRadius', v)}
           />
-        </Section>
+        </SectionAccordion>
 
         {/* Refraction */}
-        <Section title="Refraction" onReset={() => resetSection('Refraction')}>
+        <SectionAccordion title="Refraction" defaultOpen={true} onReset={() => resetSection('Refraction')}>
           <SelectControl
             label="Refraction Mode"
             value={params.refractionMode}
@@ -257,10 +305,10 @@ export function ControlPanel({ params, onChange }: ControlPanelProps) {
             min={0} max={10} step={0.5}
             onChange={(v) => update('aberration', v)}
           />
-        </Section>
+        </SectionAccordion>
 
         {/* Lighting */}
-        <Section title="Lighting" onReset={() => resetSection('Lighting')}>
+        <SectionAccordion title="Lighting" defaultOpen={true} onReset={() => resetSection('Lighting')}>
           <SliderControl
             label="Specular"
             value={params.specular}
@@ -297,10 +345,10 @@ export function ControlPanel({ params, onChange }: ControlPanelProps) {
             min={0} max={360} step={1}
             onChange={(v) => update('glareDirection', v)}
           />
-        </Section>
+        </SectionAccordion>
 
         {/* Color Adjustment */}
-        <Section title="Color Adjustment" onReset={() => resetSection('Color Adjustment')}>
+        <SectionAccordion title="Color Adjustment" defaultOpen={true} onReset={() => resetSection('Color Adjustment')}>
           <ColorControl
             label="Tint"
             value={params.tint}
@@ -318,17 +366,17 @@ export function ControlPanel({ params, onChange }: ControlPanelProps) {
             min={0} max={3} step={0.01}
             onChange={(v) => update('saturation', v)}
           />
-        </Section>
+        </SectionAccordion>
 
         {/* Animation */}
-        <Section title="Animation" onReset={() => resetSection('Animation')}>
+        <SectionAccordion title="Animation" defaultOpen={false} onReset={() => resetSection('Animation')}>
           <SliderControl
             label="Morph Speed"
             value={params.morphSpeed}
             min={0} max={20} step={1}
             onChange={(v) => update('morphSpeed', v)}
           />
-        </Section>
+        </SectionAccordion>
       </div>
     </>
   );
