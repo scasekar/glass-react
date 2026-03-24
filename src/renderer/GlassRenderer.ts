@@ -195,6 +195,49 @@ export class GlassRenderer {
     return this.regions.get(id);
   }
 
+  // --- Region setters (14 methods) ---
+  // Each setter mutates region.target only (never current).
+  // Unknown id is a safe no-op (guard pattern).
+
+  setRegionParams(id: number, cornerRadius: number, blurIntensity: number, opacity: number, refractionStrength: number): void {
+    const r = this.regions.get(id);
+    if (!r) return;
+    r.target.cornerRadius = cornerRadius;
+    r.target.blurIntensity = blurIntensity;
+    r.target.opacity = opacity;
+    r.target.refractionStrength = refractionStrength;
+  }
+
+  setRegionTint(id: number, r: number, g: number, b: number): void {
+    const region = this.regions.get(id);
+    if (!region) return;
+    region.target.tint = { r, g, b };
+  }
+
+  setRegionAberration(id: number, v: number): void { const r = this.regions.get(id); if (!r) return; r.target.aberration = v; }
+
+  setRegionSpecular(id: number, v: number): void { const r = this.regions.get(id); if (!r) return; r.target.specularIntensity = v; }
+
+  setRegionRim(id: number, v: number): void { const r = this.regions.get(id); if (!r) return; r.target.rimIntensity = v; }
+
+  setRegionMode(id: number, v: number): void { const r = this.regions.get(id); if (!r) return; r.target.mode = v; }
+
+  setRegionMorphSpeed(id: number, speed: number): void { const r = this.regions.get(id); if (!r) return; r.morphSpeed = speed; }
+
+  setRegionContrast(id: number, v: number): void { const r = this.regions.get(id); if (!r) return; r.target.contrast = v; }
+
+  setRegionSaturation(id: number, v: number): void { const r = this.regions.get(id); if (!r) return; r.target.saturation = v; }
+
+  setRegionBlurRadius(id: number, v: number): void { const r = this.regions.get(id); if (!r) return; r.target.blurRadius = v; }
+
+  setRegionFresnelIOR(id: number, v: number): void { const r = this.regions.get(id); if (!r) return; r.target.fresnelIOR = v; }
+
+  setRegionFresnelExponent(id: number, v: number): void { const r = this.regions.get(id); if (!r) return; r.target.fresnelExponent = v; }
+
+  setRegionEnvReflectionStrength(id: number, v: number): void { const r = this.regions.get(id); if (!r) return; r.target.envReflectionStrength = v; }
+
+  setRegionGlareAngle(id: number, v: number): void { const r = this.regions.get(id); if (!r) return; r.target.glareAngle = v; }
+
   /**
    * Render one frame. Must be called from the rAF loop.
    * Encodes: (1) background blit (slot 0), (2) one glass draw per active region.
