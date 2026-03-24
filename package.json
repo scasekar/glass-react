@@ -26,13 +26,15 @@
     "prepublishOnly": "npm run build",
     "diff": "npx tsx pipeline/diff.ts",
     "tune": "npx tsx pipeline/tune.ts",
-    "test": "vitest run --reporter=verbose"
+    "test": "vitest run --reporter=verbose",
+    "test:e2e": "playwright test"
   },
   "peerDependencies": {
     "react": "^18.0.0 || ^19.0.0",
     "react-dom": "^18.0.0 || ^19.0.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.58.2",
     "@types/node": "^25.5.0",
     "@types/pngjs": "^6.0.5",
     "@types/react": "^19.0.0",
