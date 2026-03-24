@@ -7,11 +7,7 @@ import wallpaperUrl from '../assets/wallpaper.jpg';
 export interface GlassProviderProps {
   children: React.ReactNode;
   backgroundMode?: 'image' | 'noise'; // default: 'image'
-  /** External WebGPU device. When provided, engine uses this instead of creating its own. */
-  device?: GPUDevice;
-  /** External background texture. When provided, noise pass is skipped and this texture is used as background. */
-  externalTexture?: GPUTexture;
-  /** Ref populated with the WASM engine module once ready. Enables per-frame texture updates from outside. */
+  /** Ref populated with the WASM engine module once ready. */
   engineRef?: React.MutableRefObject<EngineModule | null>;
 }
 
@@ -47,38 +43,45 @@ async function loadAndUploadWallpaper(module: EngineModule): Promise<void> {
   module._free(ptr);
 }
 
-export function GlassProvider({ children, backgroundMode = 'image', device, externalTexture, engineRef }: GlassProviderProps) {
+export function GlassProvider({ children, backgroundMode = 'image', engineRef }: GlassProviderProps) {
   const [ready, setReady] = useState(false);
   const moduleRef = useRef<EngineModule | null>(null);
   const regionsRef = useRef(new Map<number, RegisteredRegion>());
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const prefs = useAccessibilityPreferences();
 
-  // Initialize WASM engine
+  // Initialize WASM engine — JS creates GPUDevice, passes to initEngine (DEV-01, DEV-02)
   useEffect(() => {
     let cancelled = false;
-    initEngine(device ? { device } : undefined).then(async module => {
-      if (cancelled) {
-        // StrictMode cleanup ran before initEngine resolved — destroy the
-        // orphaned engine to stop its rAF render loop.
-        module.destroyEngine();
+
+    (async () => {
+      if (!navigator.gpu) {
+        console.error('GlassProvider: WebGPU not supported');
         return;
       }
-      // The C++ main() fires RequestAdapter → RequestDevice asynchronously.
-      // Poll until getEngine() returns non-null (device acquired, engine created).
+      const adapter = await navigator.gpu.requestAdapter();
+      if (!adapter || cancelled) return;
+      const device = await adapter.requestDevice();
+      if (cancelled) { device.destroy(); return; }
+
+      const module = await initEngine(device);
+      if (cancelled) { module.destroyEngine(); device.destroy(); return; }
+
+      // initWithExternalDevice is synchronous — getEngine() is ready immediately
+      // (C++ main() no longer does async RequestAdapter/RequestDevice)
+      // Small poll guard in case there is any async init lag:
       while (!module.getEngine()) {
-        if (cancelled) {
-          module.destroyEngine();
-          return;
-        }
+        if (cancelled) { module.destroyEngine(); device.destroy(); return; }
         await new Promise(r => setTimeout(r, 50));
       }
+
       moduleRef.current = module;
       if (engineRef) engineRef.current = module;
       setReady(true);
-    }).catch(err => {
+    })().catch(err => {
       console.error('GlassProvider: engine init failed', err);
     });
+
     return () => {
       cancelled = true;
       if (engineRef) engineRef.current = null;
@@ -88,6 +91,26 @@ export function GlassProvider({ children, backgroundMode = 'image', device, exte
       }
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // JS-driven render loop: replaces C++ emscripten_set_main_loop (DEV-05)
+  useEffect(() => {
+    if (!ready) return;
+    let rafId: number;
+    let lastTime = 0;
+
+    const loop = (now: number) => {
+      const dt = lastTime === 0 ? 0 : Math.min((now - lastTime) / 1000, 0.1);
+      lastTime = now;
+      const engine = moduleRef.current?.getEngine();
+      if (engine) {
+        engine.update(dt);
+        engine.renderBackground();
+      }
+      rafId = requestAnimationFrame(loop);
+    };
+    rafId = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(rafId);
+  }, [ready]);
 
   // ResizeObserver for canvas
   useEffect(() => {
@@ -133,98 +156,28 @@ export function GlassProvider({ children, backgroundMode = 'image', device, exte
     engine.setPaused(prefs.reducedMotion);
   }, [prefs.reducedMotion, ready]);
 
-  // When using external device, skip background rendering (Pass 1) immediately.
-  // This prevents noise/wallpaper from flashing before the scene texture arrives.
+  // Load and upload wallpaper image when engine is ready
   useEffect(() => {
-    if (!ready || !moduleRef.current || !device) return;
-    const engine = moduleRef.current.getEngine();
-    if (!engine) return;
-    engine.setExternalTextureMode(true);
-  }, [ready, device]);
-
-  // Load and upload wallpaper image when engine is ready (only in standalone mode)
-  useEffect(() => {
-    if (!ready || !moduleRef.current || device || externalTexture) return;
+    if (!ready || !moduleRef.current) return;
     loadAndUploadWallpaper(moduleRef.current).catch(err => {
       console.error('GlassProvider: wallpaper upload failed', err);
     });
-  }, [ready, device, externalTexture]);
-
-  // Sync backgroundMode prop to C++ engine (only in standalone mode)
-  useEffect(() => {
-    if (!ready || !moduleRef.current || device || externalTexture) return;
-    // 0 = Image, 1 = Noise (matches C++ BackgroundMode enum)
-    moduleRef.current.setBackgroundMode(backgroundMode === 'image' ? 0 : 1);
-  }, [backgroundMode, ready, device, externalTexture]);
-
-  // Inject external texture directly into the glass engine's bind group (no copy)
-  useEffect(() => {
-    if (!ready || !moduleRef.current || !externalTexture) return;
-    const module = moduleRef.current;
-    if (!module.WebGPU?.importJsTexture) return;
-
-    // Import the JS GPUTexture into emdawnwebgpu's object table → returns a WASM handle
-    const handle = module.WebGPU.importJsTexture(externalTexture);
-    module.setExternalBackgroundTexture(handle);
-
-    return () => {
-      // Clear external texture on unmount so engine falls back to offscreen
-      module.setExternalBackgroundTexture(0);
-    };
-  }, [ready, externalTexture]);
-
-  // rAF position sync loop
-  useEffect(() => {
-    if (!ready) return;
-    let rafId: number;
-    const sync = () => {
-      const canvas = canvasRef.current;
-      if (canvas && regionsRef.current.size > 0) {
-        const canvasRect = canvas.getBoundingClientRect();
-        for (const [, region] of regionsRef.current) {
-          const rect = region.element.getBoundingClientRect();
-          const x = (rect.left - canvasRect.left) / canvasRect.width;
-          const y = (rect.top - canvasRect.top) / canvasRect.height;
-          const w = rect.width / canvasRect.width;
-          const h = rect.height / canvasRect.height;
-          region.handle.updateRect(x, y, w, h);
-        }
-      }
-      rafId = requestAnimationFrame(sync);
-    };
-    rafId = requestAnimationFrame(sync);
-    return () => cancelAnimationFrame(rafId);
   }, [ready]);
 
-  const registerRegion = useCallback((element: HTMLElement): GlassRegionHandle | null => {
-    const engine = moduleRef.current?.getEngine();
-    if (!engine) return null;
-    const id = engine.addGlassRegion();
-    if (id < 0) return null;
-    const handle: GlassRegionHandle = {
-      id,
-      updateRect: (x, y, w, h) => engine.setRegionRect(id, x, y, w, h),
-      updateParams: (cr, b, o, r) => engine.setRegionParams(id, cr, b, o, r),
-      updateTint: (r, g, b) => engine.setRegionTint(id, r, g, b),
-      updateAberration: (intensity) => engine.setRegionAberration(id, intensity),
-      updateSpecular: (intensity) => engine.setRegionSpecular(id, intensity),
-      updateRim: (intensity) => engine.setRegionRim(id, intensity),
-      updateMode: (mode) => engine.setRegionMode(id, mode),
-      updateMorphSpeed: (speed) => engine.setRegionMorphSpeed(id, speed),
-      updateContrast: (v) => engine.setRegionContrast(id, v),
-      updateSaturation: (v) => engine.setRegionSaturation(id, v),
-      updateBlurRadius: (v) => engine.setRegionBlurRadius(id, v),
-      updateFresnelIOR: (v) => engine.setRegionFresnelIOR(id, v),
-      updateFresnelExponent: (v) => engine.setRegionFresnelExponent(id, v),
-      updateEnvReflectionStrength: (v) => engine.setRegionEnvReflectionStrength(id, v),
-      updateGlareAngle: (v) => engine.setRegionGlareAngle(id, v),
-      remove: () => engine.removeGlassRegion(id),
-    };
-    regionsRef.current.set(id, { element, handle });
-    return handle;
+  // Sync backgroundMode prop to C++ engine
+  useEffect(() => {
+    if (!ready || !moduleRef.current) return;
+    // 0 = Image, 1 = Noise (matches C++ BackgroundMode enum)
+    moduleRef.current.setBackgroundMode(backgroundMode === 'image' ? 0 : 1);
+  }, [backgroundMode, ready]);
+
+  const registerRegion = useCallback((_element: HTMLElement): GlassRegionHandle | null => {
+    // TODO Phase 17: wire to JS GlassRenderer instead of C++ BackgroundEngine
+    return null;
   }, [ready]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const unregisterRegion = useCallback((id: number) => {
+    const region = regionsRef.current.get(id);
     regionsRef.current.delete(id);
   }, []);
 
