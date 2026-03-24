@@ -110,10 +110,6 @@ Plans:
   2. Clear Light and Clear Dark presets are tuned against iOS ground truth using coordinate-descent pipeline
 **Plans**: 2 plans
 
-Plans:
-- [ ] 18-01-PLAN.md — Build WASM, run diff pipeline, establish v3.0 baseline scores and verify wallpaper capture
-- [ ] 18-02-PLAN.md — Conditionally tune regressed presets, confirm final diff scores, human sign-off
-
 ### Phase 19: Tuning Page Redesign
 **Goal**: Dev tuning page is redesigned with polished UI/UX while preserving all functional tuning capabilities
 **Depends on**: Phase 17 (needs working glass pipeline; can parallel with Phase 18)
@@ -121,7 +117,12 @@ Plans:
 **Success Criteria** (what must be TRUE):
   1. Tuning page has a visually polished, professional design that reflects frontend-design + ui-ux-pro-max quality
   2. All existing tuning features work: parameter sliders, preset switching, JSON import/export, URL parameter persistence
-**Plans**: TBD
+**Plans**: 3 plans
+
+Plans:
+- [ ] 19-01-PLAN.md — Design tokens + global CSS + SliderControl/ColorControl/SelectControl rewrite
+- [ ] 19-02-PLAN.md — ControlPanel rewrite: SectionAccordion, preset chips, Copy URL, 300px width
+- [ ] 19-03-PLAN.md — Playwright screenshot tests for redesigned control panel
 
 ## Progress
 
@@ -148,4 +149,4 @@ Phases 15 and 16 can execute in parallel. Phase 17 requires both. Phases 18 and 
 | 16. JS Glass Renderer | 3/3 | Complete    | 2026-03-24 | - |
 | 17. React Integration | 3/3 | Complete    | 2026-03-24 | - |
 | 18. Visual Validation | v3.0 | 0/? | Not started | - |
-| 19. Tuning Page Redesign | v3.0 | 0/? | Not started | - |
+| 19. Tuning Page Redesign | v3.0 | 0/3 | Not started | - |
