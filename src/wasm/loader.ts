@@ -1,46 +1,23 @@
-export interface EngineInitOptions {
-  /** External WebGPU device. When provided, engine uses this instead of creating its own. */
-  device?: GPUDevice;
-}
-
 export interface EngineModule {
   getEngine(): {
     resize(w: number, h: number): void;
-    addGlassRegion(): number;
-    removeGlassRegion(id: number): void;
-    setRegionRect(id: number, x: number, y: number, w: number, h: number): void;
-    setRegionParams(id: number, cornerRadius: number, blur: number, opacity: number, refraction: number): void;
-    setRegionTint(id: number, r: number, g: number, b: number): void;
-    setRegionAberration(id: number, aberration: number): void;
-    setRegionSpecular(id: number, intensity: number): void;
-    setRegionRim(id: number, intensity: number): void;
-    setRegionMode(id: number, mode: number): void;
-    setRegionMorphSpeed(id: number, speed: number): void;
-    setRegionContrast(id: number, contrast: number): void;
-    setRegionSaturation(id: number, saturation: number): void;
-    setRegionFresnelIOR(id: number, ior: number): void;
-    setRegionFresnelExponent(id: number, exponent: number): void;
-    setRegionEnvReflectionStrength(id: number, strength: number): void;
-    setRegionGlareAngle(id: number, angle: number): void;
-    setRegionBlurRadius(id: number, radius: number): void;
+    renderBackground(): void;
+    setDpr(dpr: number): void;
     setPaused(paused: boolean): void;
     setReducedTransparency(enabled: boolean): void;
     setExternalTextureMode(enabled: boolean): void;
     update(deltaTime: number): void;
-    render(): void;
   } | null;
   destroyEngine(): void;
 
   // Lifecycle
-  setExternalDeviceMode(): void;
   initWithExternalDevice(handle: number): void;
 
   // Image background upload
   uploadImageData(pixelPtr: number, width: number, height: number): void;
   setBackgroundMode(mode: number): void; // 0 = Image, 1 = Noise
   setExternalTextureMode(enabled: boolean): void;
-  getBackgroundTextureHandle(): number;
-  setExternalBackgroundTexture(handle: number): void;
+  getSceneTextureHandle(): number;
 
   // Emscripten heap access for pixel data transfer
   _malloc(size: number): number;
@@ -59,7 +36,7 @@ export interface EngineModule {
   };
 }
 
-export async function initEngine(options?: EngineInitOptions): Promise<EngineModule> {
+export async function initEngine(device: GPUDevice): Promise<EngineModule> {
   if (!navigator.gpu) {
     throw new Error('WebGPU is not supported in this browser. Use Chrome 113+ or Edge 113+.');
   }
@@ -68,24 +45,17 @@ export async function initEngine(options?: EngineInitOptions): Promise<EngineMod
   // @ts-expect-error -- Emscripten generated module, no type declarations
   const createEngineModule = (await import('../../engine/build-web/engine.js')).default;
 
-  // When an external device is provided, tell the C++ main() to skip standalone
-  // init. We do this via a preRun hook that fires before main().
-  const moduleOptions: Record<string, unknown> = {};
-  if (options?.device) {
-    // Set as a Module property that C++ main() reads via EM_ASM.
-    // This avoids calling any function in preRun (neither embind nor C exports
-    // are available before the runtime initializes).
-    (moduleOptions as any).externalDeviceMode = true;
-  }
+  // v3.0: always external device mode — JS owns the GPUDevice
+  const module = await createEngineModule({ externalDeviceMode: true }) as EngineModule;
 
-  const module = await createEngineModule(moduleOptions) as EngineModule;
-
-  // If external device was provided, inject it into emdawnwebgpu's object table
-  // and call C++ initWithExternalDevice(handle).
-  if (options?.device && module.WebGPU?.importJsDevice) {
-    const handle = module.WebGPU.importJsDevice(options.device);
-    module.initWithExternalDevice(handle);
-  }
+  const handle = module.WebGPU!.importJsDevice(device);
+  module.initWithExternalDevice(handle);
 
   return module;
+}
+
+export function getSceneTexture(module: EngineModule): GPUTexture | null {
+  const handle = module.getSceneTextureHandle();
+  if (!handle) return null;
+  return module.WebGPU!.getJsObject(handle) as GPUTexture;
 }
