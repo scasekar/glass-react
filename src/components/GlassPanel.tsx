@@ -62,6 +62,7 @@ export function GlassPanel({
   return (
     <div
       ref={mergedRef}
+      data-testid="glass-panel"
       className={className}
       style={{
         position: 'relative',
