@@ -150,7 +150,7 @@ export function ControlPanel({ params, onChange }: ControlPanelProps) {
       </button>
 
       {/* Panel */}
-      <div style={{
+      <div data-testid="control-panel" style={{
         position: 'fixed',
         top: 0,
         right: 0,

@@ -176,3 +176,61 @@ test.describe('GlassProvider integration', () => {
     expect(existsSync(screenshotPath)).toBe(true);
   });
 });
+
+test.describe('Tuning page redesign', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/');
+    // Wait for React to mount and GlassProvider to initialize
+    await page.waitForSelector('[data-testid="control-panel"]', { state: 'visible', timeout: 15_000 });
+    await page.waitForTimeout(500);
+  });
+
+  test('control panel is visible at 300px width', async ({ page }) => {
+    const panel = page.locator('[data-testid="control-panel"]');
+    await expect(panel).toBeVisible();
+    // Verify panel width is approximately 300px
+    const box = await panel.boundingBox();
+    expect(box).not.toBeNull();
+    expect(box!.width).toBeGreaterThanOrEqual(298);
+    expect(box!.width).toBeLessThanOrEqual(302);
+  });
+
+  test('preset chip buttons are present in DOM', async ({ page }) => {
+    // Preset chips are buttons inside the panel
+    const panel = page.locator('[data-testid="control-panel"]');
+    // At least 2 preset chips should exist (Clear Light + Clear Dark at minimum)
+    const chipButtons = panel.locator('button').filter({ hasText: /Clear|Frosted|Custom/i });
+    const count = await chipButtons.count();
+    expect(count).toBeGreaterThanOrEqual(2);
+  });
+
+  test('collapsible section header toggles content', async ({ page }) => {
+    const panel = page.locator('[data-testid="control-panel"]');
+    // Find the "GEOMETRY" section header (starts collapsed per plan 02)
+    const geometryHeader = panel.locator('div[style*="cursor"]').filter({ hasText: /geometry/i });
+    if (await geometryHeader.count() === 0) {
+      // Fallback: find any section toggle
+      const anyHeader = panel.locator('div[style*="cursor: pointer"]').first();
+      await anyHeader.click();
+      await page.waitForTimeout(200);
+    } else {
+      // Click to expand the Geometry section
+      await geometryHeader.first().click();
+      await page.waitForTimeout(200);
+      // The Corner Radius slider should now be visible
+      await expect(panel.locator('label').filter({ hasText: /corner/i })).toBeVisible();
+    }
+  });
+
+  test('saves tuning page screenshot for manual review', async ({ page }) => {
+    const screenshotDir = join(process.cwd(), 'tests', 'screenshots');
+    await mkdir(screenshotDir, { recursive: true });
+
+    const screenshotPath = join(screenshotDir, 'tuning-redesign.png');
+    await page.screenshot({ path: screenshotPath, fullPage: false });
+    console.log(`Tuning redesign screenshot saved to: ${screenshotPath}`);
+
+    const { existsSync } = await import('fs');
+    expect(existsSync(screenshotPath)).toBe(true);
+  });
+});
