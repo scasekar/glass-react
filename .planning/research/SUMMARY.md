@@ -1,267 +1,198 @@
 # Project Research Summary
 
-**Project:** LiquidGlass-React-WASM — v2.0 Visual Parity Milestone
-**Domain:** WebGPU/WASM glass effect component library — image backgrounds, shader tuning, automated visual diffing
-**Researched:** 2026-02-25
-**Confidence:** MEDIUM-HIGH (image background texture pipeline and headless WebGPU capture have known unknowns; core WebGPU patterns and architecture are HIGH confidence)
+**Project:** glass-react v3.0 — JS/WebGPU Glass Rendering Pipeline
+**Domain:** WebGPU rendering library — WASM/JS hybrid pipeline split
+**Researched:** 2026-03-24
+**Confidence:** HIGH
 
 ## Executive Summary
 
-The v2.0 milestone has a clear goal: achieve visual parity between this library's WebGPU glass rendering and Apple's native SwiftUI `.glassEffect()` modifier, using a structured pipeline of image backgrounds, parameter tuning, and automated screenshot comparison. The architecture is well-defined and builds directly on the existing v1.0 two-pass render pipeline (noise pass -> offscreen texture -> glass composite pass). The core changes are surgical: add image loading to Pass 1, expose three hardcoded shader constants as uniforms (using existing padding slots — no struct size change), build a SwiftUI reference app in a separate Xcode project, and construct a Playwright + pixelmatch diff pipeline to measure the gap.
+glass-react v3.0 is a surgical architectural flip: JS takes ownership of the `GPUDevice` and the glass shader pipeline, while the C++ WASM engine is slimmed to render background only (noise or image to an offscreen texture). The two sides share the same GPU device via emdawnwebgpu's object table (`WebGPU.importJsDevice` / `WebGPU.getJsObject`), enabling zero-copy texture access — C++ renders the background, JS composites glass over it without any GPU memory duplication. Every required API pattern is already partially implemented in the v2.0 codebase (`loader.ts` lines 75–89, `main.cpp` `initWithExternalDevice`); this is a targeted migration, not a ground-up rewrite. No new npm packages are needed.
 
-The recommended approach is to execute in dependency order: image backgrounds first (it unlocks the comparison workflow), shader parameter exposure in parallel (orthogonal change), the SwiftUI reference app in parallel (no code dependencies), then the diff pipeline, then manual tuning to parity. The key technology additions are minimal: JS-side `createImageBitmap` + `copyExternalImageToTexture` for image loading (no new libraries), `leva` as a dev-only tuning UI, and `pixelmatch` + `pngjs` for the diff pipeline. No production dependencies change.
+The recommended approach is a strict phase order: thin the C++ engine first (delete the glass pass and expose the scene texture handle), then build the JS `GlassRenderer` class in isolation against a synthetic texture, then wire `GlassProvider` to connect both systems, and finally re-run visual diffing to confirm parity. Phases 1 and 2 can run in parallel because `GlassRenderer` can be tested without the thinned WASM. The public React API (`GlassPanel`, `GlassButton`, `GlassCard`, `useGlassRegion`) is entirely unchanged at the interface level — only the backing implementation changes.
 
-The primary risks cluster around three areas: (1) color space and format mismatches when introducing image textures — sRGB/linear handling, BGRA vs RGBA format, premultiplied alpha, and the `RENDER_ATTACHMENT` usage flag requirement must all be addressed simultaneously and in the correct order; (2) the iOS Simulator has a confirmed bug in iOS 26.0-26.0.1 where `.glassEffect()` renders correctly in the simulator but appears dark on physical hardware — use the simulator as the reference target and document this limitation prominently; (3) WebGPU canvas screenshot capture in headless Playwright is documented but potentially flaky and must be validated early. The current 5x5 Gaussian blur kernel cannot be made to exactly match Apple's multi-pass blur quality through parameter tuning alone — this is a known structural gap that should be acknowledged and excluded from the initial convergence target.
+The primary risks are specific to the WASM-JS boundary: stale emdawnwebgpu object handles (C++ holding a handle to a GC'd JS texture), texture format mismatch between C++ offscreen texture and JS sampler expectations (BGRA vs RGBA on macOS), uniform buffer byte-offset errors when porting the 112-byte `GlassUniforms` struct to a `Float32Array`, and UV/DPR convention drift during the WGSL shader port. Each is well-understood with a concrete prevention strategy and maps to an explicit phase gate. The known emdawnwebgpu double-WaitAny corruption bug must not be reintroduced during C++ restructuring — preserve `AllowSpontaneous` chained callbacks.
+
+---
 
 ## Key Findings
 
 ### Recommended Stack
 
-The existing stack (Emscripten 4.0.16, emdawnwebgpu, React 19, Vite 6, C++20) is unchanged for v2.0. New additions are all dev-dependencies. Image loading uses the browser's native `createImageBitmap` + JS-side OffscreenCanvas decode to extract RGBA pixels, which are then passed to C++ via WASM heap for `queue.WriteTexture()`. This avoids `stb_image` in C++ (slower, larger binary) and sidesteps the `copyExternalImageToTexture` C++ binding gap — that API does not exist in emdawnwebgpu, confirmed as "not planned" in Emscripten issue #18190. The SwiftUI reference app requires Xcode 26.2 and iOS 26 — `.glassEffect()` is only available on iOS 26+.
+See `.planning/research/STACK.md` for full details.
 
-**Core technology additions:**
-- `leva ^0.10.1` (devDependency): React-native shader parameter tuning UI — purpose-built for real-time parameter adjustment, same pmndrs ecosystem as react-three-fiber. React 19 peer dep warnings from radix-ui are cosmetic and functional. Install with `--legacy-peer-deps` if needed.
-- `pixelmatch ^7.1.0` + `pngjs ^7.0.0` (devDependency): Cross-platform pixel diff pipeline — zero-dependency, deterministic, fast (<50ms for 1280x720), works on raw RGBA typed arrays. Preferred over Playwright's built-in `toHaveScreenshot()` because this is a cross-platform comparison (web vs iOS), not same-source regression testing.
-- `Xcode 26.2` + SwiftUI iOS 26 (build tool): The ONLY way to capture authentic `.glassEffect()` output. Any cross-platform layer would approximate, not replicate.
-- `xcrun simctl io screenshot` (CLI): Stable since Xcode 8.2, no Xcode UI test boilerplate needed.
+No new packages are required. The v3.0 migration uses the existing stack: WebGPU browser API typed via `@webgpu/types@^0.1.69`, emdawnwebgpu interop bridge bundled with the WASM build (`--use-port=emdawnwebgpu`), TypeScript 5.7, and Vite with the existing plugin set. WGSL shaders migrate from `engine/src/shaders/glass.wgsl.h` (C++ header string) to `src/renderer/glass.wgsl` (Vite `?raw` import) or a TypeScript template literal — both are production-equivalent; `?raw` is preferred for IDE WGSL syntax support.
 
-**Libraries explicitly NOT added:** `stb_image` in C++ (browser decode is hardware-accelerated and avoids WASM heap round-trip), `odiff` (FEATURES.md mentions it but pixelmatch is sufficient and already fits the cross-platform pattern), `sharp` (overkill for crop/resize in diff script; simple canvas-based resize is sufficient), `dat.gui`/`lil-gui`/Tweakpane (unmaintained or vanilla-JS wrappers; leva is React-native).
+**Core technologies:**
+- **WebGPU (browser API):** JS-side device creation, render pipelines, bind groups, texture reads — no wrapper library needed; already typed
+- **emdawnwebgpu interop (`WebGPU.importJsDevice` / `WebGPU.getJsObject`):** JS-to-C++ device handoff and C++-to-JS texture bridge — already implemented in `loader.ts`, validated in v2.0
+- **`@webgpu/types@^0.1.69`:** TypeScript types for all WebGPU descriptors — already installed and configured in `tsconfig.json`
+- **WGSL (inline or `?raw` import):** Glass shader verbatim-ported from `engine/src/shaders/glass.wgsl.h` — no algorithmic changes
+- **`createRenderPipelineAsync()`:** Mandatory for production pipeline compilation — compile once at init, cache, never recreate per-frame or per-resize
+
+**Critical version requirements:**
+- Emscripten >= 4.0.10 for emdawnwebgpu interop; project uses 4.0.16 (already correct)
+- `--use-port=emdawnwebgpu` must be in BOTH compile AND link flags (already correct in CMakeLists.txt)
+- Chrome 113+ / Edge 113+ for WebGPU; Safari 18+ partial support
 
 ### Expected Features
 
-**Must have (table stakes for v2.0):**
-- Image background rendering with cover/contain fit modes and bundled default wallpaper (~100-200KB JPEG/WebP)
-- Toggle between noise mode (v1.0, no regression) and image mode via `backgroundMode: 'noise' | 'image'` prop on GlassProvider
-- sRGB-correct texture handling throughout the image pipeline (textures as `rgba8unorm-srgb`, linear space in shader math)
-- All glass uniforms exposed as React props — verify no remaining hardcoded constants in the shader
-- Expose three currently-hardcoded shader constants: `contrast` (0.85), `saturation` (1.4), and `blurRadius` (30 texels) — fits exactly into the three existing padding floats in the 80-byte GlassUniforms struct, no struct size change
-- Real-time slider controls in demo app for all parameters, grouped sections, reset to defaults
-- SwiftUI reference app with `.regular` and `.clear` glass variants over the same wallpaper
-- Screenshot capture from WebGPU canvas via Playwright
-- iOS Simulator screenshot capture via `xcrun simctl io booted screenshot`
-- Pixel-diff comparison with diff image output and mismatch percentage
+See `.planning/research/FEATURES.md` for full details.
 
-**Should have (differentiators):**
-- Named presets (Apple Standard, Apple Prominent) for one-click comparison starting points
-- Export/import parameter config as JSON (enables the auto-tuning loop)
-- Mipmap generation for background texture (eliminates shimmer at larger blur radii; increases VRAM by ~33%; requires manual mipmap downsample chain in WebGPU)
-- Region-of-interest masking in the diff pipeline (compare only the glass panel area, not background rendering differences)
-- SSIM perceptual scoring alongside pixel diff for better quality metrics
-- Dark mode and light mode reference screenshots from the SwiftUI app
-- Image drag-and-drop / file picker in demo app for quick wallpaper swapping during comparison sessions
+The v3.0 feature set is a migration of existing functionality, not a feature expansion. All P1 table-stakes features are direct ports of C++ subsystems to TypeScript; differentiators (device loss recovery, zero-arg pipeline, typed `BackgroundEngine` interface) are v3.x follow-ons.
 
-**Defer to v2.1 or v3:**
-- Dual Kawase blur (high complexity; current 25-tap Gaussian with mipmaps may be acceptable)
-- Automated convergence loop with coordinate descent (needs well-tuned manual parameters first)
-- CI visual regression (build after manual parity is achieved and committed)
-- A/B split-screen parameter comparison in tuning UI
-- Undo/redo for parameter changes
-- Real-time video backgrounds, content-blur over DOM, nested glass compositing, gyroscope interaction
+**Must have — table stakes (v3.0, all P1):**
+- JS `GPUDevice` creation (`navigator.gpu.requestAdapter` + `requestDevice`) — entry point that blocks everything else
+- Device injection into C++ WASM via `importJsDevice` + `initWithExternalDevice` — already tested code path, made primary instead of fallback
+- C++ exposes scene texture handle — `getBackgroundTextureHandle()` already exists; rename and promote to primary export
+- WGSL glass shader ported to JS — verbatim port from `glass.wgsl.h`; no algorithmic changes, no visual regression
+- `GPURenderPipeline` with explicit bind group layouts (NOT `layout: 'auto'`) — required for scene texture sharing across multiple regions in one draw sequence
+- Per-region uniform buffers in JS with 256-byte dynamic offset stride — `GPUBuffer UNIFORM | COPY_DST`, written via `device.queue.writeBuffer()`
+- JS-owned `requestAnimationFrame` render loop — C++ becomes call-driven; `emscripten_set_main_loop` deleted
+- Canvas context configured by JS — `GPU.getPreferredCanvasFormat()` for correct swap chain texture format
+- `GlassContext` / `GlassRegionHandle` internals updated — implementations switch from C++ embind calls to `GlassRenderer` method calls
+- Unchanged public React API — `GlassPanel`, `GlassButton`, `GlassCard` props identical to v2.0
 
-**Key parameter gaps vs Apple reference (community-estimated, MEDIUM confidence):**
-- Current blur radius (~15px effective at default 0.5) is too low — Apple's `.regular` uses ~20-30px effective
-- Current chromatic aberration (3.0px) is too strong — Apple uses ~1-2px
-- Current rim intensity (0.15) is too strong — Apple uses ~0.05-0.10
-- Current refraction (0.15) is slightly too strong — Apple uses ~0.05-0.10
-- Missing entirely: Fresnel IOR/exponent, environment reflection strength, glare direction angle
+**Should have — differentiators (v3.x, P2):**
+- Device loss recovery — attach `device.lost` handler at creation; recreate adapter + device + all resources on loss; re-inject into WASM
+- Zero-arg glass pipeline — first-class `externalTexture` prop support (any external `GPUTexture`, no WASM required)
+- Typed `BackgroundEngine` TypeScript interface — formal contract for pluggable engines (`getSceneTexture`, `render`, `resize`, `destroy`)
+- Dev tuning page redesign — after visual parity confirmed post-migration
+
+**Defer to v4+ (P3):**
+- `sc` engine integration — separate milestone; requires `sc` codebase access and its own device-passing protocol
+- Gyroscope / pointer tilt interaction
+- Content-blur over DOM — entirely different architecture (DOM-to-texture capture), explicitly out of scope
 
 ### Architecture Approach
 
-The v2.0 architecture extends the existing two-pass WebGPU pipeline minimally. Pass 1 becomes dual-mode: run the noise shader when `backgroundMode == Noise` (unchanged), or blit a loaded image texture when `backgroundMode == Image`. Pass 1 can be skipped entirely in image mode when the offscreen texture has not changed (major GPU savings — the 6-octave simplex fBM is the most expensive pass). Pass 2 (glass compositing) is unchanged except for replacing three padding floats in the 80-byte GlassUniforms struct with `contrast`, `saturation`, and `blurRadius` fields — no struct size change, no pipeline recreation, no impact on dynamic offset alignment.
+See `.planning/research/ARCHITECTURE.md` for full details.
 
-The image loading boundary is strictly JS-to-C++: JavaScript decodes the image via `createImageBitmap` + OffscreenCanvas, extracts raw RGBA bytes, passes them to C++ via WASM heap for `queue.WriteTexture()`. The new `TuningPanel` component lives in the demo app only, never in the library package. The SwiftUI reference app is a completely separate Xcode project outside the glass-react repo.
+The v3.0 architecture introduces a `GlassRenderer` TypeScript class as the central new component. C++ shrinks to a call-driven background renderer (Pass 1 only). JS takes Pass 2 (glass compositor). The single `requestAnimationFrame` loop is owned by `GlassProvider` and drives both: `engine.update(dt)` → `engine.renderBackground()` → `glassRenderer.render()`. Five subsystems migrate from C++ to TypeScript: `GlassUniforms` struct, `GlassRegion` struct, `lerpUniforms()` (morph lerp), region management methods, and the glass WGSL pipeline.
 
 **Major components:**
-1. `BackgroundEngine` (C++) — gains `BackgroundMode` enum, `imageTexture` (persistent GPU texture), `imageBlitPipeline`, `loadBackgroundImage(w, h, rgba*, len)`, `setBackgroundMode(int)`, and conditional Pass 1 skip when `!imageDirty`
-2. `GlassUniforms` (C++ struct + glass.wgsl) — three padding floats become `contrast`, `saturation`, `blurRadius`; WGSL replaces hardcoded constants with uniform reads
-3. `GlassProvider` (React) — gains `backgroundSrc?: string` prop and JS-side image decode/upload; calls new Embind methods
-4. `GlassStyleProps` (TypeScript interface) — gains `contrast?`, `saturation?`, `blurRadius?` flowing through `useGlassRegion` → `GlassRegionHandle` → Embind to engine
-5. `TuningPanel` (demo app only) — standalone controls component with all shader params, JSON export/import, preset switching
-6. SwiftUI Reference App (separate Xcode project) — minimal app: wallpaper + glass panel + glass button, same image asset as web demo
-7. Diff Pipeline (Playwright + pixelmatch scripts) — captures both sources, normalizes to sRGB, crops to glass region, pixel comparison with diff image output
+1. **`GlassRenderer` (NEW TypeScript class)** — owns `GPUDevice` reference, compiles `glass.wgsl` with explicit bind group layouts (group 0: scene texture + sampler per-frame; group 1: uniform buffer per-region), manages morph lerp state in TypeScript, drives command encoding and submit
+2. **`GlassProvider` (MODIFIED)** — acquires `GPUDevice` via `navigator.gpu`, passes it to both WASM bridge and `GlassRenderer`, owns the single rAF loop, handles `ResizeObserver` texture refresh (must re-call `getSceneTexture()` and `renderer.setSceneTexture()` after every resize)
+3. **`loader.ts` / WASM bridge (SIMPLIFIED)** — always uses external device path; adds `getSceneTexture()` helper wrapping `getSceneTextureHandleJS()` → `WebGPU.getJsObject()`; removes standalone adapter/device init branch
+4. **`BackgroundEngine` C++ (SLIMMED)** — Pass 1 only (noise/image → offscreenTexture); all glass pipeline code, region management, and morph lerp deleted; `getSceneTextureHandle()` promoted as primary export; device always received from JS
+5. **`GlassContext` / `GlassRegionHandle` (API UNCHANGED)** — internal implementations switch from C++ embind calls to `GlassRenderer` method calls; external interface shape is identical to v2.0
 
-**Key patterns to follow:**
-- Uniform extension via padding slots: use existing 3-float padding before any struct size change (176 bytes of headroom remain)
-- Conditional Pass 1 skip: skip noise/image re-render when offscreen texture is already current
-- JS-side image decode + C++ upload: `createImageBitmap` -> OffscreenCanvas -> RGBA bytes -> WASM heap -> `queue.WriteTexture()`
-- URL-driven parameter injection for automated tuning: `?params=base64json` avoids rebuild/HMR cycles
+**Key patterns:**
+- Single JS-owned rAF loop — eliminates tearing from two independent render loops
+- Bind group cache: store `GPUTexture` reference; rebuild bind group only on resize, not every frame
+- 256-byte uniform stride for dynamic offset multi-region rendering (16 regions × 256 bytes = 4 KB, well within WebGPU limits)
+- Cleanup order enforced: `destroyEngine()` before `device.destroy()` — prevents stale handle crashes
 
 ### Critical Pitfalls
 
-1. **sRGB vs linear color space mismatch (C1)** — Load image textures as `rgba8unorm-srgb` (not `rgba8unorm`) so `textureSample()` returns linear values automatically. All glass shader math (blur averaging, tint mixing, specular) must operate in linear space. Failing to do this means blur averages are gamma-encoded values — results appear darker than expected and visual comparison with iOS will never converge. Detect with a gray card test: 50% gray input must produce 50% gray output with zero glass effects applied.
+See `.planning/research/PITFALLS.md` for full details.
 
-2. **Image loading must stay in JS — not C++ (C4)** — `copyExternalImageToTexture` accepts browser-native `ImageBitmap` types that do not exist in C++. emdawnwebgpu does not expose this API (Emscripten issue #18190, closed "not planned"). If image loading code appears in a `.cpp` file, stop and redesign. Architecture: JS decodes, extracts RGBA bytes, passes byte array to C++ for `queue.WriteTexture()`.
+1. **Stale emdawnwebgpu object handles (C1)** — C++ holds an integer handle to a JS `GPUDevice` or `GPUTexture`; if JS GCs or explicitly destroys the object while C++ still uses it, crashes or silent wrong-renders occur. Prevention: keep JS WebGPU objects alive in `useRef` for the entire engine lifetime; always call `module.destroyEngine()` before `device.destroy()`.
 
-3. **`RENDER_ATTACHMENT` usage flag required for image textures (C3)** — Despite the name "copy," `copyExternalImageToTexture` internally may use a render pass for color space conversion. Image textures must be created with `COPY_DST | TEXTURE_BINDING | RENDER_ATTACHMENT`. Validation rejects the call immediately with a clear error. Follow the same usage pattern as the existing offscreen texture.
+2. **Double WaitAny corrupts emdawnwebgpu Instance (C3)** — known v2.0 issue; using `WaitAny()` twice in sequence in C++ corrupts emdawnwebgpu's internal Instance reference. Must not be reintroduced during v3.0 C++ restructuring. Prevention: use only `AllowSpontaneous` chained callbacks for any C++ async init; in the JS-creates-device path, C++ receives an already-resolved device and does not need to WaitAny at all.
 
-4. **Surface format mismatch: `bgra8unorm` (canvas) vs `rgba8unorm` (image data) (C5)** — macOS Chrome returns `bgra8unorm` as the preferred canvas format (Metal/IOSurface requirement). External image data is always RGBA. Solution: standardize the offscreen texture on `rgba8unorm`, handle channel swizzle in the blit shader, and use a dedicated image-blit render pass in Pass 1 to normalize formats before the glass pass.
+3. **Offscreen texture format mismatch (C5)** — `GPU.getPreferredCanvasFormat()` returns `bgra8unorm` on macOS/Chrome; if C++ creates its offscreen texture using the surface format and JS samples it expecting `rgba8unorm`, R/B channels swap. Prevention: use explicit `wgpu::TextureFormat::RGBA8Unorm` for all C++ offscreen textures; reserve canvas-preferred format for the swap chain surface only.
 
-5. **SwiftUI `.glassEffect()` renders dark on physical device, correct in simulator (C6)** — Confirmed iOS 26.0-26.0.1 bug (Apple Developer Forums thread #814005). No code-level workaround. Use the iOS Simulator as the canonical reference target. Pin Xcode version and iOS Simulator runtime. Build the pipeline to be re-runnable when Apple releases a fix. Document this limitation prominently in the v2.0 release notes.
+4. **Uniform buffer byte-offset errors (C7)** — the 112-byte `GlassUniforms` struct has WGSL alignment padding (vec3f fields padded to 16 bytes). Positional `Float32Array` fills without explicit byte-offset tracking silently corrupt all shader parameters. Prevention: implement `buildGlassUniformData()` with indexed assignments keyed to documented byte offsets from `background_engine.h`; unit-test all 28 float fields before any visual work.
 
-6. **iOS Simulator screenshots have unmanaged color profiles — P3 vs sRGB (C7)** — Pixel diffs against unmanaged color profiles produce 5-15% false differences on solid colors. Normalize both screenshots to sRGB before comparison: `sips --matchTo "/System/Library/ColorSync/Profiles/sRGB Profile.icc" screenshot.png`. Disable "Optimize Rendering for Window Scale" in the simulator. Must resolve this before any automated tuning — otherwise the optimizer chases color space artifacts instead of real shader differences.
+5. **UV/DPR convention drift during WGSL port (C4 + C6)** — Y-flip convention, pixel-space SDF computation, and DPR scaling (at uniform offset 108, retrofitted from `_pad7`) are inter-dependent; omitting any one causes mirrored, displaced, or Retina-incorrect glass. Prevention: copy `glass.wgsl.h` verbatim as starting point; include the `dpr` uniform from the first working render; gate Phase 2 completion on position regression tests at 1x and 2x DPR.
 
-7. **5x5 Gaussian blur cannot match Apple's multi-pass blur quality (M5)** — Structural limitation, not a parameter tuning gap. The current 25-tap single-pass kernel produces visible banding at larger radii. Apple likely uses Kawase or multi-pass blur. Acknowledge this: exclude blur-heavy interior regions from the initial diff loss function. Plan a separable Gaussian (horizontal + vertical passes for ~15-tap equivalent) as a future upgrade.
+---
 
 ## Implications for Roadmap
 
-The dependency graph is clear. Steps 1 and 2 (image engine and shader params) can run in parallel. Step 3 (SwiftUI reference) can run in parallel with steps 1-4. All other steps are sequential. This is a 7-phase milestone.
+The architecture research defines a clear 4-phase dependency order. Phases 1 and 2 have a partial parallel opportunity (GlassRenderer can be tested against a synthetic texture). Phase 3 is a hard dependency on both. Phase 4 is a hard dependency on Phase 3.
 
-### Phase 1: Image Background Engine
+### Phase 1: WASM Thinning — Slim C++ to Background-Only
 
-**Rationale:** The entire comparison workflow depends on rendering real wallpaper images. This unblocks all downstream phases. The JS/C++ boundary, texture formats, and color space decisions made here are load-bearing for every phase that follows.
+**Rationale:** C++ currently owns both background rendering and the glass pass. These conflict — both cannot write to the surface simultaneously. Deleting the glass pass from C++ is the critical path blocker for all downstream work.
+**Delivers:** A WASM binary that does background rendering only, exposing `renderBackground()` and `getSceneTextureHandle()` as the clean interface boundary. C++ becomes call-driven (no `emscripten_set_main_loop`). Device is always received from JS — standalone adapter/device init deleted from `main.cpp`.
+**Addresses:** Device injection path made primary, scene texture exposure, canvas surface ownership transfer
+**Avoids:** C2 (do not reintroduce deprecated `emscripten_webgpu_get_device`), C3 (preserve `AllowSpontaneous` in any remaining C++ async init; JS-created device means C++ needs no WaitAny at all), C5 (fix offscreen texture format to explicit `wgpu::TextureFormat::RGBA8Unorm`)
+**Research flag:** Standard patterns — all changes are enumerated deletions and renames from architecture analysis; no new research needed
 
-**Delivers:** `<GlassProvider backgroundSrc="url">` renders a real image background through the glass shader. Noise mode continues working without regression. Bundled default wallpaper (~200KB WebP) ships as a Vite `?url` asset. Pass 1 optimization: skip re-render when image is unchanged.
+### Phase 2: JS GlassRenderer Core — Build the JS Glass Pipeline in Isolation
 
-**Addresses:** Table stakes A from FEATURES.md (Image Background Rendering — all five sub-features)
+**Rationale:** Can begin in parallel with Phase 1. `GlassRenderer` can be developed and unit-tested against a synthetic `device.createTexture()` — no thinned WASM required. Building in isolation reduces integration surface during Phase 3.
+**Delivers:** `GlassRenderer.ts` with compiling `glass.wgsl` pipeline (explicit bind group layouts), dynamic uniform buffer management, TypeScript morph lerp, and working per-region glass render output against a synthetic scene texture
+**Uses:** WebGPU JS API (`createRenderPipelineAsync`, explicit `GPUBindGroupLayout`, 256-byte dynamic uniform offsets); `glass.wgsl` verbatim-ported from `glass.wgsl.h`; `GlassRegionState.ts` and `morphLerp.ts` TypeScript ports of C++ structs and `lerpUniforms()`
+**Avoids:** C4 (verbatim WGSL port preserves Y-flip and pixel-space SDF conventions), C6 (DPR uniform populated at offset 108 from first working render), C7 (explicit-offset uniform buffer helper unit-tested before visual work), C8 (render loop ordering documented: C++ `queue.submit` before JS glass `queue.submit` in same rAF tick)
+**Research flag:** Standard patterns — WebGPU JS pipeline creation is well-documented (toji.dev, MDN, webgpufundamentals.org); emdawnwebgpu interop already validated in v2.0
 
-**Avoids:** Must resolve C1, C3, C4, C5 in this order: C4 (architecture boundary — JS vs C++) → C3 (RENDER_ATTACHMENT usage flags) → C5 (format normalization via blit shader) → C1 (sRGB color space). Test each step independently before combining. Also avoid N1 (use `colorSpaceConversion: 'none'` in `createImageBitmap` for raw data, `'default'` for wallpapers), N2 (verify Y-axis orientation with asymmetric test image), N4 (bundle wallpaper as separate Vite asset, not embedded in WASM).
+### Phase 3: GlassProvider Wiring — Full Stack Integration
 
-**Research flag:** No additional research needed — solutions to all four critical pitfalls are documented. Requires disciplined implementation with step-by-step validation.
+**Rationale:** Hard dependency on both Phase 1 (WASM exposes `renderBackground()` / `getSceneTextureHandle()`) and Phase 2 (GlassRenderer accepts a scene texture). This phase connects both systems and replaces all C++ embind region calls with `GlassRenderer` calls via `GlassRegionHandle`.
+**Delivers:** Full end-to-end stack — React components render glass over C++ background; single JS-owned rAF loop drives both systems; `ResizeObserver` correctly refreshes scene texture handle and bind group; public React API unchanged from v2.0
+**Avoids:** C1 (explicit cleanup order enforced: `destroyEngine()` before `device.destroy()`; scene texture reference kept alive in `useRef`), C8 (single rAF loop ordering: `engine.update` → `engine.renderBackground` → `glassRenderer.render`; no concurrent async submits)
+**Research flag:** Standard patterns — `GlassProvider` restructuring is well-defined given architecture analysis; all emdawnwebgpu interop patterns are validated
 
-### Phase 2: Shader Parameter Exposure
+### Phase 4: Visual Validation and Re-Tuning
 
-**Rationale:** Orthogonal to Phase 1 — can run in parallel. Exposing the three hardcoded constants as uniforms is a prerequisite for meaningful parameter tuning. Zero risk: the struct extension uses existing padding slots with no size change.
-
-**Delivers:** `<GlassPanel contrast={0.85} saturation={1.4} blurRadius={30}>` with all three new parameters flowing from React props through `useGlassRegion` → `GlassRegionHandle` → Embind → C++ `regions[id].target` → lerpUniforms → GPU uniform buffer. TypeScript interface with JSDoc comments and sensible defaults. WGSL shader reads uniforms instead of hardcoded constants.
-
-**Addresses:** Table stakes B from FEATURES.md (Shader Parameter Exposure)
-
-**Avoids:** M1 (excessive WriteBuffer calls) — new params must follow the existing lerpUniforms architecture; write happens once per frame in `render()`, not per-prop.
-
-**Research flag:** Standard patterns. No additional research needed.
-
-### Phase 3: SwiftUI Reference App
-
-**Rationale:** No code dependencies on the web app — can run in parallel with phases 1-2. Build early so reference screenshots are available before the diff pipeline needs them. The reference app is the ground truth for all visual comparison.
-
-**Delivers:** A minimal Xcode project (outside the glass-react repo) with `.regular` and `.clear` glass variants over the same wallpaper JPEG. Light and dark mode variants. `xcrun simctl io booted screenshot` capture scripts. Pinned Xcode version and simulator runtime documented in metadata.
-
-**Addresses:** Features H from FEATURES.md (SwiftUI Reference App)
-
-**Avoids:** C6 (dark on device) — simulator-only reference, documented limitation. M4 (flaky screenshots) — capture 3 consecutive frames, assert they are identical within 0.1% pixel diff before accepting as reference. Use `GlassEffectContainer` to group elements and reduce offscreen texture count.
-
-**Research flag:** No code research needed. macOS + Xcode 26.2 environment dependency. Monitor Apple Developer Forums thread #814005 for C6 bug resolution.
-
-### Phase 4: Live Tuning UI
-
-**Rationale:** Depends on Phase 1 (image mode) and Phase 2 (all params exposed). The TuningPanel is the primary developer workflow for finding Apple-parity parameters through visual iteration.
-
-**Delivers:** `TuningPanel` in the demo app with sliders for all shader params, grouped sections (Material Constants, Image Background, Comparison Tools), reset-to-defaults per section and global, JSON export/import, and named presets (Apple Standard, Apple Prominent). Leva installed as dev-only dependency.
-
-**Addresses:** Table stakes C from FEATURES.md (Live Tuning UI), differentiators F (presets, export/import)
-
-**Avoids:** N3 (layout thrash from controls panel) — position TuningPanel as `position: fixed`, use `transform`/`opacity` for show/hide animations, measure frame time with and without the panel as a gate criterion.
-
-**Research flag:** Standard patterns. Validate React 19 + leva peer dep compatibility at install time (`--legacy-peer-deps` if needed).
-
-### Phase 5: Screenshot Diff Pipeline
-
-**Rationale:** Requires Phase 1 (image background in web app) and Phase 3 (iOS reference screenshots) to both be ready. This is the measurement infrastructure that all tuning depends on.
-
-**Delivers:** Playwright test that captures the WebGPU canvas at a standardized pixel dimension (1179x2556 matching iPhone 16 Pro logical pixels). Node.js diff script that: normalizes both screenshots to sRGB via `sips`, crops to the glass region, runs pixelmatch, outputs diff.png with mismatch percentage. Verification: diff of identical solid colors shows < 1% mismatch after normalization.
-
-**Addresses:** Table stakes D from FEATURES.md (Visual Diffing Workflow), differentiators G (region masking, SSIM)
-
-**Avoids:** C7 (color space normalization) — must be resolved and verified with a color calibration patch before running any automated diffs. M3 (DPI scaling) — standardize capture at fixed pixel dimension, disable "Optimize Rendering for Window Scale" in simulator. Anti-Pattern 3 (full-screen diff) — crop to glass region only.
-
-**Research flag:** WebGPU canvas screenshot capture in headless Playwright is MEDIUM confidence. Validate that `page.locator('canvas').screenshot()` captures GPU-rendered content with `--use-angle=gl` or `--enable-unsafe-webgpu` flags before building the rest of the pipeline. May need headed mode as fallback.
-
-### Phase 6: Manual Tuning to Parity
-
-**Rationale:** Once the diff pipeline produces reliable scores, a human operator uses the TuningPanel (Phase 4) and diff output (Phase 5) to tune parameters toward the reference. This is an iterative human-in-the-loop phase. Output is a set of validated preset values committed to the library.
-
-**Delivers:** Validated "Apple Standard" and "Apple Prominent" preset parameter sets with documented SSIM and mismatch percentage against the simulator reference. These become committed defaults in the library. A documented parameter guide explaining valid ranges and what each parameter does perceptually.
-
-**Addresses:** Differentiators F from FEATURES.md (named presets with validated values), establishes the baseline for CI regression
-
-**Avoids:** M2 (local minimum) — constrain parameter ranges to physically plausible bounds before tuning; human validation required at each iteration. M5 (blur quality gap) — document the structural blur limitation; exclude blur interior from convergence target; set explicit acceptance threshold (e.g., <10% pixel mismatch in non-blur regions).
-
-**Research flag:** No software research needed. Empirical tuning phase.
-
-### Phase 7: Automated Tuning Loop (Stretch Goal)
-
-**Rationale:** Build only after Phase 6 establishes well-tuned manual baselines. The automated loop refines around manually-established starting points using URL-driven parameter injection and coordinate descent. Defer to v2.1 if manual tuning achieves acceptable parity.
-
-**Delivers:** `scripts/tune.ts` — Node.js script that drives Playwright with `?params=base64json` URL injection, captures screenshots, runs pixelmatch, performs coordinate descent on one parameter at a time, logs convergence per iteration. Does not modify shader code — only changes uniform values via URL.
-
-**Addresses:** Differentiators G from FEATURES.md (automated convergence loop)
-
-**Avoids:** M2 (local minimum) — start from Phase 6 manual baseline, constrain ranges, require human sign-off. Anti-Pattern 4 (hot-reloading C++ in tuning loop) — loop only changes URL params, never source files.
-
-**Research flag:** Validate URL-based parameter injection reliability in headless Playwright before investing in the optimizer. If basic round-trip (set params → capture → read diff) is unreliable, headless Playwright is the blocker, not the optimizer.
+**Rationale:** Architecture change may shift shader pipeline coordinates or GPU rounding subtly. Visual parity must be confirmed against the iOS reference before declaring v3.0 complete. Re-tuning with the coordinate-descent script may be needed if any preset drifts.
+**Delivers:** Passing `npm run diff` with pixel match score within 2% of v2.0 baseline; coordinate-descent tuner run if any preset drifts; v3.0 tagged as release-ready
+**Avoids:** Shipping an architecture-correct but visually regressed build
+**Research flag:** Skip — tuning process is established (coordinate-descent, pixelmatch); no new research needed
 
 ### Phase Ordering Rationale
 
-- Phase 1 before Phase 5: The diff pipeline needs image mode to render the same scene as iOS.
-- Phase 1 parallel with Phase 2: Both are engine changes, no cross-dependencies. Shader param exposure is zero-risk and can proceed concurrently.
-- Phase 3 parallel with Phases 1-2: SwiftUI app is fully independent from the web app. Build early to have reference screenshots available.
-- Phase 4 after Phases 1+2: TuningPanel needs both image mode and all params exposed to be meaningful.
-- Phase 5 after Phase 1 and Phase 3: Needs both sides of the comparison working.
-- Phase 6 after Phases 4+5: Human tuning requires both the UI and the measurement pipeline.
-- Phase 7 after Phase 6: Automated loop needs well-tuned starting points to avoid local minima.
+- Phase 1 must precede Phase 3: C++ glass pass and JS glass pass cannot coexist — both write to the surface; C++ glass pass must be deleted first
+- Phase 2 can run in parallel with Phase 1: `GlassRenderer` only needs a `GPUDevice` and a synthetic texture to develop and test against
+- Phase 3 requires Phase 1 + Phase 2 complete: needs both `renderBackground()` / `getSceneTextureHandle()` from WASM and a working `GlassRenderer` that accepts a scene texture
+- Phase 4 requires Phase 3 visually stable: tuning against a broken render produces meaningless coefficients
 
 ### Research Flags
 
-Phases needing validation or early risk mitigation:
-- **Phase 1 (Image Background):** The four-pitfall cluster (C1/C3/C4/C5) must be addressed in order. Recommend a written validation checklist and testing each constraint independently before combining. All solutions are known — discipline in implementation is the requirement.
-- **Phase 5 (Diff Pipeline):** WebGPU canvas capture in headless Playwright is MEDIUM confidence. Validate early (first day of Phase 5) before building the full pipeline. Known mitigation: `page.locator('canvas').screenshot()` captured immediately after `waitForTimeout(2000)`, with `--use-angle=gl` flag.
-- **Phase 7 (Auto-Tuning):** Validate URL-based parameter injection end-to-end before investing in the coordinate descent optimizer.
+Phases needing deeper research during planning:
+- None — all four phases have fully defined scope from direct codebase analysis and validated WebGPU API patterns
 
-Phases with well-established patterns (no additional research needed):
-- **Phase 2 (Shader Params):** Standard uniform buffer extension. Zero-risk using existing padding slots.
-- **Phase 3 (SwiftUI App):** Apple APIs well-documented. xcrun simctl is stable. C6 is a known bug with a known mitigation.
-- **Phase 4 (Tuning UI):** Leva is well-documented. Standard React component patterns.
-- **Phase 6 (Manual Tuning):** Empirical process, no software research needed.
+Phases with standard patterns (skip `/gsd:research-phase`):
+- **Phase 1:** C++ refactoring scope fully enumerated in ARCHITECTURE.md; changes are deletions and renames, not novel integrations
+- **Phase 2:** WebGPU JS pipeline patterns are authoritative (toji.dev, MDN, webgpufundamentals.org); emdawnwebgpu interop already validated in production
+- **Phase 3:** Wire-up of two independently validated systems; all boundary contracts are defined
+- **Phase 4:** Established tuning workflow from v2.0; no new tooling required
+
+---
 
 ## Confidence Assessment
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| Stack | HIGH | Core stack unchanged and validated in v1.0. New additions (leva, pixelmatch, pngjs) are well-documented. Approach A (JS image decode via createImageBitmap) verified against Emscripten issue #18190. |
-| Features | MEDIUM | Table stakes and must-haves are clear. Parameter gap estimates (blur, aberration, rim) are community-derived with no official Apple documentation. Apple does not expose `.glassEffect()` internals. |
-| Architecture | HIGH | Based primarily on existing codebase analysis (highest confidence source) plus verified WebGPU patterns from official sources. Uniform struct extension approach is mechanically confirmed. JS/C++ image boundary design is based on confirmed Emscripten limitations. |
-| Pitfalls | HIGH | Most critical pitfalls verified against official gpuweb issues, MDN, and Apple Developer Forums. C6 (dark on device) is directly confirmed by multiple developers. C7 (P3 color space) is MEDIUM. M5 (blur quality) is directly observable in source code. |
+| Stack | HIGH | Entire stack is already in the codebase; interop patterns verified against live implementation and emdawnwebgpu source; no new packages needed |
+| Features | HIGH | Feature scope is a migration of existing functionality, not new work; public API is frozen; P1/P2/deferred split is unambiguous |
+| Architecture | HIGH | Based on direct analysis of v2.0 source code; component responsibilities, data flows, and deletion list are fully enumerated with no gaps |
+| Pitfalls | HIGH | Core pitfalls verified against emdawnwebgpu source, WebGPU spec, and project history; several already encountered and solved in v2.0 |
 
-**Overall confidence:** MEDIUM-HIGH. The engineering approach is clear and well-sourced. Uncertainty is in the visual parity targets: Apple's glass internals are not documented, parameter estimates are community-derived, and the iOS 26 bug landscape may shift between beta versions.
+**Overall confidence:** HIGH
 
 ### Gaps to Address
 
-- **Apple parameter ground truth:** The parameter estimates in FEATURES.md are community-derived (MEDIUM confidence). During Phase 6 (Manual Tuning), empirical measurement against the simulator reference will produce the actual ground truth values. Treat FEATURES.md estimates as starting points only, not targets.
+- **Canvas surface ownership during Phase 3:** In v2.0, C++ configures the `wgpu::Surface` from the canvas HTML selector. In v3.0, JS must configure `GPUCanvasContext` for the swap chain. The exact handoff — whether C++ still creates a `wgpu::Surface` internally or JS takes over `canvas.getContext('webgpu')` entirely — needs one explicit decision at Phase 3 kickoff. The architecture research identifies this as a key contract point but does not prescribe the exact API call ordering.
 
-- **Blur quality ceiling:** The 5x5 Gaussian is a structural limitation. Research into a separable Gaussian (horizontal + vertical passes, ~15-tap equivalent at the same cost) should be scoped during or after Phase 2 as a potential Phase 2.5 addition, before Phase 5 (diff pipeline), so the comparison is against the best achievable blur quality. This is not a blocking gap but affects the achievable parity score.
+- **`externalDeviceMode` flag scope in `loader.ts`:** Currently set only in the `if (options?.device)` branch. In v3.0 this branch becomes the only path. Verify no C++ startup code branches on the absence of `externalDeviceMode` in a way that would silently fail when the standalone path is removed.
 
-- **Playwright WebGPU headless reliability:** MEDIUM confidence. Needs early empirical validation on Phase 5 day 1. If headless Chrome does not capture WebGPU canvas content reliably, headed mode is the fallback; document in CI setup as a constraint.
+- **WGSL shader authoring approach:** Template literal vs. `?raw` import — both work; settle this at Phase 2 kickoff. Recommendation: use `?raw` for IDE WGSL syntax support during development.
 
-- **iOS 26 bug resolution:** C6 (dark on device) is confirmed in iOS 26.0-26.0.1. Monitor Apple Developer Forums thread #814005. If Apple fixes it before v2.0 ships, re-capture reference screenshots and re-run Phase 6 tuning. Build Phase 5-7 to be fully re-runnable for this reason.
-
-- **Premultiplied alpha edge case (C2):** Latent — may not surface until visual comparison phase when background images with partial alpha are tested. Test early with a PNG that has alpha regions, even though the initial bundled wallpaper is opaque.
+---
 
 ## Sources
 
 ### Primary (HIGH confidence)
-- Existing codebase: `engine/src/background_engine.cpp`, `engine/src/shaders/glass.wgsl.h`, `src/components/GlassProvider.tsx`, `src/hooks/useGlassRegion.ts` — architectural baseline and uniform layout
-- [MDN: GPUQueue.copyExternalImageToTexture](https://developer.mozilla.org/en-US/docs/Web/API/GPUQueue/copyExternalImageToTexture) — usage flag requirements, flipY, premultiplied alpha
-- [WebGPU Fundamentals: Importing Textures](https://webgpufundamentals.org/webgpu/lessons/webgpu-importing-textures.html) — sRGB handling, createImageBitmap options, color space
-- [toji.dev: WebGPU Image Texture Best Practices](https://toji.dev/webgpu-best-practices/img-textures.html) — JS decode / WASM upload patterns
-- [Emscripten issue #18190](https://github.com/emscripten-core/emscripten/issues/18190) — copyExternalImageToTexture not in C++ bindings, closed "not planned"
-- [gpuweb issues #3357, #1715, #1762, #2535](https://github.com/gpuweb/gpuweb/issues/) — RENDER_ATTACHMENT requirement, linear color space, premultiplied alpha, bgra8unorm format
-- [Apple Developer Forums thread #814005](https://developer.apple.com/forums/thread/814005) — .glassEffect() dark on physical device, confirmed bug
-- [JuniperPhoton: Adopting Liquid Glass pitfalls](https://juniperphoton.substack.com/p/adopting-liquid-glass-experiences) — GlassEffectContainer offscreen texture overhead in simulator
-- [Apple: glassEffect(_:in:) documentation](https://developer.apple.com/documentation/swiftui/view/glasseffect(_:in:)) — API reference, preset styles
-- [WWDC25 Session 323](https://developer.apple.com/videos/play/wwdc2025/323/) — Liquid Glass API design confirmed
-- [pixelmatch (mapbox)](https://github.com/mapbox/pixelmatch) — pixel diff library, API, threshold semantics
-- [leva (pmndrs)](https://github.com/pmndrs/leva) — React parameter controls
+- Live codebase: `src/wasm/loader.ts`, `engine/src/main.cpp`, `engine/src/background_engine.h/.cpp`, `engine/src/shaders/glass.wgsl.h` — primary source of truth for all interop patterns and struct layouts
+- [MDN: GPU.requestAdapter / GPUAdapter.requestDevice / GPUDevice.lost / createRenderPipelineAsync](https://developer.mozilla.org/en-US/docs/Web/API/GPU) — standard WebGPU device lifecycle APIs
+- [emdawnwebgpu README](https://dawn.googlesource.com/dawn/+/refs/heads/main/src/emdawnwebgpu/pkg/README.md) — `--use-port=emdawnwebgpu` requirements, deprecation of `--use-port=webgpu`
+- [WebGPU Fundamentals: Uniforms](https://webgpufundamentals.org/webgpu/lessons/webgpu-uniforms.html) — `minUniformBufferOffsetAlignment = 256`; Float32Array layout rules
+- [WebGPU Bind Group Best Practices — toji.dev](https://toji.dev/webgpu-best-practices/bind-groups.html) — explicit layout requirement; group-by-update-frequency pattern
+- [WebGPU Device Loss Best Practices — toji.dev](https://toji.dev/webgpu-best-practices/device-loss.html) — recovery strategy; always request fresh adapter on loss
+- Project MEMORY.md — `AllowSpontaneous` vs double `WaitAny` known issue; emdawnwebgpu header-only requirement; `--use-port` placement rules
 
 ### Secondary (MEDIUM confidence)
-- [Apple Developer Forums: color management](https://developer.apple.com/forums/thread/111818) — iOS Simulator P3 color profile behavior
-- [Emscripten issue #13888](https://github.com/emscripten-core/emscripten/issues/13888) — mixed JS/WASM WebGPU patterns
-- [Playwright WebGPU headless blog](https://blog.promaton.com/testing-3d-applications-with-playwright-on-gpu-1e9cfc8b54a9) — GPU headless screenshot capture patterns
-- Community glass implementations for parameter reference: [dashersw/liquid-glass-js](https://github.com/dashersw/liquid-glass-js), [rdev/liquid-glass-react](https://github.com/rdev/liquid-glass-react), [DnV1eX/LiquidGlassKit](https://github.com/DnV1eX/LiquidGlassKit), [iyinchao/liquid-glass-studio](https://github.com/iyinchao/liquid-glass-studio)
-- [leva React 19 issue #539](https://github.com/pmndrs/leva/issues/539) — peer dep warning status
+- [Emscripten issue #13888](https://github.com/emscripten-core/emscripten/issues/13888) — `importJsDevice`, `getJsObject`, `JsValStore` mechanism (GitHub issue, Chrome WebGPU team author)
+- [Emscripten issue #24265](https://github.com/emscripten-core/emscripten/issues/24265) — `preinitializedWebGPUDevice` removal confirmation
+- [WebGPU Multiple Render Passes — matthewmacfarquhar.medium.com](https://matthewmacfarquhar.medium.com/webgpu-rendering-part-6-multiple-render-passes-b42157dfbcb5) — multi-pass texture ordering
 
 ### Tertiary (LOW confidence)
-- Apple native glass parameter values — no official source; all estimates are community reverse-engineering and should be treated as starting points only
+- None — all significant findings have primary or secondary backing
 
 ---
-*Research completed: 2026-02-25*
+*Research completed: 2026-03-24*
 *Ready for roadmap: yes*

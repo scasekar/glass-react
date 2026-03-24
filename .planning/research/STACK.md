@@ -1,330 +1,264 @@
-# Technology Stack: v2.0 Visual Parity Milestone
+# Stack Research
 
-**Project:** LiquidGlass-React-WASM
-**Researched:** 2026-02-25
-**Scope:** Stack ADDITIONS for v2.0 only. Existing validated stack (Emscripten, emdawnwebgpu, React 19, Vite 6, C++20) is unchanged.
-
----
-
-## 1. Image Texture Loading (C++ / WASM)
-
-### Recommended: stb_image (header-only) decoded in C++, uploaded via `queue.WriteTexture()`
-
-| Technology | Version | Purpose | Why |
-|------------|---------|---------|-----|
-| stb_image.h | v2.30 | Decode PNG/JPG/BMP to raw RGBA pixels | Single-header, public domain, zero dependencies, proven in WebGPU C++ projects. Forces 4-channel output for consistent RGBA8Unorm textures. |
-
-**Confidence:** HIGH -- stb_image is the de facto standard for C++ image loading in WebGPU projects. The LearnWebGPU documentation uses it as the canonical example, and it compiles cleanly under Emscripten.
-
-### Integration Architecture
-
-The image loading flow has two viable approaches. Use **Approach A** (JS decode, pass to C++).
-
-**Approach A -- JS-side decode, C++ upload (RECOMMENDED):**
-1. JavaScript `fetch()` loads the image file (or bundled asset)
-2. JS decodes to `ImageBitmap` via `createImageBitmap(blob)`
-3. JS calls `device.queue.copyExternalImageToTexture()` to write directly to the offscreen texture
-4. No stb_image needed at all -- browser handles decode natively
-
-**Why Approach A over stb_image in C++:** The browser's native image decoder is hardware-accelerated, handles all formats, and `copyExternalImageToTexture()` avoids a copy through WASM linear memory. stb_image in C++ would require: fetching via Emscripten's Fetch API or `--preload-file`, decoding in WASM (slower than browser), then `queue.WriteTexture()` through the WASM heap. More code, worse performance.
-
-**Approach B -- stb_image in C++ (FALLBACK ONLY):**
-Use only if `copyExternalImageToTexture()` is unavailable or if image preprocessing (resize, crop) needs to happen in C++ before GPU upload. Steps:
-1. Bundle image via Emscripten `--preload-file` or fetch via Emscripten Fetch API
-2. `stbi_load(path, &w, &h, &channels, 4)` -- force RGBA
-3. `device.GetQueue().WriteTexture(...)` with `wgpu::TextureDataLayout` specifying `bytesPerRow = width * 4`
-4. `stbi_image_free(data)`
-
-**Decision:** Use Approach A. The existing architecture already has JS-to-C++ communication via embind. Add a new JS function that loads an image and writes it to the engine's offscreen texture. The C++ engine needs a new `setBackgroundMode(mode)` method and the offscreen texture needs `wgpu::TextureUsage::CopyDst` added to its usage flags.
-
-### What Changes in Existing Code
-
-| File | Change |
-|------|--------|
-| `engine/src/background_engine.h` | Add `BackgroundMode` enum (Noise/Image), add `CopyDst` to offscreen texture usage |
-| `engine/src/background_engine.cpp` | Skip noise render pass when mode == Image; expose texture handle for JS upload |
-| `engine/src/main.cpp` | Add embind binding for `setBackgroundMode()` |
-| `src/wasm/loader.ts` | Add `loadBackgroundImage(url: string)` that fetches, decodes, and uploads via `copyExternalImageToTexture` |
-| `src/components/GlassProvider.tsx` | Accept `backgroundImage?: string` prop, call loader |
-
-### Bundled Default Wallpaper
-
-Ship a default wallpaper image in the npm package. Use a high-quality JPEG (not PNG -- JPEG is 5-10x smaller for photographic content) at 2560x1440 resolution, targeting ~200-400KB. Place in `src/assets/default-wallpaper.jpg` and import via Vite's `?url` suffix for tree-shaking.
+**Domain:** JS/WebGPU glass rendering pipeline over C++/WASM background engine
+**Researched:** 2026-03-24
+**Scope:** v3.0 architecture only — JS/WebGPU device creation, texture sharing, and JS-side glass pipeline. Existing validated stack (Emscripten, emdawnwebgpu, React 19, Vite 6.4, C++20, Playwright, pixelmatch) is unchanged.
+**Confidence:** HIGH (core patterns validated against live codebase; interop mechanism verified against emscripten issue #13888 and emdawnwebgpu source)
 
 ---
 
-## 2. Live Shader Parameter Controls UI
+## Context: What v3.0 Changes
 
-### Recommended: Leva v0.10.x
+The architecture flips ownership of the WebGPU device:
 
-| Technology | Version | Purpose | Why |
-|------------|---------|---------|-----|
-| leva | ^0.10.1 | React GUI for real-time shader parameter tuning | React-first (useControls hook), auto-generates UI from schema, supports numbers/colors/booleans/vectors, built by pmndrs ecosystem (same community as react-three-fiber). |
+- **v2.0 (current):** C++ engine calls `RequestAdapter` + `RequestDevice` and owns the entire pipeline — background rendering AND glass shaders
+- **v3.0 (target):** JS calls `navigator.gpu.requestAdapter()` + `adapter.requestDevice()`, passes device to C++ via emdawnwebgpu interop, C++ renders background only, JS/WebGPU pipeline renders all glass effects
 
-**Confidence:** HIGH -- leva is the standard React parameter control library, actively maintained, and designed for exactly this use case (shader/3D parameter tuning).
-
-### Why Leva Over Alternatives
-
-| Category | Recommended | Alternative | Why Not |
-|----------|-------------|-------------|---------|
-| Parameter UI | **leva** | Tweakpane 4.x | Tweakpane is framework-agnostic (vanilla JS). Requires `react-tweakpane` wrapper (MelonCode/react-tweakpane) which is a community binding with less maintenance. Leva is React-native. |
-| Parameter UI | **leva** | dat.gui | dat.gui is unmaintained. Its successor lil-gui is also vanilla JS. Neither has React integration. |
-| Parameter UI | **leva** | Theatre.js | Theatre.js is an animation/keyframing tool -- overkill for parameter tuning. Heavier, more complex API. |
-
-### React 19 Compatibility
-
-Leva 0.10.x works with React 19 but its `@radix-ui/*` dependencies still list React 18 as a peer dependency, causing npm install warnings. This is cosmetic -- the library functions correctly. Use `--legacy-peer-deps` during install or add an `overrides` field in package.json. The pmndrs team has acknowledged this (GitHub issue #539) and @radix-ui upgrades are included in 0.10.1.
-
-**Confidence:** MEDIUM -- functional but with peer dependency noise. Verify at install time.
-
-### Usage Pattern
-
-```tsx
-import { useControls } from 'leva';
-
-function GlassTuner() {
-  const params = useControls('Glass Shader', {
-    blur: { value: 0.5, min: 0, max: 1, step: 0.01 },
-    refraction: { value: 0.15, min: 0, max: 0.5, step: 0.01 },
-    aberration: { value: 3.0, min: 0, max: 10, step: 0.1 },
-    tint: { value: '#ffffff' },  // leva auto-detects color
-    specular: { value: 0.2, min: 0, max: 1, step: 0.01 },
-    rim: { value: 0.15, min: 0, max: 1, step: 0.01 },
-    opacity: { value: 0.05, min: 0, max: 1, step: 0.01 },
-    cornerRadius: { value: 24, min: 0, max: 100, step: 1 },
-    mode: { options: ['standard', 'prominent'] },
-  });
-  // params updates on every slider change, feed to GlassPanel props
-}
-```
-
-### Scope
-
-Leva is a **dev-dependency only** -- it powers the demo app's tuning panel, NOT the shipped library. The `liquidglass-react` npm package should never depend on leva.
+**No new npm packages are required for the core pipeline.** Every required piece is already present: `@webgpu/types` for TypeScript types, the emdawnwebgpu interop bridge (`WebGPU.importJsDevice` / `WebGPU.getJsObject`) for object-table crossing, the WGSL glass shaders (authored in C++ header files, to be ported to TS string literals), and the full Vite/TypeScript build infrastructure.
 
 ---
 
-## 3. SwiftUI Reference App
+## Recommended Stack
 
-### Recommended: Xcode 26.2 + SwiftUI, targeting iOS 26 / iPhone 16 Pro Simulator
+### Core Technologies
 
-| Technology | Version | Purpose | Why |
-|------------|---------|---------|-----|
-| Xcode | 26.2 | Build/run SwiftUI reference app | Required for iOS 26 SDK and Liquid Glass APIs. Requires macOS Sequoia 15.6+. |
-| SwiftUI | iOS 26 | Native Liquid Glass rendering | `.glassEffect()` modifier is the ONLY way to get Apple's native Liquid Glass look. |
-| Swift | 6.x | Language for reference app | Ships with Xcode 26. |
+| Technology | Version | Purpose | Why Recommended |
+|------------|---------|---------|-----------------|
+| WebGPU (browser API) | W3C spec, Chrome 113+/Edge 113+ | JS-side device creation, render pipelines, bind groups, texture reads | Native browser API — no wrapper library needed; already typed via `@webgpu/types` |
+| `@webgpu/types` | `^0.1.69` (already installed) | TypeScript types for `GPUDevice`, `GPUTexture`, `GPURenderPipeline`, `GPUBindGroup`, etc. | Official gpuweb types package; `"types": ["@webgpu/types"]` already in `tsconfig.json` |
+| emdawnwebgpu interop bridge | Bundled with WASM build (`--use-port=emdawnwebgpu`) | `WebGPU.importJsDevice(jsDevice)` inserts JS `GPUDevice` into C++ object table; `WebGPU.getJsObject(handle)` resolves C++-produced texture pointer back to JS `GPUTexture` | Already validated in v2.0 codebase (`loader.ts` lines 86-89, `main.cpp` `initWithExternalDevice`); no separate install |
+| TypeScript | `^5.7.0` (already installed) | Type-safe WebGPU pipeline management | Strict mode + `@webgpu/types` catches WebGPU descriptor errors at compile time; `GPURenderPipelineDescriptor` is fully typed |
+| WGSL (inline TS strings) | WebGPU spec | Glass shader code (refraction, blur, Fresnel, chromatic aberration, specular, rim lighting) | Already authored in `engine/src/shaders/glass.wgsl.h`; migrate to TypeScript template literal strings or standalone `.wgsl` files imported with Vite `?raw` |
 
-**Confidence:** HIGH -- Apple's developer documentation and WWDC25 sessions confirm the APIs.
+### Supporting Libraries
 
-### Key SwiftUI APIs
+| Library | Version | Purpose | When to Use |
+|---------|---------|---------|-------------|
+| `vite-plugin-wasm` | `^3.5.0` (already installed) | WASM MIME type and async import handling in Vite | Required for Emscripten ESM module loading |
+| `vite-plugin-top-level-await` | `^1.4.0` (already installed) | Allows top-level `await` for engine init | Required for clean async WASM init in library entry point |
+| `vite-plugin-dts` | `^4.5.4` (already installed) | TypeScript declaration generation for npm publish | Required for `.d.ts` output on `build:lib` |
 
-| API | Purpose | Notes |
-|-----|---------|-------|
-| `.glassEffect(_ glass: Glass = .regular, in shape: S, isEnabled: Bool)` | Apply Liquid Glass to any view | Primary modifier. Shape defaults to capsule. |
-| `Glass.regular` | Standard glass material | Balanced transparency, good for most UI |
-| `Glass.clear` | More transparent variant | Higher transparency, used over vivid content |
-| `Glass.identity` | Disable effect | For conditional toggling |
-| `.tint(Color)` | Colorize the glass | Chain on Glass instance |
-| `.interactive()` | Enable press animations | Bouncing, shimmering, touch illumination |
-| `GlassEffectContainer` | Group glass elements | Shared sampling, morphing between elements |
-| `.glassEffectID()` | Morphing transitions | Requires Namespace for matched geometry |
+No new supporting libraries are needed for the JS WebGPU glass pipeline itself.
 
-### Reference App Structure
+### Development Tools
 
-The reference app should be a **separate directory** (not inside glass-react repo, per PROJECT.md constraints). Minimal structure:
+| Tool | Purpose | Notes |
+|------|---------|-------|
+| `createRenderPipelineAsync()` | Async pipeline compilation | Prefer over synchronous `createRenderPipeline()` — avoids GPU stalls while shader compiler runs; resolve the Promise before first render frame |
+| `device.lost` promise handler | Device loss recovery | Register on every `GPUDevice` instance; re-init on transient loss; do not re-init if reason is `"destroyed"` |
+| `device.addEventListener('uncapturederror', ...)` | Catches WGSL compilation errors and bind group validation errors | WebGPU validation errors are otherwise silent in production; essential during development |
 
-```
-liquid-glass-reference-ios/
-  LiquidGlassRef/
-    LiquidGlassRefApp.swift
-    ContentView.swift        // Same wallpaper + glass panel + rounded element
-    Assets.xcassets/         // Same default wallpaper image
-  LiquidGlassRef.xcodeproj
-```
+---
 
-**ContentView.swift requirements:**
-- Full-screen `Image` background using the SAME wallpaper JPEG as the web app
-- `RoundedRectangle` with `.glassEffect(.regular, in: RoundedRectangle(cornerRadius: 24))`
-- Same dimensions and positioning as the web demo app's GlassPanel
-- Target: iPhone 16 Pro Simulator (1206x2622 logical, 3x scale)
+## Installation
 
-### Simulator Screenshot Capture
+No new packages required for v3.0. All needed packages are already present.
 
 ```bash
-# Boot specific simulator
-xcrun simctl boot "iPhone 16 Pro"
+# Verify existing packages are current
+npm install
 
-# Take screenshot
-xcrun simctl io booted screenshot --type=png reference.png
-
-# Or with specific device UDID (more reliable in CI)
-xcrun simctl io <UDID> screenshot --type=png reference.png
+# @webgpu/types is already a devDependency at ^0.1.69
+# No additional installs needed for the JS WebGPU glass pipeline
 ```
 
-**Confidence:** HIGH -- `xcrun simctl io screenshot` is a stable, well-documented Apple CLI since Xcode 8.2.
+If WGSL shaders are extracted to standalone `.wgsl` files, Vite handles `?raw` imports natively — no plugin needed:
+
+```typescript
+// Vite ?raw suffix — works without any plugin
+import glassShaderSource from './shaders/glass.wgsl?raw';
+```
 
 ---
 
-## 4. Automated Visual Diffing
+## How JS WebGPU Rendering Differs from C++ WebGPU Rendering
 
-### Recommended: Playwright (already in project) + pixelmatch + pngjs
+This section captures the non-obvious differences that matter for the v3.0 migration.
 
-| Technology | Version | Purpose | Why |
-|------------|---------|---------|-----|
-| playwright | ^1.58.2 | Browser automation, screenshot capture of web app | Already a devDependency. Chromium's WebGPU support is best-in-class. |
-| pixelmatch | ^7.1.0 | Pixel-level image comparison | 150 lines, zero dependencies, works on raw typed arrays. Fast: <50ms for 1280x720. Deterministic. |
-| pngjs | ^7.0.0 | PNG encode/decode in Node.js | Needed to read PNG files into raw RGBA buffers for pixelmatch. Provides `PNG.sync.read()` and `PNG.sync.write()`. |
+### Device Lifecycle
 
-**Confidence:** HIGH for Playwright (already validated in project). MEDIUM for pixelmatch+pngjs (standard pattern, widely documented, but not yet tested in this project).
+**C++ (current v2.0):** `wgpu::Instance::RequestAdapter()` + `wgpu::Adapter::RequestDevice()` with `AllowSpontaneous` callbacks. Device lifetime tied to C++ global. The `AllowSpontaneous` mode was critical (double `WaitAny` corrupts emdawnwebgpu's internal Instance reference — see project MEMORY.md).
 
-### Why NOT Playwright's Built-in `toHaveScreenshot()`
-
-Playwright's `toHaveScreenshot()` compares against baselines stored per-platform/browser. Our use case is different: we compare **web app screenshots against iOS Simulator screenshots** (cross-platform comparison). This requires:
-1. Manual screenshot capture from both sources
-2. Resizing to match dimensions
-3. Custom pixelmatch invocation with tunable threshold
-
-Playwright's built-in visual comparison assumes same-source screenshots. Use it for regression testing (same browser, different code versions), but use pixelmatch directly for cross-platform visual diffing.
-
-### Comparison Pipeline
-
-```
-Playwright screenshot (web app)     xcrun simctl screenshot (iOS Sim)
-        |                                      |
-        v                                      v
-    web-capture.png                    ios-reference.png
-        |                                      |
-        +------ resize to match ---------------+
-        |                                      |
-        v                                      v
-   pixelmatch(webData, iosData, diffData, w, h, { threshold: 0.1 })
-        |
-        v
-    diff.png + mismatch percentage
-```
-
-### Key Playwright Configuration for WebGPU Screenshots
+**JS (v3.0):** `navigator.gpu.requestAdapter()` + `adapter.requestDevice()` — standard async/await. Device lifetime owned by `GlassProvider`. **A `GPUAdapter` instance can only be used once** to call `requestDevice`; subsequent calls return an already-lost device. Store the device, not the adapter.
 
 ```typescript
-// playwright.config.ts
-export default defineConfig({
-  use: {
-    browserName: 'chromium',
-    launchOptions: {
-      args: ['--enable-unsafe-webgpu'],  // Enable WebGPU in headless mode
-    },
-  },
+// Correct pattern — device is the long-lived object; adapter can be discarded
+const adapter = await navigator.gpu.requestAdapter({ powerPreference: 'high-performance' });
+if (!adapter) throw new Error('No WebGPU adapter');
+const device = await adapter.requestDevice();
+device.lost.then(info => {
+  if (info.reason !== 'destroyed') { /* re-init */ }
+});
+// adapter reference no longer needed
+```
+
+### Bind Group Immutability and Texture Change
+
+A `GPUBindGroup` is immutable after creation. When the C++ background texture is recreated (e.g., on canvas resize — `BackgroundEngine::createOffscreenTexture()` is called from `resize()`), the JS glass renderer must detect the change and recreate the bind group that references `texBackground`. This is the most common source of stale-bind-group bugs when bridging JS and C++ textures.
+
+Pattern: cache the `GPUTexture` reference returned from `module.WebGPU.getJsObject(handle)`. On each frame (or on resize), compare the current texture reference to the cached one. If different, rebuild all glass bind groups.
+
+### Uniform Buffer Alignment
+
+Both JS and C++ sides follow the same `minUniformBufferOffsetAlignment` rule: dynamic offsets must be multiples of 256 (the WebGPU spec default). The existing `GlassUniforms` struct is 112 bytes. When using dynamic offsets for multi-region rendering, the stride must be padded to 256 bytes:
+
+```
+stride = Math.ceil(112 / 256) * 256 = 256 bytes
+totalBufferSize = 16 regions × 256 bytes = 4096 bytes
+```
+
+This matches what the C++ side already allocates. The JS side must use the same layout when writing uniform data.
+
+### Pipeline Compilation Timing
+
+`createRenderPipelineAsync()` is mandatory for production use. Unlike C++, JS has no compile-time WGSL validation — runtime errors surface as uncaptured device errors. Compile and cache the pipeline during init, before the first render frame.
+
+---
+
+## Device Creation and Texture Sharing Patterns
+
+These are the two critical interop patterns for v3.0.
+
+### Pattern 1: JS Creates Device, Passes to C++
+
+The `preinitializedWebGPUDevice` + `emscripten_webgpu_get_device()` pattern is **deprecated** and scheduled for removal. The current emdawnwebgpu pattern uses an object table managed by `library_webgpu.js`:
+
+```typescript
+// Already implemented in src/wasm/loader.ts (lines 86-89)
+const adapter = await navigator.gpu.requestAdapter({ powerPreference: 'high-performance' });
+const device = await adapter.requestDevice();
+
+// Insert JS GPUDevice into emdawnwebgpu's object table → returns integer handle
+const handle = module.WebGPU.importJsDevice(device);
+
+// C++ calls: wgpu::Device::Acquire(reinterpret_cast<WGPUDevice>(handle))
+module.initWithExternalDevice(handle);
+```
+
+The C++ side (`engine/src/main.cpp`, `initWithExternalDevice`) is already implemented. This pattern is validated in v2.0.
+
+### Pattern 2: C++ Exposes Background Texture, JS Reads It
+
+After C++ renders the background to an offscreen texture, JS retrieves the texture to use as input to the glass shader's bind group:
+
+```typescript
+// C++ returns a raw WGPUTexture* pointer cast to uintptr_t
+// (see main.cpp: getBackgroundTextureHandleJS → clone.MoveToCHandle())
+const handle: number = module.getBackgroundTextureHandle();
+
+// Resolve back to JS GPUTexture via emdawnwebgpu's object table
+const bgTexture = module.WebGPU.getJsObject(handle) as GPUTexture;
+
+// Create bind group for glass shader
+const bindGroup = device.createBindGroup({
+  layout: glassPipeline.getBindGroupLayout(0),
+  entries: [
+    { binding: 0, resource: sampler },
+    { binding: 1, resource: bgTexture.createView() },
+    { binding: 2, resource: {
+      buffer: uniformBuffer,
+      offset: regionIndex * UNIFORM_STRIDE,  // 256 bytes per region
+      size: UNIFORM_STRUCT_SIZE,             // 112 bytes
+    }},
+  ],
 });
 ```
 
-**Critical:** WebGPU canvas content is NOT captured by default in Playwright screenshots. The canvas must have `preserveDrawingBuffer: true` equivalent, or you must use `page.locator('canvas').screenshot()` immediately after a render frame. Test this early -- it is a known pain point.
+The C++ function `getBackgroundTextureHandleJS()` already exists in `main.cpp`. The texture has `TextureBinding` usage already set (lines 280-282 of `background_engine.cpp`). No C++ changes required for this pattern.
 
-**Confidence:** MEDIUM -- WebGPU screenshot capture in headless Playwright has known edge cases. Flag for validation during implementation.
+### Pattern 3: Texture Usage Flags (No Changes Required)
 
----
+The C++ offscreen background texture already has all required usage flags for JS sampling:
 
-## 5. Supporting Libraries
-
-### New Dependencies
-
-| Library | Version | Purpose | Dependency Type | When to Use |
-|---------|---------|---------|-----------------|-------------|
-| leva | ^0.10.1 | Shader parameter tuning UI | devDependency | Demo app only, not shipped in npm package |
-| pixelmatch | ^7.1.0 | Image pixel comparison | devDependency | Visual diff scripts |
-| pngjs | ^7.0.0 | PNG read/write for Node.js | devDependency | Visual diff scripts (pairs with pixelmatch) |
-
-### Libraries NOT to Add
-
-| Library | Why Not |
-|---------|---------|
-| stb_image.h (in C++) | Browser's native `createImageBitmap` + `copyExternalImageToTexture` is faster and simpler. Only add if C++-side image preprocessing becomes necessary. |
-| sharp | Server-side image processing library. Overkill for resizing screenshots; use canvas API or simple resize in the diff script. |
-| resemble.js | Older image comparison library. pixelmatch is smaller, faster, zero-dependency. resemble.js adds Canvas dependency. |
-| dat.gui / lil-gui | Unmaintained (dat.gui) or vanilla JS requiring wrappers (lil-gui). Leva is purpose-built for React. |
-| Tweakpane | Good library but requires react-tweakpane wrapper (community-maintained). Leva is React-native. |
-| Puppeteer | Playwright already in project, supports same capabilities. Adding Puppeteer duplicates browser automation. |
-| Percy / Chromatic | Visual testing SaaS platforms. Overkill -- we need raw pixel diffs, not a hosted service. |
-
----
-
-## 6. Alternatives Considered (Decision Log)
-
-| Decision | Chosen | Alternative | Rationale |
-|----------|--------|-------------|-----------|
-| Image decode location | JS (browser) | C++ (stb_image) | Browser decode is hardware-accelerated, avoids WASM memory copy, `copyExternalImageToTexture` is purpose-built for this. |
-| Texture upload API | `copyExternalImageToTexture` | `queue.writeTexture` from WASM | copyExternal works directly from ImageBitmap, no RGBA buffer round-trip through WASM heap. |
-| Parameter UI | leva | Tweakpane 4 | React-native hooks vs. vanilla JS + wrapper. Same team as react-three-fiber ecosystem. |
-| Visual diff tool | pixelmatch (direct) | Playwright toHaveScreenshot | Cross-platform comparison (web vs iOS) requires manual control over image sources and thresholds. |
-| iOS reference | SwiftUI native | React Native / Capacitor | Native SwiftUI is the ONLY way to get real `.glassEffect()` output. Any cross-platform layer would approximate, not replicate. |
-| Screenshot capture (web) | Playwright | Puppeteer | Playwright already a project dependency. Better cross-browser support. |
-| Screenshot capture (iOS) | xcrun simctl | Xcode UI test | simctl is simpler, scriptable, no Xcode UI test boilerplate needed. |
-
----
-
-## 7. Installation
-
-```bash
-# New dev dependencies for demo app and visual diffing
-npm install -D leva pixelmatch pngjs
-
-# If React 19 peer dep warnings from leva's radix-ui:
-npm install -D leva --legacy-peer-deps
-
-# Type definitions (if needed)
-npm install -D @types/pngjs
+```cpp
+// engine/src/background_engine.cpp (already correct)
+texDesc.usage = wgpu::TextureUsage::RenderAttachment |
+                wgpu::TextureUsage::TextureBinding |   // ← enables JS sampling
+                wgpu::TextureUsage::CopyDst;
 ```
 
-No changes to production dependencies. No changes to C++ build (stb_image not needed for Approach A).
-
-If Approach B (stb_image fallback) is ever needed:
-```bash
-# Download stb_image.h to engine/vendor/
-curl -o engine/vendor/stb_image.h https://raw.githubusercontent.com/nothings/stb/master/stb_image.h
-```
+`CopySrc` would only be needed if JS required a copy of the texture (e.g., for a ping-pong blur pass on a separate texture). The current architecture samples directly from the C++ texture within the same frame — no copy needed.
 
 ---
 
-## 8. Version Compatibility Matrix
+## Alternatives Considered
 
-| Component | Current (v1.0) | v2.0 Addition | Compatibility Notes |
-|-----------|----------------|---------------|---------------------|
-| React | ^19.0.0 | leva ^0.10.1 | Works but shows peer dep warnings (radix-ui). Functional. |
-| Playwright | ^1.58.2 | (already present) | WebGPU capture needs `--enable-unsafe-webgpu` flag. |
-| Emscripten | 4.0.16 | No change | `copyExternalImageToTexture` available via emdawnwebgpu. |
-| Node | 24.10.0 | pixelmatch ^7.1.0 | ESM-only (pixelmatch 7.x). Node 24 supports ESM natively. |
-| Xcode | N/A (new) | 26.2 | Requires macOS Sequoia 15.6+. Ships iOS 26 Simulator. |
+| Recommended | Alternative | When to Use Alternative |
+|-------------|-------------|-------------------------|
+| Direct texture sampling (zero-copy, same device) | `copyTextureToTexture` then sample copy | Only if JS and C++ used different `GPUDevice` instances — not applicable here since both share the same device |
+| `WebGPU.importJsDevice()` object table | `preinitializedWebGPUDevice` + `emscripten_webgpu_get_device()` | Never — the legacy pattern is deprecated and scheduled for removal |
+| `createRenderPipelineAsync()` | `createRenderPipeline()` (synchronous) | Use synchronous only in test harnesses where stalls are acceptable; never in production render loop |
+| Dynamic uniform buffer offsets, single 4KB buffer | Separate `GPUBuffer` per glass region | Use per-region buffers only if region count exceeds `maxUniformBufferBindingSize / 256`; 16 regions = 4KB, well within all device limits |
+| WGSL as TypeScript template literals | External `.wgsl` files via `?raw` import | Use `?raw` if iterating on shaders heavily during development; both are equivalent in production builds |
+| Per-frame bind group cache check (compare texture reference) | Recreate bind groups on every frame | Per-frame recreation would create GC pressure from short-lived objects; cache and invalidate only on resize |
+
+---
+
+## What NOT to Use
+
+| Avoid | Why | Use Instead |
+|-------|-----|-------------|
+| `preinitializedWebGPUDevice` + `emscripten_webgpu_get_device()` | Deprecated in Emscripten; existed only for early-prototype compatibility; scheduled for removal | `WebGPU.importJsDevice(device)` → `module.initWithExternalDevice(handle)` (already implemented in `loader.ts`) |
+| `GPUDevice.importExternalTexture()` | Takes only `HTMLVideoElement` or `VideoFrame` — not applicable for a C++-rendered texture | Direct `GPUTexture` sampling via `texture.createView()` in bind group entry |
+| `GPUQueue.copyExternalImageToTexture()` from WASM | WASM code cannot call this because it cannot obtain the JS `GPUQueue` object from a raw `WGPUQueue` pointer (emscripten issue #13888) | Already solved: C++ uses `queue.WriteTexture()` for image upload; JS glass pipeline samples directly from the output texture |
+| `--use-port=webgpu` (Emscripten legacy flag) | Deprecated; the legacy bindings are unmaintained | `--use-port=emdawnwebgpu` in both compile and link flags (already correct in this project) |
+| Third-party WebGPU wrapper libraries (wgpu.js, TypeGPU, babylon.js, three.js WebGPU backend) | Add indirection that complicates the emdawnwebgpu interop boundary; none are designed for this hybrid JS+WASM architecture | Raw WebGPU browser API with `@webgpu/types` |
+| Separate `GPUDevice` per canvas or per component | JS and C++ must share the same device for zero-copy texture access; two devices cannot share textures | Single `GPUDevice` created in JS, passed to C++ via `importJsDevice` |
+| Per-frame `createRenderPipeline()` | Synchronous pipeline compilation blocks the GPU; even in async form, recreation is expensive | Compile pipeline once at init with `createRenderPipelineAsync()`, cache the result |
+
+---
+
+## Stack Patterns by Scenario
+
+**On canvas resize:**
+- C++ `BackgroundEngine::resize()` destroys and recreates the offscreen texture
+- The `GPUTexture` reference previously retrieved via `getJsObject(handle)` becomes invalid
+- JS must re-call `getBackgroundTextureHandle()` → `getJsObject()` and recreate the glass bind groups
+- Trigger: `ResizeObserver` on the canvas element (already wired in `GlassProvider`)
+
+**On standalone mode (no external device):**
+- v3.0 deprecates standalone mode — JS-creates-device is the only supported path
+- If fallback is needed for existing users, C++ continues to work in its current self-init mode; the JS glass pipeline initializes after `module.getEngine()` returns non-null (existing poll loop in `GlassProvider`)
+
+**On glass region count > 16:**
+- `MAX_GLASS_REGIONS = 16` is a C++ constant in `background_engine.h`
+- The JS uniform buffer at 16 × 256 = 4KB is within all WebGPU device limits
+- Increasing the limit requires raising the constant and allocating a larger uniform buffer; no architectural change
+
+**On device loss:**
+- If the shared `GPUDevice` is lost, both C++ and JS become invalid
+- Recovery: recreate the device in JS, call `module.initWithExternalDevice(newHandle)`, reinitialize JS glass pipelines and uniform buffers, re-upload wallpaper image
+- The C++ engine must be destroyed and recreated (`module.destroyEngine()` then re-init)
+
+---
+
+## Version Compatibility
+
+| Package | Compatible With | Notes |
+|---------|-----------------|-------|
+| `@webgpu/types@0.1.69` | TypeScript `^5.7.0` | Requires `"types": ["@webgpu/types"]` in `tsconfig.json`; already configured |
+| `@webgpu/types@0.1.69` | Chrome 113+, Edge 113+, Safari 18+ (partial) | WebGPU shipped in Chrome 113 (May 2023); target Chrome for full feature set |
+| emdawnwebgpu interop (`WebGPU.importJsDevice`, `WebGPU.getJsObject`) | Emscripten `>=4.0.10` | Project uses 4.0.16; interop API stable in this range |
+| JS `GPUDevice` → C++ `WGPUDevice` handle | `--use-port=emdawnwebgpu` (NOT `--use-port=webgpu`) | Already correct in this project's CMakeLists.txt |
+| Dynamic uniform offsets | `minUniformBufferOffsetAlignment = 256` (WebGPU spec default) | Safe to hard-code 256-byte stride; spec guarantees this as the default |
+| `wgpu::TextureUsage::TextureBinding` on offscreen texture | C++ engine current implementation | Already set; no C++ change required for JS sampling |
 
 ---
 
 ## Sources
 
-### Image Loading
-- [LearnWebGPU: Loading from file (stb_image + WebGPU)](https://eliemichel.github.io/LearnWebGPU/basic-3d-rendering/texturing/loading-from-file.html) -- HIGH confidence
-- [MDN: GPUQueue.writeTexture()](https://developer.mozilla.org/en-US/docs/Web/API/GPUQueue/writeTexture) -- HIGH confidence
-- [MDN: GPUQueue.copyExternalImageToTexture()](https://developer.mozilla.org/en-US/docs/Web/API/GPUQueue/copyExternalImageToTexture) -- HIGH confidence
-- [WebGPU Fundamentals: Loading Images into Textures](https://webgpufundamentals.org/webgpu/lessons/webgpu-importing-textures.html) -- HIGH confidence
-- [stb_image.h (GitHub)](https://github.com/nothings/stb/blob/master/stb_image.h) -- v2.30, HIGH confidence
-- [Emscripten Embind docs: passing binary data](https://emscripten.org/docs/porting/connecting_cpp_and_javascript/embind.html) -- HIGH confidence
+- [MDN: GPU.requestAdapter()](https://developer.mozilla.org/en-US/docs/Web/API/GPU/requestAdapter) — standard device creation API, HIGH confidence
+- [MDN: GPUAdapter.requestDevice()](https://developer.mozilla.org/en-US/docs/Web/API/GPUAdapter/requestDevice) — adapter single-use constraint documented, HIGH confidence
+- [MDN: GPUDevice.lost](https://developer.mozilla.org/en-US/docs/Web/API/GPUDevice/lost) — device loss handling pattern, HIGH confidence
+- [MDN: GPUDevice.createRenderPipelineAsync()](https://developer.mozilla.org/en-US/docs/Web/API/GPUDevice/createRenderPipelineAsync) — async pipeline recommendation, HIGH confidence
+- [Emscripten issue #13888: Mixed JS/WASM usage of WebGPU](https://github.com/emscripten-core/emscripten/issues/13888) — `importJsDevice`, `getJsObject`, object table (`JsValStore`) mechanism, MEDIUM confidence (issue thread, not official docs; matches what is in codebase)
+- [Emdawnwebgpu README](https://dawn.googlesource.com/dawn/+/refs/heads/main/src/emdawnwebgpu/pkg/README.md) — `--use-port=emdawnwebgpu` vs deprecated `--use-port=webgpu`, HIGH confidence
+- [WebGPU Bind Group Best Practices](https://toji.dev/webgpu-best-practices/bind-groups.html) — bind group immutability and recreation on resource change, MEDIUM confidence
+- [WebGPU Fundamentals: Uniforms](https://webgpufundamentals.org/webgpu/lessons/webgpu-uniforms.html) — `minUniformBufferOffsetAlignment = 256`, HIGH confidence
+- [MDN: GPURenderPassEncoder.setBindGroup()](https://developer.mozilla.org/en-US/docs/Web/API/GPURenderPassEncoder/setBindGroup) — dynamic offset constraint documentation, HIGH confidence
+- Live codebase: `src/wasm/loader.ts`, `engine/src/main.cpp`, `engine/src/background_engine.h`, `engine/src/background_engine.cpp` — validated interop patterns and texture usage flags, HIGH confidence (primary source)
 
-### Parameter Controls
-- [leva GitHub (pmndrs)](https://github.com/pmndrs/leva) -- v0.10.1, HIGH confidence
-- [leva React 19 peer dep issue #539](https://github.com/pmndrs/leva/issues/539) -- MEDIUM confidence (issue may be resolved in newer patch)
-- [Tweakpane docs](https://tweakpane.github.io/docs/) -- v4.0.5, HIGH confidence (evaluated but not recommended)
+---
 
-### SwiftUI Liquid Glass
-- [Apple: glassEffect(_:in:) documentation](https://developer.apple.com/documentation/swiftui/view/glasseffect(_:in:)) -- HIGH confidence
-- [Apple: Applying Liquid Glass to custom views](https://developer.apple.com/documentation/SwiftUI/Applying-Liquid-Glass-to-custom-views) -- HIGH confidence
-- [Apple: GlassEffectContainer](https://developer.apple.com/documentation/swiftui/glasseffectcontainer) -- HIGH confidence
-- [LiquidGlassReference (community)](https://github.com/conorluddy/LiquidGlassReference) -- MEDIUM confidence (community aggregation of Apple docs)
-- [Xcode 26.2 Release Notes](https://developer.apple.com/documentation/xcode-release-notes/xcode-26_2-release-notes) -- HIGH confidence
-- [WWDC25 Session 323: Build a SwiftUI app with the new design](https://developer.apple.com/videos/play/wwdc2025/323/) -- HIGH confidence
-
-### Visual Diffing
-- [Playwright: Visual comparisons](https://playwright.dev/docs/test-snapshots) -- HIGH confidence
-- [Playwright: SnapshotAssertions API](https://playwright.dev/docs/api/class-snapshotassertions) -- HIGH confidence
-- [pixelmatch GitHub (mapbox)](https://github.com/mapbox/pixelmatch) -- v7.1.0, HIGH confidence
-- [pngjs GitHub](https://github.com/pngjs/pngjs) -- v7.0.0, HIGH confidence
-- [xcrun simctl screenshot usage](https://medium.com/xcblog/simctl-control-ios-simulators-from-command-line-78b9006a20dc) -- HIGH confidence
-
-### iOS Simulator
-- [Apple: simctl documentation](https://developer.apple.com/library/archive/documentation/IDEs/Conceptual/iOS_Simulator_Guide/InteractingwiththeiOSSimulator/InteractingwiththeiOSSimulator.html) -- HIGH confidence
+*Stack research for: JS/WebGPU glass rendering pipeline (v3.0 architecture)*
+*Researched: 2026-03-24*

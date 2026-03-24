@@ -1,259 +1,234 @@
-# Feature Landscape: v2.0 Visual Parity Milestone
+# Feature Research: v3.0 JS WebGPU Glass Pipeline
 
-**Domain:** WebGPU glass effect component library -- image backgrounds, shader tuning, visual comparison
-**Researched:** 2026-02-25
-**Confidence:** MEDIUM (Apple's native glass internals are not fully documented; parameter values derived from community reverse-engineering)
-
----
-
-## Table Stakes
-
-Features that are expected for this milestone. Without these, the v2.0 milestone is incomplete.
-
-### A. Image Background Rendering
-
-| Feature | Why Expected | Complexity | Notes |
-|---------|--------------|------------|-------|
-| Load image as background texture | Core milestone goal -- image backgrounds required for visual parity comparison against real wallpapers | Medium | Use `fetch` -> `createImageBitmap` -> `copyExternalImageToTexture` on JS side, pass to C++ engine's offscreen texture. Replaces noise pass when active. |
-| Aspect-ratio-preserving fit modes (cover/contain/fill) | Images have arbitrary aspect ratios; without this, backgrounds look stretched or cropped wrong | Medium | Implement in the image upload/copy step. Cover = crop to fill, Contain = letterbox, Fill = stretch. Cover is default for wallpaper parity. |
-| Bundled default wallpaper | Users need a working image out of the box for demos and visual comparison | Low | Ship a compressed JPEG/WebP (~100-200KB). Apple's default iOS wallpaper style: colorful gradient or nature scene. |
-| Toggle between noise and image mode | Noise mode is already shipped in v1.0; must not regress | Low | Expose `backgroundMode: 'noise' | 'image'` prop on GlassProvider. Engine switches which pass runs in Pass 1. |
-| sRGB-correct texture handling | Color mismatch between iOS reference and web output if gamma is wrong | Low | Ensure texture format uses sRGB view or manual gamma correction in shader. WebGPU defaults to linear; must handle. |
-
-### B. Shader Parameter Exposure
-
-| Feature | Why Expected | Complexity | Notes |
-|---------|--------------|------------|-------|
-| All glass uniforms as React props | Milestone explicitly requires exposing every shader parameter for tuning | Low | Most already wired (blur, opacity, cornerRadius, refraction, tint, aberration, specular, rim, mode). Verify no hidden constants. |
-| Expose currently-hardcoded shader constants | Glass shader has hardcoded values: blur kernel size (5x5 = 25 tap), contrast (0.85), saturation (1.4), Fresnel exponents, rim spread, aberration norm (0.008). These must be tunable for parity. | Medium | Add new uniform fields or secondary uniform buffer for "material constants." Key ones: `contrast`, `saturation`, `blurTapRadius`, `fresnelExponent`, `aberrationScale`. |
-| Per-region parameter overrides | Different glass panels may need different parameters (e.g., navigation bar vs card) | Low | Already supported via per-region uniforms. Ensure all new constants are per-region too. |
-| Typed prop interface with sensible defaults | Developers need to know valid ranges without reading shader code | Low | TypeScript interface with JSDoc comments, min/max/default for each parameter. |
-
-### C. Live Tuning UI
-
-| Feature | Why Expected | Complexity | Notes |
-|---------|--------------|------------|-------|
-| Real-time slider controls for all shader parameters | Primary workflow: adjust parameter, see result instantly | Low | Existing ControlPanel covers basic params. Extend with new constants (contrast, saturation, Fresnel, etc). |
-| Grouped parameter sections | Users need organized controls, not a flat list of 20+ sliders | Low | Already implemented with Section component. Add sections for: Material Constants, Image Background, Comparison. |
-| Parameter value display (numeric readout) | Users need to see exact values to record and replicate settings | Low | Already shown in SliderControl. Verify precision is sufficient (3 decimal places for 0-1 ranges). |
-| Reset to defaults | Easy to get lost tuning 15+ parameters; need escape hatch | Low | Store default values, add Reset button per section and global Reset All. |
-
-### D. Visual Diffing Workflow
-
-| Feature | Why Expected | Complexity | Notes |
-|---------|--------------|------------|-------|
-| Screenshot capture from WebGPU canvas | Foundation of the entire comparison workflow | Medium | `canvas.toDataURL()` or `canvas.toBlob()` from the WebGPU canvas. Must handle WebGPU's preferred canvas format. Note: may need `preserveDrawingBuffer` or read-back on same frame. |
-| iOS Simulator screenshot capture script | Need the reference image to diff against | Low | `xcrun simctl io booted screenshot reference.png`. Script in package.json or shell script. |
-| Pixel-diff comparison | Objective measurement of visual distance from Apple's reference | Medium | Use **odiff** (6x faster than pixelmatch, SIMD-optimized, Node.js bindings). Outputs diff image + mismatch percentage. |
-| Diff result display (mismatch percentage + visual overlay) | Must see what differs, not just a number | Medium | Generate diff image highlighting changed pixels. Display side-by-side: reference / current / diff overlay. |
+**Domain:** JS/WebGPU owned glass shader pipeline — pluggable overlay library over C++/WASM background engine
+**Researched:** 2026-03-24
+**Confidence:** HIGH (architecture is well-defined from PROJECT.md + existing codebase; WebGPU API patterns are stable and verified against MDN/toji.dev)
 
 ---
 
-## Differentiators
+## Context: What This Milestone Is
 
-Features that go beyond expectations and create real value. Not required for milestone completion but significantly improve the workflow.
+v3.0 flips the rendering ownership. Currently C++ creates the GPUDevice and owns the glass shader pipeline. After v3.0:
 
-### E. Advanced Image Background
+- **JS creates GPUDevice** and passes it to C++ via `preinitializedWebGPUDevice` / `importJsDevice`
+- **C++ engine** renders only background (noise or image) to an offscreen texture
+- **JS/WebGPU** owns the glass shader pipeline: WGSL shaders compiled and run in TypeScript
+- **React components** drive the JS glass renderer instead of calling C++ embind methods
+- **Same public API** — GlassPanel, GlassButton, GlassCard keep their props unchanged
 
-| Feature | Value Proposition | Complexity | Notes |
-|---------|-------------------|------------|-------|
-| Mipmap generation for background texture | Pre-filtered mipmaps eliminate shimmer/aliasing when glass samples at offset UVs, producing smoother blur that better matches Apple's quality | Medium | WebGPU requires manual mipmap generation (no auto-generate). Use render-pass downsample chain: render mip N-1 into mip N with linear filter. Set `mipLevelCount` on texture descriptor. Increases VRAM by ~33%. |
-| Dual Kawase blur (downsample/upsample) instead of 5x5 Gaussian | Current 25-tap Gaussian has limited blur radius. Kawase achieves larger radii at lower cost, closer to Apple's wide frosted look | High | Requires multipass: downsample texture N times with Kawase kernel, then upsample. Needs intermediate textures. Significant shader architecture change. 1.5-3x more efficient than equivalent Gaussian for large radii (Intel research). |
-| Image drag-and-drop / file picker | Quick wallpaper swapping during comparison sessions without recompiling | Low | HTML5 drag-and-drop + `<input type="file">` in demo app. Convert to ImageBitmap, upload to GPU texture. |
-| Dynamic image URL loading | Load wallpapers from URL for testing against specific iOS wallpapers | Low | Fetch + createImageBitmap pipeline. CORS considerations. |
-
-### F. Advanced Shader Tuning
-
-| Feature | Value Proposition | Complexity | Notes |
-|---------|-------------------|------------|-------|
-| Named presets (Apple Standard, Apple Prominent, Custom) | One-click switch between known-good parameter sets. Essential for A/B comparison. | Low | JSON objects mapping preset name to full parameter set. Store in constants file. Include "Apple Standard" and "Apple Prominent" targeting the two native Glass variants. |
-| Export/import parameter config as JSON | Save tuning sessions, share configs, reproduce exact settings | Low | Serialize current params to JSON. Copy to clipboard or download as file. Import parses JSON and applies. |
-| Undo/redo for parameter changes | Tuning is exploratory; users need to backtrack | Medium | Ring buffer of parameter snapshots. Cmd+Z / Cmd+Shift+Z. Max 50 states. |
-| A/B split-screen comparison | See two parameter sets side by side on same background | Medium | Render two glass regions with different params. Vertical divider that can be dragged. Left = config A, Right = config B. |
-| Parameter interpolation / animation | Smoothly transition between presets to find intermediate sweet spots | Low | Already have morph system. Wire preset changes through morph pipeline instead of instant-set. |
-
-### G. Advanced Visual Diffing
-
-| Feature | Value Proposition | Complexity | Notes |
-|---------|-------------------|------------|-------|
-| Perceptual diff (SSIM scoring) | Pixel diff is noisy for anti-aliasing differences; SSIM matches human perception | Medium | SSIM scoring via odiff or separate SSIM library. Score 0.0-1.0 where 1.0 = identical. Target: SSIM > 0.95 for "visual parity." |
-| Region-of-interest masking | Compare only the glass panel area, ignore background differences from different rendering pipelines | Medium | User draws rectangle on reference image. Diff only within masked region. Essential because noise/image rendering will never pixel-match iOS background exactly. |
-| Tolerance threshold configuration | Different teams may accept different precision levels | Low | Configurable threshold for pixel diff (e.g., 0.1 = 10% channel difference tolerance). Per-channel or aggregate. |
-| Automated convergence loop | The milestone's ultimate goal: auto-iterate parameters toward parity | High | Script that: captures web screenshot, captures iOS screenshot, runs diff, adjusts parameters based on diff regions, repeats. Requires parameter gradient estimation or grid search. |
-| CI integration for visual regression | Prevent regressions once parity is achieved | Medium | GitHub Actions workflow: build WASM, render screenshot, diff against committed baseline, fail if regression exceeds threshold. |
-
-### H. SwiftUI Reference App
-
-| Feature | Value Proposition | Complexity | Notes |
-|---------|-------------------|------------|-------|
-| Both `.regular` and `.clear` Glass variants | Apple exposes two material variants with different transparency levels; need reference screenshots of both | Low | Two views in the app, one with each variant. |
-| Configurable shapes (RoundedRectangle, Capsule, Circle) | Match the shapes used in the React components for fair comparison | Low | Shape picker in reference app UI. |
-| `.tint(Color)` with multiple test colors | Verify tint behavior matches between implementations | Low | Color picker or preset tint colors in reference app. |
-| Dark mode and light mode screenshots | Apple's glass adapts appearance per mode; must compare both | Low | Override `colorScheme` in SwiftUI, capture both variants. |
-| Same wallpaper image as web demo | Apples-to-apples comparison requires identical background | Low | Bundle same image in both Xcode project and web demo. Critical for valid diffing. |
-| `.interactive()` mode demonstration | Shows the enhanced specular/gesture response that Apple applies | Low | Toggle interactive mode on reference panels. |
+The glass library becomes pluggable: any C++ engine (or no C++ at all) can provide a scene texture, and the JS glass pipeline composites over it.
 
 ---
 
-## Anti-Features
+## Feature Landscape
 
-Features to explicitly NOT build for this milestone.
+### Table Stakes (Architecture Cannot Work Without These)
 
-| Anti-Feature | Why Avoid | What to Do Instead |
-|--------------|-----------|-------------------|
-| AI-powered parameter auto-tuning | Massively complex (gradient estimation in shader parameter space, reward function design). Manual tuning with good presets reaches parity faster. | Build good presets + export/import. Grid search script for automated convergence if needed. |
-| Real-time video backgrounds | Scope explosion: video decode pipeline, frame-rate synchronization, memory management. Not needed for Apple parity comparison. | Stick with static image backgrounds. Video is a v3 feature. |
-| Content-blur mode (glass over DOM content) | Requires capturing DOM to texture (html2canvas or similar), huge performance hit, different architecture. Not what Apple's glass does -- Apple's glass refracts the wallpaper, not app content. | Focus on wallpaper/image refraction which matches Apple's actual behavior. |
-| Multi-platform reference apps (Android, macOS) | Spreads effort thin. iOS is the reference platform for Liquid Glass. | iPhone 16 Pro Simulator only for v2.0. |
-| Nested glass-over-glass compositing | Apple's glass panels do not typically stack. Existing single-layer architecture is correct for parity. | Support multiple independent glass regions (already built). Defer nested compositing. |
-| WebGL fallback for the diffing pipeline | The glass rendering must be WebGPU. Diffing tools (odiff) work on screenshots, not GPU APIs. No fallback needed. | Use Node.js image comparison tools operating on PNG screenshots. |
-| GlassEffectContainer morphing between panels | Apple's container morphing is a transition/animation feature, not a material/visual feature. Out of scope for visual parity of static glass appearance. | Existing morph transitions cover parameter interpolation. Defer container morphing to v3. |
-| Gyroscope/device tilt interaction | Still deferred from v1.0. Get static parity first. | Focus on static visual quality. Tilt is v3. |
+These are blockers. The v3.0 architecture is non-functional if any of these is missing.
+
+| Feature | Why Expected | Complexity | Notes |
+|---------|--------------|------------|-------|
+| JS GPUDevice creation and adapter request | All WebGPU resources must share a device. Device must be created in JS and passed to C++ so they share the same GPU context — different devices cannot share textures. | LOW | `navigator.gpu.requestAdapter()` → `adapter.requestDevice()`. Must happen before WASM loads. Already partially implemented in GlassProvider (external `device` prop path). |
+| Device injection into C++ engine via emdawnwebgpu | C++ engine needs the same GPUDevice to create its background render texture. The `importJsDevice` + `initWithExternalDevice(handle)` path already exists in the codebase but needs to be the primary path, not a fallback. | LOW | `module.WebGPU.importJsDevice(device)` then `module.initWithExternalDevice(handle)`. Pattern confirmed working in current `loader.ts`. |
+| C++ engine exposes scene texture to JS | JS glass pipeline needs to read the background texture rendered by C++. C++ must export the texture handle so JS can wrap it into a `GPUTexture`. | LOW | C++ `getBackgroundTextureHandle()` already exists. JS side uses `module.WebGPU.getJsObject(handle)` to recover the GPUTexture. Path confirmed in GlassProvider's `externalTexture` prop. |
+| JS WGSL glass shader module | The entire glass effect (refraction, blur, Fresnel, specular, chromatic aberration, rim lighting) must be ported from the C++ `glass.wgsl.h` string into a `.wgsl` file or TypeScript template literal loaded by JS. | MEDIUM | All shader logic exists in `engine/src/shaders/glass.wgsl.h`. Port to `src/shaders/glass.wgsl` or a TS string. No algorithmic changes — direct port. |
+| GPURenderPipeline creation in JS | JS must compile the WGSL shader modules into a `GPURenderPipeline` with explicit `GPUPipelineLayout` + `GPUBindGroupLayout` (not `layout: 'auto'`) so the scene texture bind group can be shared across multiple glass region draw calls. | MEDIUM | Must use explicit bind group layouts (HIGH confidence from toji.dev best practices — `layout: 'auto'` prevents cross-pipeline bind group sharing which is required for multi-region rendering). |
+| Per-region uniform buffer management in JS | Each glass region (GlassPanel, GlassButton, GlassCard) has 16 shader parameters stored in a uniform buffer. JS must manage creation, writes, and lifecycle of these buffers — currently done in C++. | MEDIUM | Each region needs a `GPUBuffer` with `UNIFORM | COPY_DST` usage. Write via `device.queue.writeBuffer()`. With dynamic offsets for multi-region batching, or one buffer per region for simplicity. Dynamic offsets require 256-byte alignment per region block. |
+| DOM position tracking → UV rect calculation | The glass shader receives a normalized UV rect `[x, y, w, h]` for each glass region, derived from the component's DOM position relative to the canvas. This sync loop must exist in JS (currently in GlassProvider via ResizeObserver). | LOW | Already implemented. Port the ResizeObserver sync logic from GlassProvider's C++ callback calls to JS WebGPU uniform buffer writes. |
+| Frame render loop in JS | JS must drive the per-frame command buffer: begin render pass, draw each glass region, submit. Currently C++ runs its own requestAnimationFrame loop. JS must take over the glass render pass within that loop or run a separate post-pass. | MEDIUM | Two options: (a) C++ runs rAF, calls back into JS after background pass; (b) JS runs rAF, calls C++ render, then runs its own glass pass. Option (b) is cleaner for ownership. |
+| Canvas context configuration | JS must configure the canvas `GPUCanvasContext` with the correct texture format. Use `navigator.gpu.getPreferredCanvasFormat()` which returns `bgra8unorm` or `rgba8unorm` depending on platform. Must match what C++ background texture outputs. | LOW | MEDIUM confidence: canvas format must match or texture view format conversion must be explicit. `getPreferredCanvasFormat()` is the correct API (verified MDN 2025). |
+| Unchanged public React API | GlassPanel, GlassButton, GlassCard must keep identical TypeScript props (GlassStyleProps). Users upgrading from v2.0 to v3.0 must not change code. | LOW | Props already defined in `src/components/types.ts`. The backing implementation changes but the interface stays frozen. |
+| GlassContext updated for JS renderer | GlassContext currently distributes C++ engine handles. It must distribute JS WebGPU renderer handles instead. Region registration, rect updates, and param updates must route to JS uniform buffer writes rather than C++ embind calls. | MEDIUM | Replace `GlassRegionHandle` internals. The external shape of `registerRegion` / `unregisterRegion` stays the same — only the backing implementation changes. |
+
+### Differentiators (Competitive Advantage for Pluggability)
+
+These make the library genuinely pluggable and distinct from CSS glassmorphism alternatives.
+
+| Feature | Value Proposition | Complexity | Notes |
+|---------|-------------------|------------|-------|
+| Zero-argument glass pipeline (no C++ required) | Accept an arbitrary `GPUTexture` from outside — no WASM required. A Three.js app, a Babylon.js scene, or any WebGPU renderer can pass its scene texture and get glass compositing for free. | MEDIUM | `GlassProvider` already has an `externalTexture` prop. When set, C++ background pass is skipped. This path needs to be first-class, not a workaround. |
+| Explicit bind group layout for texture sharing | Using explicit (not auto) `GPUBindGroupLayout` allows the scene texture bind group to be set once per frame and reused across all glass region draw calls. Critical for efficient multi-region rendering without N texture bind calls. | MEDIUM | Architecture decision documented in toji.dev best practices. Group 0: per-frame (scene texture + sampler), Group 1: per-region (uniform buffer). This matches the update-frequency grouping pattern (HIGH confidence). |
+| Morph transitions through JS animation loop | Smooth parameter interpolation (exponential decay lerp) is already implemented in C++. Moving this to JS enables frame-rate independent transitions without WASM round-trips. | LOW | Port the `lerp` accumulation logic from C++ to a JS animation frame callback. `targetParams → currentParams` delta per rAF frame. |
+| Device loss recovery | When the GPU device is lost (driver crash, GPU hot-unplug), a well-behaved library recovers automatically rather than freezing. JS device ownership enables proper handling: listen to `device.lost`, reinitialize, re-create all WebGPU resources, re-inject into WASM. | HIGH | Pattern documented in toji.dev device-loss article (HIGH confidence). Requires: (1) attach handler immediately on device creation; (2) on loss, request new adapter + device; (3) reinitialize WASM with new device; (4) re-create all pipelines/buffers/textures. |
+| TypeScript-typed shader parameter constants | Export `DEFAULT_GLASS_PARAMS`, `PRESET_CLEAR_LIGHT`, `PRESET_CLEAR_DARK` as typed constants. Library consumers can compose presets without touching internals. | LOW | Already exists as tuning presets. Formalize into exported TypeScript constants with full type coverage. |
+| DPR-aware rendering without prop threading | Handle `devicePixelRatio` changes (display scaling, moving between screens) automatically via a `matchMedia` listener, updating uniforms without requiring user code changes. | LOW | Already implemented in GlassProvider. Port forward to the JS renderer. `dpr` is already a shader uniform. |
+| Accessibility integration into JS renderer | `prefers-reduced-motion` pauses the render loop. `prefers-reduced-transparency` switches to reduced-effect mode. Both handled at the JS renderer level, not requiring C++ changes. | LOW | Already implemented via `useAccessibilityPreferences`. Port forward — JS renderer checks prefs and skips frame or reduces blur/opacity. |
+| React 18/19 StrictMode compatibility | StrictMode double-invokes effects in development. The initialization and cleanup lifecycle must be idempotent: double `useEffect` → double init → engine destroyed on first cleanup → clean single-instance in production. | LOW | Already solved in v2.0 using `cancelled` flag pattern. Port forward to JS renderer lifecycle. |
+| Pluggable background engine interface | Define a narrow TypeScript interface: `{ getSceneTexture(): GPUTexture; render(deltaMs: number): void; resize(w: number, h: number): void; destroy(): void }`. Both WASM engine and pure-JS engines implement it. | MEDIUM | This interface is implicit in the current architecture. Making it explicit as a TypeScript type enables typed integration with `sc` engine and other future engines without coupling to embind specifics. |
+
+### Anti-Features (Explicitly Out of Scope for This Milestone)
+
+| Anti-Feature | Why Requested | Why Problematic for This Milestone | Alternative |
+|--------------|---------------|------------------------------------|-------------|
+| Rewriting glass shader effects | Shader logic already achieves <1% pixel diff from iOS reference. Changing effects during architecture migration risks losing the tuned values. | Conflates two risks: architecture change + visual regression. Fix architecture first, tune after. | Port WGSL shader verbatim from `glass.wgsl.h`. Keep every coefficient and formula identical. Re-tune in a follow-up phase. |
+| Content-blur (frosted glass over DOM content) | Very commonly requested — CSS `backdrop-filter: blur()` users expect this. | Requires `html2canvas` or DOM-to-texture capture: completely different pipeline, defeats zero-copy architecture. Apple's glass refracts wallpaper, not DOM content. | Remain a wallpaper-refraction library. Document clearly that content-blur is out of scope. |
+| WebGL fallback | WebGPU has ~85% desktop browser coverage as of 2025. Some users ask for wider compat. | Doubles all shader work (GLSL + WGSL), different API idioms, different pipeline lifecycle. The v3.0 goal is architectural simplicity, not coverage expansion. | Document WebGPU requirement clearly. Let browsers catch up. |
+| CSS glassmorphism fallback | Graceful degradation with `backdrop-filter: blur()` + `rgba()` tint. | Produces completely different visual output — no refraction, no Fresnel, no chromatic aberration. Would require accepting two drastically different quality tiers. | Instead: detect WebGPU unavailability and surface a clear error message in development. In production, render nothing (transparent fallback) rather than a fake glass look. |
+| Integrate `sc` engine | Architecture is designed to support this. But integrating a specific external engine is a separate milestone (per PROJECT.md). | Requires `sc` codebase access, its own device-passing protocol, possibly different texture formats. Adds scope that blocks v3.0 shipping. | Ship v3.0 with WASM engine only, define the `BackgroundEngine` interface that `sc` will implement. |
+| Dev tuning page redesign | Planned in PROJECT.md but listed as a separate deliverable. | UI redesign is independent of the rendering pipeline change. Coupling them means the tuning page blocks ship. | Redesign tuning page as its own phase after JS pipeline is validated working. |
+| Automated visual diffing re-run | Must happen after architecture change, but is a validation step, not a build step. | Running tuning during the architecture phase conflates "make it work" with "make it look right". | Make JS pipeline produce correct output, then run visual diff + re-tuning as a follow-up phase. |
+| Server-side rendering support | React Server Components users sometimes ask. | WebGPU is browser-only. No GPU on server. Entirely different problem space. | Document that GlassProvider is client-only. Add `'use client'` directive for Next.js app router compatibility (LOW complexity, HIGH value for Next.js users). |
+| Multi-instance GlassProvider | Multiple simultaneous glass scenes with separate devices. | Vastly complicates device lifecycle management and WASM module singleton constraints. | One GlassProvider per page. Document this constraint clearly. |
 
 ---
 
 ## Feature Dependencies
 
 ```
-Image Background Rendering
-  |
-  +-> Same Wallpaper in SwiftUI App (requires bundled image)
-  |
-  +-> Screenshot Capture (requires rendered image to capture)
-        |
-        +-> Pixel Diff Comparison (requires two screenshots)
-        |     |
-        |     +-> Diff Display UI (requires diff result)
-        |     |
-        |     +-> Region Masking (requires diff pipeline)
-        |     |
-        |     +-> CI Visual Regression (requires diffing working)
-        |
-        +-> Automated Convergence Loop (requires diff + parameter export)
+JS GPUDevice Creation
+    |
+    +--requires--> Device Injection into C++ WASM
+    |                   |
+    |                   +--requires--> C++ Exposes Scene Texture
+    |                                       |
+    |                                       +--requires--> JS WGSL Glass Shader Module
+    |                                                           |
+    |                                                           +--requires--> GPURenderPipeline (explicit layout)
+    |                                                                               |
+    |                                                                               +--requires--> Per-Region Uniform Buffers
+    |                                                                               |                   |
+    |                                                                               |                   +--requires--> DOM Position Tracking
+    |                                                                               |
+    |                                                                               +--requires--> Frame Render Loop
+    |                                                                               |
+    |                                                                               +--requires--> Canvas Context Configuration
 
-Shader Parameter Exposure
-  |
-  +-> All Constants as Props (requires uniform buffer changes)
-  |     |
-  |     +-> Live Tuning UI (requires props to bind to)
-  |           |
-  |           +-> Named Presets (requires all params exposed)
-  |           |
-  |           +-> Export/Import JSON (requires param serialization)
-  |           |
-  |           +-> A/B Comparison (requires two param sets + rendering)
-  |           |
-  |           +-> Undo/Redo (requires param state history)
-  |
-  +-> SwiftUI Reference App (independent, can build in parallel)
+JS GPURenderPipeline (explicit layout)
+    |
+    +--enables--> Bind Group Sharing (scene texture reused across all regions)
+    |                   |
+    |                   +--enables--> Zero-Arg Glass Pipeline (external GPUTexture)
+    |
+    +--enables--> TypeScript-Typed BackgroundEngine Interface
 
-Mipmap Generation --> Improved Blur Quality
-Dual Kawase Blur --> Improved Blur Quality (optional, high complexity)
+GlassContext Updated for JS Renderer
+    |
+    +--requires--> Per-Region Uniform Buffers
+    |
+    +--requires--> DOM Position Tracking
+    |
+    +--enables--> React API Unchanged
+    |
+    +--enables--> Morph Transitions in JS
+    |
+    +--enables--> Accessibility Integration
+    |
+    +--enables--> DPR-Aware Rendering
+
+JS GPUDevice Creation
+    |
+    +--enables--> Device Loss Recovery (can't handle loss without owning device creation)
 ```
 
----
+### Dependency Notes
 
-## MVP Recommendation for v2.0
-
-### Phase 1: Foundation (build first)
-
-1. **Image background rendering** with cover mode and bundled wallpaper -- this unlocks everything else
-2. **Expose hardcoded shader constants** as uniforms -- enables meaningful tuning
-3. **SwiftUI reference app** with `.regular` + `.clear` + same wallpaper -- build in parallel, no dependencies
-
-### Phase 2: Tuning (build second)
-
-4. **Extended live tuning UI** with all new parameters, grouped sections, reset
-5. **Named presets** (Apple Standard, Apple Prominent) -- quick starting points
-6. **Export/import JSON** -- save and share tuning progress
-
-### Phase 3: Comparison (build third)
-
-7. **Screenshot capture** from WebGPU canvas and iOS Simulator
-8. **Pixel-diff comparison** with odiff, diff display UI
-9. **Dark/light mode** reference screenshots from both platforms
-
-### Phase 4: Polish (build last)
-
-10. **Mipmap generation** for smoother blur sampling
-11. **Region masking** for focused comparison
-12. **SSIM perceptual scoring** for better quality metrics
-13. **A/B split-screen** in tuning UI
-
-### Defer to v2.1 or v3
-
-- Dual Kawase blur (high complexity, current 25-tap may suffice with mipmaps)
-- Automated convergence loop (needs well-tuned manual parameters first as training data)
-- CI visual regression (build once manual parity is achieved)
-- Undo/redo (nice-to-have, not blocking)
+- **Device injection requires JS device creation first:** You cannot inject a device you don't yet have. This is the entry point for the entire v3.0 architecture.
+- **Explicit bind group layout must be decided before pipeline creation:** Changing from `layout: 'auto'` after the fact requires recreating all pipelines. Must be explicit from the start.
+- **Scene texture exposure enables zero-arg pipeline:** Once C++ exposes the texture handle and JS can recover it as a `GPUTexture`, the external texture path (no C++) is functionally the same code path.
+- **GlassContext update unlocks React API stability:** All three React components depend on `GlassContext` for their rendering calls. Context must be updated before components work at all.
+- **Device loss recovery is independent but architected in:** It does not block v3.0 shipping but must be considered in the device creation lifecycle (attach the listener immediately).
 
 ---
 
-## Key Parameter Reference: What Apple's Glass Looks Like
+## MVP Definition
 
-Based on community reverse-engineering of Apple's Liquid Glass (MEDIUM confidence -- not official Apple documentation):
+### Launch With (v3.0)
 
-### Apple `.regular` Glass Material (estimated)
-| Parameter | Estimated Value | Our Current Default | Gap |
-|-----------|----------------|--------------------|----|
-| Blur radius | ~20-30px effective (wide frosted look) | `blurIntensity * 30 = 15px` at 0.5 | Need larger blur range or multipass |
-| Refraction strength | ~0.05-0.10 (subtle edge magnification) | 0.15 | Current is too strong |
-| Tint opacity | ~0.15-0.25 (barely tinted) | 0.05 | Close, may need increase |
-| Chromatic aberration | ~1-2px (subtle, edge-only) | 3.0 (pixels) | Current is too strong |
-| Specular: cool (top-left) | ~0.15-0.25 (blue-white, broad) | 0.2 | Close |
-| Specular: warm (bottom-right) | ~0.08-0.12 (warm gold, subtle) | 0.1 (half of specular) | Close |
-| Rim intensity | ~0.05-0.10 (thin edge glow) | 0.15 | Current is too strong |
-| Contrast | ~0.85 (reduced) | 0.85 (hardcoded) | Match -- expose as tunable |
-| Saturation | ~1.3-1.5 (boosted) | 1.4 (hardcoded) | Close -- expose as tunable |
-| Corner radius | 12-48px depending on element | 24px | Range is correct |
+The minimum set to validate JS WebGPU pipeline ownership:
 
-### Apple `.prominent` Glass Material (estimated)
-| Parameter | Estimated Value | Notes |
-|-----------|----------------|-------|
-| Blur radius | ~35-50px (heavier frosting) | Wider than regular |
-| Refraction strength | ~0.10-0.18 (more lens effect) | mode=1 applies 1.8x multiplier |
-| Specular | ~0.30-0.40 (brighter highlights) | mode=1 applies 1.5x multiplier |
-| Aberration | ~2-4px (more prismatic) | mode=1 applies 1.5x multiplier |
-| Rim spread | ~6px (wider glow) | mode=1 doubles rim spread |
+- [ ] **JS GPUDevice creation** — `navigator.gpu.requestAdapter()` + `requestDevice()` in GlassProvider, before WASM loads
+- [ ] **Device injection into C++ WASM** — `importJsDevice` + `initWithExternalDevice` as the primary code path (not fallback)
+- [ ] **C++ exposes scene texture** — `getBackgroundTextureHandle()` + JS wraps it via `getJsObject()`
+- [ ] **WGSL glass shader ported to JS** — verbatim port of `glass.wgsl.h` into TypeScript / `.wgsl` file, no algorithmic changes
+- [ ] **GPURenderPipeline with explicit bind group layouts** — group 0: scene texture + sampler (per-frame); group 1: uniform buffer (per-region)
+- [ ] **Per-region uniform buffers in JS** — `GPUBuffer` per region, written via `device.queue.writeBuffer()`
+- [ ] **Frame render loop in JS** — rAF-driven command encoding: begin pass, draw N regions, submit, present
+- [ ] **Canvas context configured by JS** — `getPreferredCanvasFormat()` for correct texture format
+- [ ] **GlassContext updated** — `registerRegion` / `updateRect` / `updateParams` write to JS uniform buffers
+- [ ] **Unchanged public API** — GlassPanel, GlassButton, GlassCard props identical to v2.0
 
-### Parameters Our Shader Is Missing
+### Add After Validation (v3.x)
 
-| Missing Parameter | What It Does | Priority |
-|-------------------|-------------|----------|
-| Environment reflection strength | Apple's glass reflects a faint environment map (not just refraction) | HIGH -- key to realism |
-| Fresnel IOR / exponent | Controls how edge reflections fall off. Apple uses viewing-angle-dependent brightness. | HIGH -- makes edges look physical |
-| Glare direction angle | Apple's specular streak direction responds to device orientation. Static version needs configurable angle. | MEDIUM |
-| Surface noise/texture | Subtle surface imperfection that breaks up reflections. Apple's glass has micro-texture. | LOW -- polish item |
-| Tint color adaptation | Apple's tint shifts hue/saturation based on background content brightness | MEDIUM -- requires background luminance sampling |
+Features to add once the JS pipeline renders correctly at all:
+
+- [ ] **Device loss recovery** — attach `device.lost` listener, reinitialize on loss, re-inject into WASM
+- [ ] **Zero-arg glass pipeline** — first-class support for external `GPUTexture` from non-WASM engines
+- [ ] **TypeScript BackgroundEngine interface** — formal typed contract for pluggable engines
+- [ ] **Dev tuning page redesign** — once visual parity is confirmed post-migration
+
+### Future Consideration (v4+)
+
+- [ ] **`sc` engine integration** — plug the `scTarsiusWeb` engine as a `BackgroundEngine` implementation
+- [ ] **Gyroscope / pointer tilt interaction** — light source moves with device orientation
+- [ ] **Content-blur mode** — requires separate DOM-to-texture compositor (entirely different architecture)
+
+---
+
+## Feature Prioritization Matrix
+
+| Feature | User Value | Implementation Cost | Priority |
+|---------|------------|---------------------|----------|
+| JS GPUDevice creation | HIGH (blocks everything) | LOW | P1 |
+| Device injection into C++ | HIGH (blocks everything) | LOW | P1 |
+| C++ exposes scene texture | HIGH (blocks everything) | LOW | P1 |
+| WGSL shader ported to JS | HIGH (core effect) | MEDIUM | P1 |
+| GPURenderPipeline explicit layout | HIGH (multi-region) | MEDIUM | P1 |
+| Per-region uniform buffers | HIGH (parameters) | MEDIUM | P1 |
+| Frame render loop in JS | HIGH (rendering) | MEDIUM | P1 |
+| Canvas context configuration | HIGH (display) | LOW | P1 |
+| GlassContext updated | HIGH (React bridge) | MEDIUM | P1 |
+| Unchanged public API | HIGH (no breaking change) | LOW | P1 |
+| Morph transitions in JS | MEDIUM (smoothness) | LOW | P2 |
+| DPR-aware rendering | MEDIUM (Retina quality) | LOW | P2 |
+| Accessibility integration | MEDIUM (a11y) | LOW | P2 |
+| Device loss recovery | MEDIUM (robustness) | HIGH | P2 |
+| Zero-arg glass pipeline | HIGH (pluggability) | MEDIUM | P2 |
+| BackgroundEngine interface | MEDIUM (future-proofing) | LOW | P2 |
+| Dev tuning page redesign | MEDIUM (developer UX) | MEDIUM | P3 |
+| `sc` engine integration | HIGH (future use case) | HIGH | P3 |
+
+**Priority key:**
+- P1: Must have for v3.0 to function at all
+- P2: Should have, add before shipping v3.0
+- P3: Future milestone
+
+---
+
+## Competitor Feature Analysis
+
+Glass overlay libraries in the JS ecosystem as of 2025:
+
+| Feature | liquid-glass-react (rdev) | CSS glassmorphism libs | glass-react (this project) |
+|---------|--------------------------|----------------------|---------------------------|
+| Rendering backend | WebGL canvas (SVG filter fallback) | CSS backdrop-filter | WebGPU + C++/WASM |
+| Background source | Page content behind component | Page content | Offscreen GPU texture (wallpaper or noise) |
+| Refraction | Displacement map shader | None | SDF lens displacement WGSL |
+| Chromatic aberration | Yes (aberrationIntensity prop) | No | Yes (per-region prop) |
+| Fresnel edges | No | No | Yes (IOR + exponent props) |
+| Specular highlights | No | No | Yes (directional glare) |
+| Multi-region batching | No (per-component canvas) | N/A | Yes (shared GPU pipeline, N regions 1 pass) |
+| Pluggable background engine | No | No | Yes (v3.0 goal) |
+| Safari/Firefox support | Partial (displacement invisible) | Full | Chrome/Edge only (WebGPU) |
+| Visual parity target | Apple-inspired | Generic glassmorphism | Apple Liquid Glass (measured diff <1%) |
+| Animation | Spring physics (elasticity prop) | CSS transitions | Exponential decay lerp (frame-rate independent) |
+
+**Key differentiator:** This project is the only one targeting measured visual parity with Apple's native Liquid Glass (using automated pixel diffing). All others are "inspired by" rather than validated against reference.
 
 ---
 
 ## Sources
 
-### Apple Official
-- [Applying Liquid Glass to custom views (Apple Developer Docs)](https://developer.apple.com/documentation/SwiftUI/Applying-Liquid-Glass-to-custom-views) -- MEDIUM confidence (JS-blocked, details from cached references)
-- [glassEffect(_:in:) modifier (Apple Developer Docs)](https://developer.apple.com/documentation/swiftui/view/glasseffect(_:in:)) -- MEDIUM confidence
-- [Build a SwiftUI app with the new design (WWDC25)](https://developer.apple.com/videos/play/wwdc2025/323/) -- HIGH confidence (official video)
+- [WebGPU Bind Group Best Practices — toji.dev](https://toji.dev/webgpu-best-practices/bind-groups.html) — explicit layout requirement; group-by-update-frequency pattern (HIGH confidence, official author of WebGPU spec)
+- [WebGPU Device Loss Best Practices — toji.dev](https://toji.dev/webgpu-best-practices/device-loss.html) — recovery strategy, always request fresh adapter (HIGH confidence)
+- [GPUDevice: lost — MDN](https://developer.mozilla.org/en-US/docs/Web/API/GPUDevice/lost) — device loss promise API (HIGH confidence)
+- [GPU.getPreferredCanvasFormat() — MDN](https://developer.mozilla.org/en-US/docs/Web/API/GPU/getPreferredCanvasFormat) — correct canvas format selection (HIGH confidence)
+- [WebGPU Multiple Render Passes — Medium](https://matthewmacfarquhar.medium.com/webgpu-rendering-part-6-multiple-render-passes-b42157dfbcb5) — render-to-texture pattern for multi-pass compositing (MEDIUM confidence)
+- [WebGPU Renderer Structure — Ryosuke](https://whoisryosuke.com/blog/2025/structure-of-a-webgpu-renderer/) — pipeline caching, bind group hierarchy, resource lifecycle (MEDIUM confidence)
+- [Mixed JS/WASM WebGPU — emscripten-core/emscripten#13888](https://github.com/emscripten-core/emscripten/issues/13888) — JsValStore pattern for JS↔WASM object marshalling (HIGH confidence, official Emscripten issue)
+- [liquid-glass-react — rdev](https://github.com/rdev/liquid-glass-react) — competitor analysis: WebGL, displacement map, aberration (HIGH confidence, read source)
+- [Current codebase: glass.wgsl.h, GlassProvider.tsx, loader.ts, types.ts] — direct inspection of existing implementation (HIGH confidence)
 
-### Community Implementations (parameter reference)
-- [liquid-glass-js (dashersw)](https://github.com/dashersw/liquid-glass-js) -- edgeIntensity 0.02, rimIntensity 0.08, blurRadius 7.0, tintOpacity 0.3
-- [liquid-glass-react (rdev)](https://github.com/rdev/liquid-glass-react) -- displacementScale 70, blurAmount 0.0625, saturation 140, aberration 2
-- [LiquidGlassKit (DnV1eX)](https://github.com/DnV1eX/LiquidGlassKit) -- refractive index, chromatic dispersion, Fresnel reflection, glare highlights
-- [liquid-glass-studio (iyinchao)](https://github.com/iyinchao/liquid-glass-studio) -- WebGL2 multipass, SDF shapes, refraction, dispersion, Fresnel, glare
-- [LiquidGlassReference (conorluddy)](https://github.com/conorluddy/LiquidGlassReference) -- comprehensive iOS 26 API reference
+---
 
-### Technical References
-- [Building Apple's Liquid Glass Effect for Web](https://mycatwrotethis.blog/blog/liquid-glass-effect) -- Fresnel, chromatic aberration, displacement map values
-- [WebGPU Loading Images into Textures](https://webgpufundamentals.org/webgpu/lessons/webgpu-importing-textures.html) -- fetch/createImageBitmap/copyExternalImageToTexture
-- [WebGPU img/canvas/video Textures Best Practices (toji.dev)](https://toji.dev/webgpu-best-practices/img-textures.html)
-- [Mipmap Generation (Learn WebGPU)](https://eliemichel.github.io/LearnWebGPU/basic-compute/image-processing/mipmap-generation.html) -- render-pass downsample approach
-- [Fast Real-Time GPU Blur Algorithms (Intel)](https://www.intel.com/content/www/us/en/developer/articles/technical/an-investigation-of-fast-real-time-gpu-based-image-blur-algorithms.html) -- Kawase vs Gaussian performance
-- [Dual Kawase Blur Deep Dive](https://blog.frost.kiwi/dual-kawase/) -- downsample/upsample technique
-
-### Diffing Tools
-- [odiff (dmtrKovalenko)](https://github.com/dmtrKovalenko/odiff) -- SIMD-optimized image diff, 6x faster than pixelmatch, Node.js API
-- [pixelmatch (mapbox)](https://github.com/mapbox/pixelmatch) -- anti-aliased pixel comparison, used by Playwright
-- [xcrun simctl screenshot docs](https://gist.github.com/jfversluis/2026f2683974bf0efb898a3cc50b28d1) -- iOS Simulator CLI
-
-### Tuning UI
-- [Tweakpane](https://tweakpane.github.io/docs/) -- compact parameter GUI, TypeScript, presets
+*Feature research for: JS WebGPU glass rendering pipeline — v3.0 architecture redesign*
+*Researched: 2026-03-24*
