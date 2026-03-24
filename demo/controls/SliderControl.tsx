@@ -1,3 +1,5 @@
+import { tokens } from './tokens';
+
 interface SliderControlProps {
   label: string;
   value: number;
@@ -7,9 +9,17 @@ interface SliderControlProps {
   onChange: (value: number) => void;
 }
 
+function formatValue(value: number, step: number, max: number): string {
+  if (step >= 1) return value.toFixed(0);
+  if (max <= 1) return value.toFixed(2);
+  return value.toFixed(1);
+}
+
 export function SliderControl({ label, value, min, max, step, onChange }: SliderControlProps) {
+  const pct = ((value - min) / (max - min)) * 100;
+
   return (
-    <div style={{ marginBottom: 12 }}>
+    <div style={{ marginBottom: tokens.space.controlGap }}>
       <div style={{
         display: 'flex',
         justifyContent: 'space-between',
@@ -17,20 +27,20 @@ export function SliderControl({ label, value, min, max, step, onChange }: Slider
         marginBottom: 4,
       }}>
         <label style={{
-          fontSize: '0.8rem',
-          color: 'rgba(255, 255, 255, 0.7)',
+          fontSize: tokens.font.label,
+          color: tokens.color.labelPrimary,
           userSelect: 'none',
         }}>
           {label}
         </label>
         <span style={{
-          fontSize: '0.75rem',
-          color: 'rgba(255, 255, 255, 0.5)',
+          fontSize: tokens.font.value,
+          color: tokens.color.valueText,
           fontFamily: 'monospace',
-          minWidth: 40,
+          minWidth: 38,
           textAlign: 'right',
         }}>
-          {value.toFixed(2)}
+          {formatValue(value, step, max)}
         </span>
       </div>
       <input
@@ -40,16 +50,7 @@ export function SliderControl({ label, value, min, max, step, onChange }: Slider
         step={step}
         value={value}
         onChange={(e) => onChange(parseFloat(e.target.value))}
-        style={{
-          width: '100%',
-          height: 4,
-          appearance: 'none',
-          background: 'rgba(255, 255, 255, 0.15)',
-          borderRadius: 2,
-          outline: 'none',
-          cursor: 'pointer',
-          accentColor: '#6cb4ee',
-        }}
+        style={{ '--pct': `${pct}%`, width: '100%' } as React.CSSProperties}
       />
     </div>
   );

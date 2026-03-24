@@ -1,4 +1,5 @@
 import type { GlassColor } from '../../src/components/types';
+import { tokens } from './tokens';
 
 interface ColorControlProps {
   label: string;
@@ -6,24 +7,24 @@ interface ColorControlProps {
   onChange: (value: GlassColor) => void;
 }
 
+const channels = [
+  { key: 'R', color: '#f66', index: 0 },
+  { key: 'G', color: '#6f6', index: 1 },
+  { key: 'B', color: '#66f', index: 2 },
+] as const;
+
 export function ColorControl({ label, value, onChange }: ColorControlProps) {
   const [r, g, b] = value;
-
   const previewColor = `rgb(${Math.round(r * 255)}, ${Math.round(g * 255)}, ${Math.round(b * 255)})`;
 
-  const channelStyle: React.CSSProperties = {
-    width: '100%',
-    height: 4,
-    appearance: 'none',
-    background: 'rgba(255, 255, 255, 0.15)',
-    borderRadius: 2,
-    outline: 'none',
-    cursor: 'pointer',
-    accentColor: '#6cb4ee',
+  const handleChannel = (index: number, newVal: number) => {
+    const next: GlassColor = [value[0], value[1], value[2]];
+    next[index] = newVal;
+    onChange(next);
   };
 
   return (
-    <div style={{ marginBottom: 12 }}>
+    <div style={{ marginBottom: tokens.space.controlGap }}>
       <div style={{
         display: 'flex',
         justifyContent: 'space-between',
@@ -31,8 +32,8 @@ export function ColorControl({ label, value, onChange }: ColorControlProps) {
         marginBottom: 6,
       }}>
         <label style={{
-          fontSize: '0.8rem',
-          color: 'rgba(255, 255, 255, 0.7)',
+          fontSize: tokens.font.label,
+          color: tokens.color.labelPrimary,
           userSelect: 'none',
         }}>
           {label}
@@ -40,48 +41,47 @@ export function ColorControl({ label, value, onChange }: ColorControlProps) {
         <div style={{
           width: 18,
           height: 18,
-          borderRadius: 4,
-          border: '1px solid rgba(255, 255, 255, 0.2)',
+          borderRadius: tokens.radius.control,
+          border: `1px solid ${tokens.color.presetChipBorder}`,
           backgroundColor: previewColor,
           flexShrink: 0,
         }} />
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-        <span style={{ fontSize: '0.7rem', color: '#f66', width: 12 }}>R</span>
-        <input
-          type="range" min={0} max={1} step={0.01} value={r}
-          onChange={(e) => onChange([parseFloat(e.target.value), g, b])}
-          style={channelStyle}
-        />
-        <span style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.4)', fontFamily: 'monospace', width: 28, textAlign: 'right' }}>
-          {r.toFixed(2)}
-        </span>
-      </div>
-
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-        <span style={{ fontSize: '0.7rem', color: '#6f6', width: 12 }}>G</span>
-        <input
-          type="range" min={0} max={1} step={0.01} value={g}
-          onChange={(e) => onChange([r, parseFloat(e.target.value), b])}
-          style={channelStyle}
-        />
-        <span style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.4)', fontFamily: 'monospace', width: 28, textAlign: 'right' }}>
-          {g.toFixed(2)}
-        </span>
-      </div>
-
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-        <span style={{ fontSize: '0.7rem', color: '#66f', width: 12 }}>B</span>
-        <input
-          type="range" min={0} max={1} step={0.01} value={b}
-          onChange={(e) => onChange([r, g, parseFloat(e.target.value)])}
-          style={channelStyle}
-        />
-        <span style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.4)', fontFamily: 'monospace', width: 28, textAlign: 'right' }}>
-          {b.toFixed(2)}
-        </span>
-      </div>
+      {channels.map((ch, i) => {
+        const channelValue = value[ch.index];
+        const pct = channelValue * 100;
+        return (
+          <div key={ch.key} style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            marginBottom: i < 2 ? 4 : 0,
+          }}>
+            <span style={{ fontSize: '0.7rem', color: ch.color, width: 12 }}>
+              {ch.key}
+            </span>
+            <input
+              type="range"
+              min={0}
+              max={1}
+              step={0.01}
+              value={channelValue}
+              onChange={(e) => handleChannel(ch.index, parseFloat(e.target.value))}
+              style={{ '--pct': `${pct}%`, width: '100%' } as React.CSSProperties}
+            />
+            <span style={{
+              fontSize: tokens.font.value,
+              color: tokens.color.valueText,
+              fontFamily: 'monospace',
+              width: 28,
+              textAlign: 'right',
+            }}>
+              {channelValue.toFixed(2)}
+            </span>
+          </div>
+        );
+      })}
     </div>
   );
 }
