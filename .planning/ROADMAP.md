@@ -78,7 +78,12 @@ Plans:
   2. Multiple glass regions render simultaneously with correct per-region uniforms via dynamic buffer offsets
   3. Canvas resize triggers bind group recreation without visual artifacts or stale texture references
   4. All 16 shader parameters (contrast, saturation, Fresnel, specular, chromatic aberration, etc.) produce visible effect changes when adjusted
-**Plans**: TBD
+**Plans**: 3 plans
+
+Plans:
+- [ ] 16-01-PLAN.md — Vitest setup, glass.wgsl port, GlassRegionState.ts with buildGlassUniformData() and unit tests
+- [ ] 16-02-PLAN.md — GlassRenderer core class: pipeline, explicit bind group layouts, dynamic offset uniform buffer
+- [ ] 16-03-PLAN.md — Canvas context, GlassRendererHarness, Playwright screenshot verification
 
 ### Phase 17: React Integration
 **Goal**: GlassProvider connects the thinned WASM background engine to the JS GlassRenderer, and React components render glass over the live C++ background with the same public API as v2.0
