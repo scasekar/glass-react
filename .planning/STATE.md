@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v3.0
 milestone_name: Architecture Redesign
 status: executing
-stopped_at: Completed 17-01-PLAN.md
-last_updated: "2026-03-24T23:21:37.141Z"
-last_activity: 2026-03-24 -- Completed 17-02 (GlassProvider integration tests as phase gate)
+stopped_at: Completed 19-01-PLAN.md
+last_updated: "2026-03-24T23:43:23.331Z"
+last_activity: 2026-03-24 -- Completed 19-01 (Control primitives & design tokens)
 progress:
   total_phases: 5
   completed_phases: 3
-  total_plans: 9
-  completed_plans: 9
+  total_plans: 14
+  completed_plans: 10
   percent: 92
 ---
 
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-24)
 
 **Core value:** Glass components that look and feel like Apple's Liquid Glass -- visually convincing refraction at 60FPS.
-**Current focus:** Phase 17 -- React Integration (v3.0 Architecture Redesign)
+**Current focus:** Phase 19 -- Tuning Page Redesign (v3.0 Architecture Redesign)
 
 ## Current Position
 
-Phase: 17 of 19 (React Integration) -- third of 5 v3.0 phases
-Plan: 2 of 3 in current phase (17-02 complete)
+Phase: 19 of 19 (Tuning Page Redesign) -- fifth of 5 v3.0 phases
+Plan: 1 of 2 in current phase (19-01 complete)
 Status: Executing
-Last activity: 2026-03-24 -- Completed 17-02 (GlassProvider integration tests as phase gate)
+Last activity: 2026-03-24 -- Completed 19-01 (Control primitives & design tokens)
 
 Progress: [█████████░] 92% (v3.0 milestone)
 
@@ -45,6 +45,7 @@ Progress: [█████████░] 92% (v3.0 milestone)
 | Phase 16 P02 | 2min | 1 tasks | 1 files |
 | Phase 17 P02 | 1min | 1 tasks | 1 files |
 | Phase 17-react-integration P01 | 2min | 2 tasks | 2 files |
+| Phase 19-tuning-page-redesign P01 | 2min | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -67,6 +68,11 @@ v3.0 decisions:
 - [Phase 16]: Pipeline created once at init -- resize only rebuilds per-frame bind group
 - [Phase 17-02]: Integration tests target '/' root URL as phase gate -- will pass after Plan 17-03 wiring
 - [Phase 17-react-integration]: Guard-pattern setters: safe no-op for unknown region IDs, target-only mutation for morph interpolation
+- [Phase 19-01]: CSS custom property --pct drives range track fill gradient (no JS painting)
+- [Phase 19-01]: Token object as-const for TS type safety over CSS custom properties
+- [Phase 19-01]: RGB channel label colors kept as semantic literals, not tokenized
+- [Phase 19]: CSS custom property --pct drives range track fill gradient (no JS painting)
+- [Phase 19]: Token object as-const for TS type safety over CSS custom properties
 
 ### Pending Todos
 
@@ -79,6 +85,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-24T22:56:01.694Z
-Stopped at: Completed 17-01-PLAN.md
+Last session: 2026-03-24T23:43:18.438Z
+Stopped at: Completed 19-01-PLAN.md
 Resume file: None
