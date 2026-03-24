@@ -136,7 +136,7 @@ Phases 15 and 16 can execute in parallel. Phase 17 requires both. Phases 18 and 
 | 13. Screenshot Diff Pipeline | v2.0 | 2/2 | Complete | 2026-02-26 |
 | 14. Automated Tuning Loop | v2.0 | 2/2 | Complete | 2026-02-26 |
 | 15. WASM Thinning | 3/3 | Complete    | 2026-03-24 | - |
-| 16. JS Glass Renderer | 1/3 | In Progress|  | - |
+| 16. JS Glass Renderer | 2/3 | In Progress|  | - |
 | 17. React Integration | v3.0 | 0/? | Not started | - |
 | 18. Visual Validation | v3.0 | 0/? | Not started | - |
 | 19. Tuning Page Redesign | v3.0 | 0/? | Not started | - |
