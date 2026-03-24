@@ -23,9 +23,9 @@
 
 ### React Integration
 
-- [ ] **REACT-01**: GlassContext and GlassRegionHandle internals re-backed by JS GlassRenderer class
+- [x] **REACT-01**: GlassContext and GlassRegionHandle internals re-backed by JS GlassRenderer class
 - [x] **REACT-02**: Public React API unchanged — GlassPanel, GlassButton, GlassCard props identical to v2.0
-- [ ] **REACT-03**: All 16 shader parameters functional as typed React props through JS pipeline
+- [x] **REACT-03**: All 16 shader parameters functional as typed React props through JS pipeline
 - [ ] **REACT-04**: Accessibility features preserved (reduced-motion, reduced-transparency, WCAG contrast, dark/light mode)
 
 ### Visual Validation
@@ -81,9 +81,9 @@
 | GLASS-03 | Phase 16 | Complete |
 | GLASS-04 | Phase 16 | Complete |
 | GLASS-05 | Phase 16 | Complete |
-| REACT-01 | Phase 17 | Pending |
+| REACT-01 | Phase 17 | Complete |
 | REACT-02 | Phase 17 | Complete |
-| REACT-03 | Phase 17 | Pending |
+| REACT-03 | Phase 17 | Complete |
 | REACT-04 | Phase 17 | Pending |
 | VIS-01 | Phase 18 | Pending |
 | VIS-02 | Phase 18 | Pending |
