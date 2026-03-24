@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v3.0
 milestone_name: Architecture Redesign
 status: executing
-stopped_at: Completed 15-02-PLAN.md
-last_updated: "2026-03-24T21:02:19.663Z"
-last_activity: 2026-03-24 -- Completed 15-02 (TS layer update for thinned C++ API)
+stopped_at: Completed 15-01-PLAN.md
+last_updated: "2026-03-24T21:08:15.075Z"
+last_activity: "2026-03-24 -- Completed 15-01 (C++ engine thinning: glass pass deleted, WASM 60% smaller)"
 progress:
   total_phases: 5
   completed_phases: 0
   total_plans: 3
-  completed_plans: 1
-  percent: 89
+  completed_plans: 3
+  percent: 95
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-03-24)
 ## Current Position
 
 Phase: 15 of 19 (WASM Thinning) -- first of 5 v3.0 phases
-Plan: 2 of 3 in current phase
+Plan: 3 of 3 in current phase
 Status: Executing
-Last activity: 2026-03-24 -- Completed 15-02 (TS layer update for thinned C++ API)
+Last activity: 2026-03-24 -- Completed 15-01 (C++ engine thinning: glass pass deleted, WASM 60% smaller)
 
-Progress: [█████████░] 89% (v3.0 milestone)
+Progress: [██████████] 95% (v3.0 milestone)
 
 ## Performance Metrics
 
@@ -55,6 +55,8 @@ v3.0 decisions:
 - Phases 18+19 can run in parallel (tuning page redesign independent of visual validation)
 - [Phase 15]: Kept importJsTexture in WebGPU type for Phase 17 reuse
 - [Phase 15]: Removed region ResizeObserver since registerRegion returns null (stubbed)
+- [Phase 15-01]: RGBA8Unorm via kOffscreenFormat constant replaces surfaceFormat in all pipeline sites
+- [Phase 15-01]: Dead glass.wgsl.h left on disk (not included) -- cleanup deferred
 
 ### Pending Todos
 
@@ -67,6 +69,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-24T21:02:19.661Z
-Stopped at: Completed 15-02-PLAN.md
+Last session: 2026-03-24T21:08:14.575Z
+Stopped at: Completed 15-01-PLAN.md
 Resume file: None
