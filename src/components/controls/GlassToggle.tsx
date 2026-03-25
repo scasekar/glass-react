@@ -51,31 +51,23 @@ export function GlassToggle({
         ...style,
       }}
     >
-      {/* Track */}
-      <GlassPanel
-        cornerRadius={APPLE_RADII.pill}
+      {/* Track — uses CSS background instead of GlassPanel for reliable small-size rendering */}
+      <div
         style={{
           width: toggleWidth,
           height: toggleHeight,
           position: 'relative',
           flexShrink: 0,
+          borderRadius: APPLE_RADII.pill,
+          background: checked
+            ? 'rgba(52, 199, 89, 0.65)'
+            : 'rgba(120, 120, 130, 0.4)',
+          border: '1px solid rgba(255,255,255,0.15)',
+          transition: 'background 0.2s',
         }}
+        data-testid="toggle-active-overlay"
       >
-        {/* Green overlay for ON state */}
-        {checked && (
-          <div
-            data-testid="toggle-active-overlay"
-            style={{
-              position: 'absolute',
-              inset: 0,
-              borderRadius: APPLE_RADII.pill,
-              background: 'rgba(52, 199, 89, 0.6)',
-              pointerEvents: 'none',
-            }}
-          />
-        )}
-
-        {/* Thumb */}
+        {/* Thumb — solid white circle for visibility */}
         <Switch.Thumb asChild>
           <motion.div
             layout
@@ -86,19 +78,13 @@ export function GlassToggle({
               left: thumbLeft,
               width: toggleThumbSize,
               height: toggleThumbSize,
+              borderRadius: APPLE_RADII.pill,
+              background: 'rgba(255, 255, 255, 0.95)',
+              boxShadow: '0 2px 6px rgba(0,0,0,0.3)',
             }}
-          >
-            <GlassPanel
-              cornerRadius={APPLE_RADII.pill}
-              style={{
-                width: toggleThumbSize,
-                height: toggleThumbSize,
-                display: 'block',
-              }}
-            />
-          </motion.div>
+          />
         </Switch.Thumb>
-      </GlassPanel>
+      </div>
     </Switch.Root>
   );
 }

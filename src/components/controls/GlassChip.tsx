@@ -31,7 +31,7 @@ export function GlassChip({
   return (
     <GlassButton
       cornerRadius={APPLE_RADII.pill}
-      opacity={selected ? 0.3 : 0.15}
+      opacity={selected ? 0.4 : 0.15}
       specular={effectiveSpecular}
       rim={effectiveRim}
       aria-pressed={selected}
@@ -49,8 +49,9 @@ export function GlassChip({
         alignItems: 'center',
         justifyContent: 'center',
         border: selected
-          ? '1px solid rgba(255, 255, 255, 0.35)'
+          ? '1.5px solid rgba(255, 255, 255, 0.5)'
           : '1px solid rgba(255, 255, 255, 0.15)',
+        background: selected ? 'rgba(255, 255, 255, 0.12)' : 'none',
         ...style,
       }}
     >

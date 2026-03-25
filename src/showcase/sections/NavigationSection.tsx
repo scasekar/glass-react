@@ -1,6 +1,5 @@
 import { GlassNavigationBar } from '../../components/controls/GlassNavigationBar';
 import { GlassToolbar } from '../../components/controls/GlassToolbar';
-import { GlassPanel } from '../../components/GlassPanel';
 import { APPLE_RADII, APPLE_SPACING } from '../../tokens/apple';
 
 const FONT_STACK = "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
@@ -49,9 +48,8 @@ export function NavigationSection() {
         </p>
       </div>
 
-      {/* Mock App Frame */}
-      <GlassPanel
-        cornerRadius={APPLE_RADII.xl}
+      {/* Mock App Frame — plain div, not GlassPanel (avoids visible glass rectangle) */}
+      <div
         style={{
           maxWidth: 400,
           height: 500,
@@ -60,6 +58,8 @@ export function NavigationSection() {
           position: 'relative',
           display: 'flex',
           flexDirection: 'column',
+          borderRadius: APPLE_RADII.xl,
+          border: '1px solid rgba(255,255,255,0.1)',
         }}
       >
         {/* Navigation Bar */}
@@ -108,7 +108,7 @@ export function NavigationSection() {
             { id: 'more', icon: <MoreIcon />, label: 'More', onPress: () => {} },
           ]}
         />
-      </GlassPanel>
+      </div>
     </div>
   );
 }

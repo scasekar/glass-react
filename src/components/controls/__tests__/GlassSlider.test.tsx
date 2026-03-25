@@ -71,10 +71,9 @@ describe('GlassSlider', () => {
     render(
       <GlassSlider value={50} onValueChange={() => {}} label="Volume" />
     );
-    // Radix Slider renders the track and thumb. The GlassPanel data-testid should appear.
-    const glassPanels = document.querySelectorAll('[data-testid="glass-panel"]');
-    // Track is a GlassPanel; thumb is a plain CSS circle (no GlassPanel)
-    expect(glassPanels.length).toBeGreaterThanOrEqual(1);
+    // Radix Slider renders track and thumb as CSS-styled elements (no GlassPanel)
+    const slider = document.querySelector('[role="slider"]');
+    expect(slider).not.toBeNull();
   });
 
   it('Arrow key Right increments value by step', async () => {

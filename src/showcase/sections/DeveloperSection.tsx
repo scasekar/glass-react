@@ -30,6 +30,7 @@ const codeBlockStyle: React.CSSProperties = {
   overflow: 'auto',
   margin: `${APPLE_SPACING.md}px 0 0`,
   whiteSpace: 'pre',
+  maxWidth: '100%',
   position: 'relative' as const,
 };
 
@@ -192,7 +193,9 @@ export function DeveloperSection() {
         }}
       >
         <GlassButton
+          cornerRadius={APPLE_RADII.md}
           onClick={() => window.open('https://github.com', '_blank')}
+          style={{ padding: '14px 32px', fontSize: '1rem', fontWeight: 600 }}
         >
           View on GitHub
         </GlassButton>

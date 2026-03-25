@@ -1,7 +1,6 @@
 import * as Dialog from '@radix-ui/react-dialog';
 import { motion, AnimatePresence } from 'motion/react';
 import { GlassPanel } from '../GlassPanel';
-import { GlassButton } from '../GlassButton';
 import { APPLE_RADII, APPLE_SPACING } from '../../tokens/apple';
 import type { GlassAlertProps } from './types';
 
@@ -118,41 +117,43 @@ export function GlassAlert({
                         {title}
                       </Dialog.Description>
                     )}
+                    {/* Separator */}
+                    <div style={{ height: 1, background: 'rgba(255,255,255,0.12)', margin: `0 -${APPLE_SPACING.xl}px` }} />
                     <div
                       style={{
                         display: 'flex',
                         flexDirection: 'column',
-                        gap: APPLE_SPACING.sm,
+                        margin: `0 -${APPLE_SPACING.xl}px`,
+                        marginBottom: -APPLE_SPACING.xl,
                       }}
                     >
-                      {actions.map((action) => (
-                        <GlassButton
+                      {actions.map((action, i) => (
+                        <button
                           key={action.label}
-                          cornerRadius={APPLE_RADII.pill}
-                          tint={
-                            action.style === 'destructive'
-                              ? [0.8, 0.1, 0.1]
-                              : undefined
-                          }
                           onClick={() => {
                             action.onPress();
                             onOpenChange(false);
                           }}
                           style={{
+                            background: 'none',
+                            border: 'none',
+                            borderTop: i > 0 ? '1px solid rgba(255,255,255,0.12)' : 'none',
+                            cursor: 'pointer',
                             width: '100%',
                             padding: `${APPLE_SPACING.md}px ${APPLE_SPACING.lg}px`,
                             fontSize: 17,
-                            fontWeight:
-                              action.style === 'primary' ? 600 : 400,
-                            ...(action.style === 'destructive' ? {
-                              color: '#ff453a',
-                              fontWeight: 600,
-                              textShadow: '0 0 12px rgba(255, 69, 58, 0.4)',
-                            } : {}),
+                            fontWeight: action.style === 'destructive' || action.style === 'primary' ? 600 : 400,
+                            color: action.style === 'destructive'
+                              ? '#ff453a'
+                              : 'rgba(255, 255, 255, 0.95)',
+                            textShadow: action.style === 'destructive'
+                              ? '0 0 12px rgba(255, 69, 58, 0.4)'
+                              : '0 1px 3px rgba(0,0,0,0.6)',
+                            fontFamily: 'inherit',
                           }}
                         >
                           {action.label}
-                        </GlassButton>
+                        </button>
                       ))}
                     </div>
                   </div>

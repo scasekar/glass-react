@@ -77,8 +77,9 @@ export function ShowcasePage({ backgroundMode, onBackgroundModeChange }: Showcas
             LiquidGlass
           </span>
 
-          {/* Center: Nav links */}
+          {/* Center: Nav links — hidden on narrow viewports via CSS class */}
           <nav
+            className="showcase-nav-links"
             style={{
               display: 'flex',
               gap: 24,
@@ -134,6 +135,8 @@ export function ShowcasePage({ backgroundMode, onBackgroundModeChange }: Showcas
           maxWidth: 1200,
           margin: '0 auto',
           padding: '0 24px',
+          boxSizing: 'border-box',
+          overflowX: 'hidden',
         }}
       >
         {/* Hero Section -- always mounted (above fold) */}
@@ -185,6 +188,15 @@ export function ShowcasePage({ backgroundMode, onBackgroundModeChange }: Showcas
 
       {/* TuningDrawer -- always mounted */}
       <TuningDrawer open={tuningOpen} onClose={() => setTuningOpen(false)} />
+
+      {/* Responsive styles */}
+      <style>{`
+        @media (max-width: 600px) {
+          .showcase-nav-links {
+            display: none !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }

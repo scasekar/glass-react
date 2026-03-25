@@ -37,33 +37,26 @@ export function GlassSlider({
         ...style,
       }}
     >
-      {/* Track — wrapping div ensures Radix Track span gets proper dimensions */}
+      {/* Track — CSS background for reliable rendering at small height */}
       <RadixSlider.Track
         style={{
           display: 'block',
           position: 'relative',
           flexGrow: 1,
-          height: sliderTrackHeight,
+          height: 6,
           borderRadius: APPLE_RADII.pill,
+          background: 'rgba(255, 255, 255, 0.15)',
+          border: '1px solid rgba(255,255,255,0.1)',
         }}
       >
-        <GlassPanel
-          cornerRadius={APPLE_RADII.pill}
-          opacity={0.3}
-          style={{
-            position: 'absolute',
-            inset: 0,
-            overflow: 'hidden',
-          }}
-        />
-        {/* Fill / Range — colored overlay on top of glass track */}
+        {/* Fill / Range */}
         <RadixSlider.Range
           style={{
             display: 'block',
             position: 'absolute',
             height: '100%',
             borderRadius: APPLE_RADII.pill,
-            background: 'rgba(255, 255, 255, 0.35)',
+            background: 'rgba(255, 255, 255, 0.5)',
           }}
         />
       </RadixSlider.Track>
