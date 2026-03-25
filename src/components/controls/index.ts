@@ -1,5 +1,5 @@
 export { GlassToggle } from './GlassToggle';
-// GlassSlider -- added in Phase 21 Plan 02
+export { GlassSlider } from './GlassSlider';
 // GlassSegmentedControl -- added in Phase 21 Plan 02
 
 // Phase 22 controls
