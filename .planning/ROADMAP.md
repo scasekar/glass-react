@@ -148,7 +148,11 @@ Plans:
   3. Scrolling through the showcase page does not exceed the GPU region budget — IntersectionObserver virtualizes off-screen sections
   4. A wallpaper selector on the showcase page allows switching between background images and noise mode, updating all glass controls live
   5. The showcase page looks like a professional product landing page, not a component kitchen sink
-**Plans**: TBD
+**Plans**: 3 plans
+Plans:
+- [ ] 25-01-PLAN.md — VirtualSection, TuningDrawer, ShowcasePage shell, App.tsx rewire
+- [ ] 25-02-PLAN.md — Hero, Interactive, Navigation, Overlay, Form content sections
+- [ ] 25-03-PLAN.md — Developer section, visual polish, human verification
 
 ## Progress
 
@@ -162,4 +166,4 @@ Plans:
 | 22. Core Discrete Controls | 2/2 | Complete   | 2026-03-25 | - |
 | 23. Navigation Controls | 1/2 | In Progress|  | - |
 | 24. Overlay Controls | 2/2 | Complete   | 2026-03-25 | - |
-| 25. Showcase Page | v4.0 | 0/TBD | Not started | - |
+| 25. Showcase Page | v4.0 | 0/3 | Planning complete | - |
