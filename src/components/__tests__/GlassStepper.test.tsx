@@ -1,9 +1,9 @@
 /**
  * @vitest-environment jsdom
  */
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, cleanup } from '@testing-library/react';
 import { GlassStepper } from '../controls/GlassStepper';
 
 // Mock useGlassEngine -- GlassButton and GlassPanel call it internally
@@ -20,6 +20,7 @@ vi.mock('../../hooks/useGlassRegion', () => ({
 }));
 
 describe('GlassStepper', () => {
+  afterEach(() => cleanup());
   it('renders Decrease and Increase buttons', () => {
     render(<GlassStepper value={5} onChange={() => {}} />);
     expect(screen.getByRole('button', { name: 'Decrease' })).toBeDefined();

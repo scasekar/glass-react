@@ -1,9 +1,9 @@
 /**
  * @vitest-environment jsdom
  */
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, cleanup } from '@testing-library/react';
 import { GlassChip } from '../controls/GlassChip';
 
 // Mock useGlassEngine -- controls don't call it directly but GlassButton does
@@ -20,6 +20,7 @@ vi.mock('../../hooks/useGlassRegion', () => ({
 }));
 
 describe('GlassChip', () => {
+  afterEach(() => cleanup());
   it('renders with label text', () => {
     render(<GlassChip label="Filter" selected={false} onToggle={() => {}} />);
     expect(screen.getByText('Filter')).toBeDefined();
