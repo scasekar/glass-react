@@ -100,7 +100,10 @@ Plans:
   2. GlassStepper renders +/- buttons with glass surfaces, increments and decrements a bound numeric value with min/max clamping
   3. GlassInput renders a text field with glass border that gains a visible focus ring and glass intensity change on focus
   4. All three controls are keyboard-accessible and announce state changes to screen readers
-**Plans**: TBD
+**Plans**: 2 plans
+Plans:
+- [ ] 22-01-PLAN.md — GlassChip and GlassStepper controls with tests
+- [ ] 22-02-PLAN.md — GlassInput control, barrel exports, library wiring
 
 ### Phase 23: Navigation Controls
 **Goal**: Users see familiar iOS navigation patterns (tab bar, nav bar, toolbar, search bar) rendered with Liquid Glass
@@ -147,7 +150,7 @@ Plans:
 | 15-19 | v3.0 | 14/14 | Complete | 2026-03-25 |
 | 20. Foundation & Safety Rails | 2/2 | Complete   | 2026-03-25 | - |
 | 21. Core Interactive Controls | v4.0 | 0/TBD | Not started | - |
-| 22. Core Discrete Controls | v4.0 | 0/TBD | Not started | - |
+| 22. Core Discrete Controls | v4.0 | 0/2 | Planning complete | - |
 | 23. Navigation Controls | v4.0 | 0/TBD | Not started | - |
 | 24. Overlay Controls | v4.0 | 0/TBD | Not started | - |
 | 25. Showcase Page | v4.0 | 0/TBD | Not started | - |
