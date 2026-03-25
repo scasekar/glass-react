@@ -1,6 +1,6 @@
 import { GlassButton } from '../GlassButton';
 import { GlassPanel } from '../GlassPanel';
-import { APPLE_RADII, APPLE_SPACING } from '../../tokens/apple';
+import { APPLE_RADII, APPLE_SPACING, APPLE_CONTROL_SIZES } from '../../tokens/apple';
 import type { GlassStepperProps } from '../types';
 
 /**
@@ -48,7 +48,15 @@ export function GlassStepper({
         aria-label="Decrease"
         disabled={disabled || value <= min}
         onClick={decrement}
-        style={{ width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+        style={{
+          width: APPLE_CONTROL_SIZES.minTapTarget,
+          height: APPLE_CONTROL_SIZES.minTapTarget,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: 20,
+          fontWeight: 500,
+        }}
       >
         {'\u2212'}
       </GlassButton>
@@ -60,12 +68,15 @@ export function GlassStepper({
         <GlassPanel
           cornerRadius={APPLE_RADII.sm}
           style={{
-            minWidth: 40,
+            minWidth: 48,
+            minHeight: 36,
             textAlign: 'center',
-            padding: `${APPLE_SPACING.xs}px ${APPLE_SPACING.sm}px`,
+            padding: `${APPLE_SPACING.sm}px ${APPLE_SPACING.md}px`,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
+            fontSize: 17,
+            fontWeight: 500,
           }}
         >
           {value}
@@ -77,7 +88,15 @@ export function GlassStepper({
         aria-label="Increase"
         disabled={disabled || value >= max}
         onClick={increment}
-        style={{ width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+        style={{
+          width: APPLE_CONTROL_SIZES.minTapTarget,
+          height: APPLE_CONTROL_SIZES.minTapTarget,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: 20,
+          fontWeight: 500,
+        }}
       >
         +
       </GlassButton>

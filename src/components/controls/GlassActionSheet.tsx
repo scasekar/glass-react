@@ -73,11 +73,13 @@ export function GlassActionSheet({
                   style={{
                     borderBottomLeftRadius: 0,
                     borderBottomRightRadius: 0,
+                    width: '100%',
                   }}
                 >
                   <div
                     style={{
-                      padding: APPLE_SPACING.xl,
+                      padding: APPLE_SPACING.lg,
+                      paddingBottom: APPLE_SPACING.md,
                     }}
                   >
                     {title ? (
@@ -96,24 +98,50 @@ export function GlassActionSheet({
                         {title}
                       </Dialog.Title>
                     ) : (
-                      <Dialog.Title className="sr-only">
+                      <Dialog.Title
+                        style={{
+                          position: 'absolute',
+                          width: 1,
+                          height: 1,
+                          padding: 0,
+                          margin: -1,
+                          overflow: 'hidden',
+                          clip: 'rect(0, 0, 0, 0)',
+                          whiteSpace: 'nowrap',
+                          borderWidth: 0,
+                        }}
+                      >
                         Action sheet
                       </Dialog.Title>
                     )}
-                    <Dialog.Description className="sr-only">
-                      {title || 'Action sheet'}
+                    <Dialog.Description
+                      style={{
+                        position: 'absolute',
+                        width: 1,
+                        height: 1,
+                        padding: 0,
+                        margin: -1,
+                        overflow: 'hidden',
+                        clip: 'rect(0, 0, 0, 0)',
+                        whiteSpace: 'nowrap',
+                        borderWidth: 0,
+                      }}
+                    >
+                      {title ? `${title} actions` : 'Action sheet'}
                     </Dialog.Description>
                     <div
                       style={{
                         display: 'flex',
                         flexDirection: 'column',
-                        gap: APPLE_SPACING.sm,
+                        gap: 1,
+                        borderRadius: APPLE_RADII.md,
+                        overflow: 'hidden',
                       }}
                     >
-                      {actions.map((action) => (
+                      {actions.map((action, i) => (
                         <GlassButton
                           key={action.label}
-                          cornerRadius={APPLE_RADII.pill}
+                          cornerRadius={0}
                           tint={
                             action.style === 'destructive'
                               ? [0.8, 0.1, 0.1]
@@ -129,6 +157,14 @@ export function GlassActionSheet({
                             fontSize: 17,
                             fontWeight:
                               action.style === 'primary' ? 600 : 400,
+                            ...(action.style === 'destructive' ? {
+                              color: '#ff453a',
+                              fontWeight: 600,
+                              textShadow: '0 0 12px rgba(255, 69, 58, 0.4)',
+                            } : {}),
+                            ...(i < actions.length - 1 ? {
+                              borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+                            } : {}),
                           }}
                         >
                           {action.label}
@@ -137,7 +173,7 @@ export function GlassActionSheet({
                     </div>
                     <div
                       style={{
-                        marginTop: APPLE_SPACING.sm,
+                        marginTop: APPLE_SPACING.md,
                         paddingTop: APPLE_SPACING.sm,
                       }}
                     >

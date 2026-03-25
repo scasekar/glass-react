@@ -116,11 +116,37 @@ export function GlassSheet({
                       {title}
                     </Dialog.Title>
                   ) : (
-                    <Dialog.Title className="sr-only">Sheet</Dialog.Title>
+                    <Dialog.Title
+                      style={{
+                        position: 'absolute',
+                        width: 1,
+                        height: 1,
+                        padding: 0,
+                        margin: -1,
+                        overflow: 'hidden',
+                        clip: 'rect(0, 0, 0, 0)',
+                        whiteSpace: 'nowrap',
+                        borderWidth: 0,
+                      }}
+                    >
+                      Sheet
+                    </Dialog.Title>
                   )}
 
                   {/* Visually hidden description to satisfy Radix a11y */}
-                  <Dialog.Description className="sr-only">
+                  <Dialog.Description
+                    style={{
+                      position: 'absolute',
+                      width: 1,
+                      height: 1,
+                      padding: 0,
+                      margin: -1,
+                      overflow: 'hidden',
+                      clip: 'rect(0, 0, 0, 0)',
+                      whiteSpace: 'nowrap',
+                      borderWidth: 0,
+                    }}
+                  >
                     Modal sheet
                   </Dialog.Description>
 

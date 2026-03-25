@@ -1,6 +1,6 @@
 import { useState, useId } from 'react';
 import { GlassPanel } from '../GlassPanel';
-import { APPLE_RADII, APPLE_SPACING } from '../../tokens/apple';
+import { APPLE_RADII, APPLE_SPACING, APPLE_CONTROL_SIZES } from '../../tokens/apple';
 import type { GlassInputProps } from '../types';
 
 /**
@@ -59,7 +59,8 @@ export function GlassInput({
         style={{
           display: 'flex',
           alignItems: 'center',
-          padding: `${APPLE_SPACING.xs}px ${APPLE_SPACING.sm}px`,
+          minHeight: APPLE_CONTROL_SIZES.minTapTarget,
+          padding: `${APPLE_SPACING.sm}px ${APPLE_SPACING.md}px`,
           // Visible focus ring via CSS -- required for WCAG SC 1.4.11
           outline: focused
             ? '2px solid rgba(255,255,255,0.65)'
@@ -85,6 +86,7 @@ export function GlassInput({
             color: 'inherit',
             font: 'inherit',
             fontSize: 16,
+            padding: 0,
           }}
         />
       </GlassPanel>

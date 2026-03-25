@@ -39,11 +39,15 @@ export function GlassChip({
       disabled={disabled}
       className={className}
       style={{
-        paddingInline: APPLE_SPACING.sm,
-        paddingBlock: APPLE_SPACING.xs,
+        paddingInline: APPLE_SPACING.md,
+        paddingBlock: APPLE_SPACING.sm,
         minHeight: APPLE_CONTROL_SIZES.minTapTarget,
+        minWidth: 64,
         fontSize: 14,
         fontWeight: 500,
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
         ...style,
       }}
     >

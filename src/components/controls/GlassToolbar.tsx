@@ -32,12 +32,8 @@ export function GlassToolbar({
       <GlassPanel
         cornerRadius={0}
         style={{
-          position: 'fixed',
-          bottom: 0,
-          left: 0,
-          right: 0,
+          width: '100%',
           height: 44,
-          zIndex: 100,
           display: 'flex',
           flexDirection: 'row',
           justifyContent: 'center',
@@ -74,7 +70,7 @@ export function GlassToolbar({
                   padding: 0,
                 }}
               >
-                {action.icon}
+                <span style={{ fontSize: 20, lineHeight: 1 }}>{action.icon}</span>
               </GlassButton>
             ))}
           </div>

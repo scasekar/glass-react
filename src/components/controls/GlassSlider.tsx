@@ -37,40 +37,54 @@ export function GlassSlider({
         ...style,
       }}
     >
-      {/* Track */}
-      <RadixSlider.Track asChild>
+      {/* Track — wrapping div ensures Radix Track span gets proper dimensions */}
+      <RadixSlider.Track
+        style={{
+          display: 'block',
+          position: 'relative',
+          flexGrow: 1,
+          height: sliderTrackHeight,
+          borderRadius: APPLE_RADII.pill,
+        }}
+      >
         <GlassPanel
           cornerRadius={APPLE_RADII.pill}
           style={{
-            height: sliderTrackHeight,
-            flexGrow: 1,
-            position: 'relative',
+            position: 'absolute',
+            inset: 0,
             overflow: 'hidden',
           }}
-        >
-          {/* Fill / Range */}
-          <RadixSlider.Range asChild>
-            <GlassPanel
-              cornerRadius={APPLE_RADII.pill}
-              style={{
-                position: 'absolute',
-                height: '100%',
-                borderRadius: APPLE_RADII.pill,
-              }}
-            />
-          </RadixSlider.Range>
-        </GlassPanel>
+        />
+        {/* Fill / Range — colored overlay on top of glass track */}
+        <RadixSlider.Range
+          style={{
+            display: 'block',
+            position: 'absolute',
+            height: '100%',
+            borderRadius: APPLE_RADII.pill,
+            background: 'rgba(255, 255, 255, 0.35)',
+          }}
+        />
       </RadixSlider.Track>
 
-      {/* Thumb */}
-      <RadixSlider.Thumb asChild>
+      {/* Thumb — wrapping div ensures Radix Thumb span gets dimensions */}
+      <RadixSlider.Thumb
+        aria-label={label}
+        style={{
+          display: 'block',
+          width: sliderThumbSize,
+          height: sliderThumbSize,
+          borderRadius: APPLE_RADII.pill,
+          outline: 'none',
+        }}
+      >
         <GlassPanel
           cornerRadius={APPLE_RADII.pill}
           style={{
-            display: 'block',
             width: sliderThumbSize,
             height: sliderThumbSize,
-            borderRadius: APPLE_RADII.pill,
+            display: 'block',
+            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.3)',
           }}
         />
       </RadixSlider.Thumb>

@@ -73,8 +73,9 @@ describe('GlassSlider', () => {
     );
     // Radix Slider renders the track and thumb. The GlassPanel data-testid should appear.
     const glassPanels = document.querySelectorAll('[data-testid="glass-panel"]');
-    // Should have at least 3: track, range/fill, thumb
-    expect(glassPanels.length).toBeGreaterThanOrEqual(3);
+    // Should have at least 2: track glass panel + thumb glass panel
+    // (range/fill is a plain colored div, not a GlassPanel)
+    expect(glassPanels.length).toBeGreaterThanOrEqual(2);
   });
 
   it('Arrow key Right increments value by step', async () => {

@@ -32,12 +32,8 @@ export function GlassNavigationBar({
       <GlassPanel
         cornerRadius={0}
         style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
+          width: '100%',
           height: 44,
-          zIndex: 100,
           display: 'flex',
           flexDirection: 'row',
           alignItems: 'center',
@@ -60,7 +56,7 @@ export function GlassNavigationBar({
                 padding: 0,
               }}
             >
-              {'\u2039'}
+              <span style={{ fontSize: 24, lineHeight: 1 }}>{'\u2039'}</span>
             </GlassButton>
           </GlassEffectContainer>
         )}
@@ -98,8 +94,9 @@ export function GlassNavigationBar({
                     justifyContent: 'center',
                     padding: 0,
                   }}
+
                 >
-                  {action.icon}
+                  <span style={{ fontSize: 20, lineHeight: 1 }}>{action.icon}</span>
                 </GlassButton>
               ))}
             </div>

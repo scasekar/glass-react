@@ -68,7 +68,10 @@ export function GlassAlert({
                   ...style,
                 }}
               >
-                <GlassPanel cornerRadius={APPLE_RADII.xl}>
+                <GlassPanel
+                  cornerRadius={APPLE_RADII.xl}
+                  style={{ width: '100%' }}
+                >
                   <div
                     style={{
                       padding: APPLE_SPACING.xl,
@@ -97,7 +100,19 @@ export function GlassAlert({
                         {message}
                       </Dialog.Description>
                     ) : (
-                      <Dialog.Description className="sr-only">
+                      <Dialog.Description
+                        style={{
+                          position: 'absolute',
+                          width: 1,
+                          height: 1,
+                          padding: 0,
+                          margin: -1,
+                          overflow: 'hidden',
+                          clip: 'rect(0, 0, 0, 0)',
+                          whiteSpace: 'nowrap',
+                          borderWidth: 0,
+                        }}
+                      >
                         {title}
                       </Dialog.Description>
                     )}
@@ -127,6 +142,11 @@ export function GlassAlert({
                             fontSize: 17,
                             fontWeight:
                               action.style === 'primary' ? 600 : 400,
+                            ...(action.style === 'destructive' ? {
+                              color: '#ff453a',
+                              fontWeight: 600,
+                              textShadow: '0 0 12px rgba(255, 69, 58, 0.4)',
+                            } : {}),
                           }}
                         >
                           {action.label}
