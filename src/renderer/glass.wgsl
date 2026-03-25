@@ -98,21 +98,20 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
     let normalizedDepth = clamp(-dist / glassThickness, 0.0, 1.0);
 
     // Snell's law on the dome surface:
-    // incidentAngle from depth ratio (quadratic ramp for natural droplet shape)
+    // depthRatio^4 = steep edge, very flat center (water droplet profile).
+    // Higher power concentrates refraction closer to the boundary.
     let depthRatio = 1.0 - normalizedDepth;  // 1 at edge, 0 at center
-    let incidentAngle = asin(clamp(depthRatio * depthRatio, 0.0, 0.999));
+    let edgeCurve = depthRatio * depthRatio * depthRatio * depthRatio;  // pow4
+    let incidentAngle = asin(clamp(edgeCurve, 0.0, 0.999));
     let ior = glass.fresnelIOR;
     let transmittedAngle = asin(clamp(sin(incidentAngle) / ior, -0.999, 0.999));
 
     // Edge shift: tangent of angle difference (how much the ray bends)
     let edgeShift = -tan(transmittedAngle - incidentAngle);
 
-    // UV offset: surface normal direction × shift × dome thickness
-    // surfaceNormal has magnitude ~1 (unit normal from SDF gradient).
-    // edgeShift is the tangent of the angle difference (dimensionless).
-    // Multiplying by glassThickness converts to pixel-scale displacement
-    // proportional to the dome size — larger glass = more refraction.
-    let refractPixels = surfaceNormal * edgeShift * glassThickness * 0.5;
+    // UV offset: surface normal × shift × dome thickness
+    // 0.8 multiplier calibrated to match iOS edge displacement (~15-20px)
+    let refractPixels = surfaceNormal * edgeShift * glassThickness * 0.8;
     let refractOffset = refractPixels / glass.resolution;
 
     // Chromatic aberration: different IOR per channel (dispersion)
