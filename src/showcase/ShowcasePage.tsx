@@ -2,6 +2,11 @@ import { useState } from 'react';
 import { GlassPanel } from '../components/GlassPanel';
 import { VirtualSection } from './VirtualSection';
 import { TuningDrawer } from './TuningDrawer';
+import { HeroSection } from './sections/HeroSection';
+import { InteractiveSection } from './sections/InteractiveSection';
+import { NavigationSection } from './sections/NavigationSection';
+import { OverlaySection } from './sections/OverlaySection';
+import { FormSection } from './sections/FormSection';
 
 export interface ShowcasePageProps {
   backgroundMode: 'image' | 'noise';
@@ -11,6 +16,7 @@ export interface ShowcasePageProps {
 const NAV_LINKS = [
   { label: 'Controls', id: 'interactive' },
   { label: 'Navigation', id: 'navigation' },
+  { label: 'Overlays', id: 'overlays' },
   { label: 'Forms', id: 'forms' },
   { label: 'Get Started', id: 'developer' },
 ];
@@ -23,8 +29,8 @@ function handleNavClick(e: React.MouseEvent<HTMLAnchorElement>, id: string) {
 }
 
 /**
- * Top-level showcase shell with sticky header, virtualized sections, and tuning drawer.
- * Sections contain placeholders -- Plan 02 fills them with actual control demos.
+ * Top-level showcase shell with sticky header, content sections, and tuning drawer.
+ * Sections demonstrate glass controls in realistic contexts (not component catalogs).
  */
 export function ShowcasePage({ backgroundMode, onBackgroundModeChange }: ShowcasePageProps) {
   const [tuningOpen, setTuningOpen] = useState(false);
@@ -131,66 +137,56 @@ export function ShowcasePage({ backgroundMode, onBackgroundModeChange }: Showcas
       >
         {/* Hero Section -- always mounted (above fold) */}
         <section id="hero">
-          <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <div style={{ textAlign: 'center', maxWidth: 600 }}>
-              <h1
-                style={{
-                  fontSize: '3rem',
-                  fontWeight: 700,
-                  margin: '0 0 16px',
-                  letterSpacing: '-0.03em',
-                  lineHeight: 1.1,
-                }}
-              >
-                Apple Liquid Glass for React
-              </h1>
-              <p
-                style={{
-                  fontSize: '1.2rem',
-                  opacity: 0.7,
-                  margin: '0 0 32px',
-                  lineHeight: 1.5,
-                }}
-              >
-                WebGPU-powered refraction, not CSS blur.
-              </p>
-            </div>
-          </div>
+          <HeroSection
+            backgroundMode={backgroundMode}
+            onBackgroundModeChange={onBackgroundModeChange}
+          />
         </section>
 
-        {/* Virtualized content sections -- placeholders for Plan 02 */}
+        {/* Interactive Controls */}
         <VirtualSection id="interactive" minHeight={500}>
-          <div style={{ padding: '120px 0 60px' }}>
-            <h2 style={{ fontSize: '1.8rem', fontWeight: 600, marginBottom: 24 }}>Interactive Controls</h2>
-            <p style={{ opacity: 0.6 }}>Toggle, slider, and segmented control demos will appear here.</p>
-          </div>
+          <InteractiveSection />
         </VirtualSection>
 
+        {/* Navigation */}
         <VirtualSection id="navigation" minHeight={600}>
-          <div style={{ padding: '120px 0 60px' }}>
-            <h2 style={{ fontSize: '1.8rem', fontWeight: 600, marginBottom: 24 }}>Navigation</h2>
-            <p style={{ opacity: 0.6 }}>Tab bar, navigation bar, toolbar, and search bar demos will appear here.</p>
-          </div>
+          <NavigationSection />
         </VirtualSection>
 
-        <VirtualSection id="overlays" minHeight={500}>
-          <div style={{ padding: '120px 0 60px' }}>
-            <h2 style={{ fontSize: '1.8rem', fontWeight: 600, marginBottom: 24 }}>Overlays</h2>
-            <p style={{ opacity: 0.6 }}>Action sheet, alert, sheet, and popover demos will appear here.</p>
-          </div>
+        {/* Overlays */}
+        <VirtualSection id="overlays" minHeight={400}>
+          <OverlaySection />
         </VirtualSection>
 
+        {/* Forms */}
         <VirtualSection id="forms" minHeight={500}>
-          <div style={{ padding: '120px 0 60px' }}>
-            <h2 style={{ fontSize: '1.8rem', fontWeight: 600, marginBottom: 24 }}>Forms</h2>
-            <p style={{ opacity: 0.6 }}>Chip, stepper, and input demos will appear here.</p>
-          </div>
+          <FormSection />
         </VirtualSection>
 
-        <VirtualSection id="developer" minHeight={500}>
-          <div style={{ padding: '120px 0 60px' }}>
-            <h2 style={{ fontSize: '1.8rem', fontWeight: 600, marginBottom: 24 }}>Get Started</h2>
-            <p style={{ opacity: 0.6 }}>Install command, API example, and GitHub link will appear here.</p>
+        {/* Developer Quick Start -- placeholder for Plan 03 */}
+        <VirtualSection id="developer" minHeight={300}>
+          <div style={{ paddingTop: 120, paddingBottom: 60 }}>
+            <h2
+              style={{
+                fontSize: '2rem',
+                fontWeight: 700,
+                margin: 0,
+                textAlign: 'center',
+                color: '#fff',
+              }}
+            >
+              Developer Quick Start
+            </h2>
+            <p
+              style={{
+                fontSize: '1rem',
+                color: 'rgba(255, 255, 255, 0.6)',
+                margin: '12px 0 0',
+                textAlign: 'center',
+              }}
+            >
+              Install command, API example, and GitHub link coming soon.
+            </p>
           </div>
         </VirtualSection>
       </main>
