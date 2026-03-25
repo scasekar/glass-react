@@ -52,8 +52,8 @@ describe('GlassChip', () => {
 
   it('clicking calls onToggle with !selected (true -> false)', () => {
     const onToggle = vi.fn();
-    render(<GlassChip label="Toggle" selected={true} onToggle={onToggle} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Toggle' }));
+    render(<GlassChip label="Untoggle" selected={true} onToggle={onToggle} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Untoggle' }));
     expect(onToggle).toHaveBeenCalledWith(false);
   });
 
