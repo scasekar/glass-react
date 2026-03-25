@@ -4,6 +4,18 @@
 
 A React component library implementing Apple's "Liquid Glass" visual aesthetic using WebGPU. A C++20/WASM engine renders procedural noise or image backgrounds to a GPU texture, and a JS/WebGPU glass pipeline applies refraction, blur, tint, Fresnel, specular highlights, rim lighting, and chromatic aberration effects. React components (GlassPanel, GlassButton, GlassCard) drive the glass renderer with typed props. Architecture is pluggable — any C++ WebGPU engine can provide a background texture. Includes a visual parity toolchain: SwiftUI reference app, automated screenshot diffing, and coordinate-descent tuning.
 
+## Current Milestone: v4.0 Glass Control Library & Showcase
+
+**Goal:** Build a pixel-perfect Apple Liquid Glass control library with functional UI widgets (buttons, toggles, sliders, segmented controls, modals, etc.) and a polished showcase page that replaces the current tuning page as the main landing — demonstrating library capabilities to both developers and designers.
+
+**Target features:**
+- Comprehensive set of Apple Liquid Glass UI controls matching Apple's HIG
+- Each control is functional (toggles toggle, sliders slide, forms validate)
+- Pixel-perfect fidelity to Apple's Liquid Glass design language
+- Showcase page as main landing, with tuning controls accessible via toggle/drawer
+- Built using frontend-design + ui-ux-pro-max skills for professional quality
+- All controls powered by the existing GlassPanel/GlassButton/GlassCard + GlassRenderer pipeline
+
 ## Core Value
 
 Glass components that look and feel like Apple's Liquid Glass — the refraction of a dynamic background through UI elements must be visually convincing and performant at 60FPS.
@@ -38,11 +50,15 @@ Glass components that look and feel like Apple's Liquid Glass — the refraction
 
 ### Active
 
-(None yet — planning next milestone)
+- [ ] Pixel-perfect Apple Liquid Glass UI controls (buttons, toggles, sliders, segmented controls, etc.)
+- [ ] Functional controls with real interactivity (not visual-only demos)
+- [ ] Showcase page replacing tuning page as main landing
+- [ ] Tuning controls accessible via toggle/drawer from showcase
+- [ ] Professional design quality using frontend-design + ui-ux-pro-max skills
 
 ### Out of Scope
 
-- Showcase/landing page — deferred to next milestone after re-tuning is validated
+- ~~Showcase/landing page~~ — now Active in v4.0
 - Plugging into `sc` engine — architecture supports it, integration comes in a later milestone
 - Gyroscope/device tilt interaction — deferred, get static visuals right first
 - Content-blur mode (frosted glass over page content) — requires additional compositor
@@ -104,4 +120,4 @@ Package: ESM bundle with SINGLE_FILE embedded WASM, peer dependency on React ^18
 | Explicit bind group layouts over layout:'auto' | Required for multi-region texture sharing across draw calls | ✓ Good — stable pipeline, no layout conflicts |
 
 ---
-*Last updated: 2026-03-25 after v3.0 milestone completion*
+*Last updated: 2026-03-25 after v4.0 milestone start*
