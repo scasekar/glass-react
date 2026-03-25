@@ -102,3 +102,63 @@ export interface GlassCardProps extends GlassStyleProps {
   style?: React.CSSProperties;
   ref?: React.Ref<HTMLElement>;
 }
+
+/** Props for GlassChip (selectable pill toggle) */
+export interface GlassChipProps {
+  /** Text label displayed inside the chip */
+  label: string;
+  /** Whether the chip is currently selected */
+  selected: boolean;
+  /** Callback fired with new selected state when chip is toggled */
+  onToggle: (selected: boolean) => void;
+  /** Whether the chip is disabled */
+  disabled?: boolean;
+  /** Additional CSS class name */
+  className?: string;
+  /** Additional inline styles */
+  style?: React.CSSProperties;
+}
+
+/** Props for GlassStepper (numeric +/- control) */
+export interface GlassStepperProps {
+  /** Current numeric value */
+  value: number;
+  /** Callback fired with new value on increment/decrement */
+  onChange: (value: number) => void;
+  /** Minimum allowed value. Default: 0 */
+  min?: number;
+  /** Maximum allowed value. Default: 10 */
+  max?: number;
+  /** Increment/decrement step size. Default: 1 */
+  step?: number;
+  /** Accessible label for the stepper group */
+  label?: string;
+  /** Whether the stepper is disabled */
+  disabled?: boolean;
+  /** Additional CSS class name */
+  className?: string;
+  /** Additional inline styles */
+  style?: React.CSSProperties;
+}
+
+/** Props for GlassInput (glass-bordered text field) */
+export interface GlassInputProps {
+  /** Label text rendered above the input */
+  label?: string;
+  /** Controlled input value */
+  value: string;
+  /** Called with the new value when the user types */
+  onChange: (value: string) => void;
+  /** Placeholder text */
+  placeholder?: string;
+  /** HTML input type (text, email, password, etc.) */
+  type?: string;
+  /** HTML id for the input element */
+  id?: string;
+  /** Whether the input is disabled */
+  disabled?: boolean;
+  /** Additional CSS class name for the outer wrapper */
+  className?: string;
+  /** Additional inline styles for the outer wrapper */
+  style?: React.CSSProperties;
+}
