@@ -70,11 +70,14 @@ Full details: [milestones/v3.0-ROADMAP.md](milestones/v3.0-ROADMAP.md)
 **Depends on**: Phase 19 (v3.0 complete)
 **Requirements**: FND-01, FND-02, FND-03
 **Success Criteria** (what must be TRUE):
-  1. Adding a 17th glass region triggers a console warning and returns a no-op handle instead of corrupting the uniform buffer
+  1. Adding a 33rd glass region throws an error instead of corrupting the uniform buffer
   2. GlassEffectContainer wraps multiple glass children and provides a shared morph ID namespace visible in React DevTools
   3. Apple design tokens (APPLE_SPACING, APPLE_RADII, APPLE_CONTROL_SIZES) are importable from the library and match Apple HIG reference dimensions
-  4. motion and @radix-ui/* packages are installed and a smoke test (spring animation on a GlassPanel) renders without errors
-**Plans**: TBD
+  4. motion and @radix-ui/* packages are installed and a smoke test (spring animation + Radix Switch) renders without errors
+**Plans**: 2 plans
+Plans:
+- [ ] 20-01-PLAN.md — Region budget increase, overflow guard, dependency installation, smoke test
+- [ ] 20-02-PLAN.md — Apple design tokens and GlassEffectContainer primitive
 
 ### Phase 21: Core Interactive Controls
 **Goal**: Users can interact with toggle, slider, and segmented controls that feel like native Apple Liquid Glass widgets
@@ -142,7 +145,7 @@ Full details: [milestones/v3.0-ROADMAP.md](milestones/v3.0-ROADMAP.md)
 | 1-8 | v1.0 | 16/16 | Complete | 2026-02-10 |
 | 9-14 | v2.0 | 13/13 | Complete | 2026-03-24 |
 | 15-19 | v3.0 | 14/14 | Complete | 2026-03-25 |
-| 20. Foundation & Safety Rails | v4.0 | 0/TBD | Not started | - |
+| 20. Foundation & Safety Rails | v4.0 | 0/2 | Planning | - |
 | 21. Core Interactive Controls | v4.0 | 0/TBD | Not started | - |
 | 22. Core Discrete Controls | v4.0 | 0/TBD | Not started | - |
 | 23. Navigation Controls | v4.0 | 0/TBD | Not started | - |
