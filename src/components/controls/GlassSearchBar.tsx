@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { GlassPanel } from '../GlassPanel';
 import { GlassButton } from '../GlassButton';
@@ -136,21 +136,25 @@ export function GlassSearchBar({
             exit={{ opacity: 0, x: 20 }}
             transition={{ type: 'spring', stiffness: 400, damping: 30 }}
           >
-            <GlassButton
-              cornerRadius={APPLE_RADII.md}
-              onMouseDown={(e) => {
+            {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions */}
+            <div
+              onMouseDown={(e: React.MouseEvent) => {
                 // Prevent the input blur from firing before the click handler
                 e.preventDefault();
               }}
-              onClick={handleCancel}
-              style={{
-                fontSize: 15,
-                padding: `${APPLE_SPACING.xs}px ${APPLE_SPACING.sm}px`,
-                whiteSpace: 'nowrap',
-              }}
             >
-              Cancel
-            </GlassButton>
+              <GlassButton
+                cornerRadius={APPLE_RADII.md}
+                onClick={handleCancel}
+                style={{
+                  fontSize: 15,
+                  padding: `${APPLE_SPACING.xs}px ${APPLE_SPACING.sm}px`,
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                Cancel
+              </GlassButton>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
