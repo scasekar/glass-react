@@ -75,29 +75,52 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
     let rimSpread = mix(3.0, 6.0, modeF);
     let aberrationMul = mix(1.0, 1.5, modeF);
 
-    // --- Lens displacement (SDF-based edge compression) ---
-    // Matches reference: smoothstep(edgeZone, 0, sdfDist) creates a factor
-    // that is 1.0 deep inside (identity UV) and 0.0 at edges (max distortion).
-    // UVs are scaled toward center at edges = convex lens magnification.
+    // --- Snell's law refraction (SDF gradient as surface normal) ---
+    // The SDF gradient gives the surface normal at every pixel. Near edges,
+    // the normal points outward and Snell's law bends the UV lookup inward.
+    // Deep inside, gradient is zero → no refraction. This matches the iOS
+    // barrel-distortion lens effect.
     let glassCenter = glass.rect.xy + glass.rect.zw * 0.5;
     let localPos = uv - glassCenter;
 
     let glassMinHalf = min(rectHalf.x, rectHalf.y);
+
+    // SDF gradient via central differences (surface normal in pixel space)
+    let gradX = sdRoundedBox((pixelPos + vec2f(1.0, 0.0)) - rectCenter, rectHalf, clampedRadius)
+              - sdRoundedBox((pixelPos - vec2f(1.0, 0.0)) - rectCenter, rectHalf, clampedRadius);
+    let gradY = sdRoundedBox((pixelPos + vec2f(0.0, 1.0)) - rectCenter, rectHalf, clampedRadius)
+              - sdRoundedBox((pixelPos - vec2f(0.0, 1.0)) - rectCenter, rectHalf, clampedRadius);
+    let grad = vec2f(gradX, gradY);
+    let gradLen = max(length(grad), 0.0001);
+    let normal2d = grad / gradLen;
+
+    // Snell's law 2D refraction with edge-focused profile.
+    // iOS glass shows maximum displacement at the edges (convex lens barrel
+    // distortion) that smoothly fades to zero toward the center. The SDF
+    // gradient direction gives refraction direction; the distance from edge
+    // controls magnitude.
+    let ior = glass.fresnelIOR;
+    let snellBend = (1.0 / ior - 1.0);  // negative for IOR > 1 → pulls inward
+
+    // Edge proximity: 1.0 right at the boundary, falls off deeper inside
+    let edgeWidth = glassMinHalf * 0.6;  // refraction transition zone
+    let edgeProximity = 1.0 - smoothstep(0.0, edgeWidth, -dist);
+
+    // Scale: refractionStrength controls magnitude in pixels (converted to UV)
+    // At full strength, max displacement is refractionStrength pixels at the edge.
+    let effectiveRefraction = glass.refractionStrength * refractionMul;
+    let pixelOffset = normal2d * snellBend * edgeProximity * effectiveRefraction;
+    let refractOffset = pixelOffset / glass.resolution;
+
+    // Chromatic aberration: dispersion (different IOR per channel)
+    let aberrationNorm = glass.aberration * 0.008 * aberrationMul;
+    let rUV = uv + refractOffset * (1.0 + aberrationNorm);
+    let gUV = uv + refractOffset;
+    let bUV = uv + refractOffset * (1.0 - aberrationNorm);
+
+    // displacementFactor for specular/aberration blend (1=center, 0=edge)
     let innerZone = glassMinHalf * 0.4;
     let displacementFactor = smoothstep(0.0, innerZone, -dist);
-
-    // Per-channel UV scaling for chromatic aberration
-    // At center (factor=1): all channels = 1.0 (identity, no aberration)
-    // At edges (factor=0): channels diverge (R wider, B narrower)
-    let aberrationNorm = glass.aberration * 0.008;
-    let effectiveRefraction = glass.refractionStrength * refractionMul;
-    let rScale = mix(1.0 - effectiveRefraction - aberrationNorm * aberrationMul, 1.0, displacementFactor);
-    let gScale = mix(1.0 - effectiveRefraction, 1.0, displacementFactor);
-    let bScale = mix(1.0 - effectiveRefraction + aberrationNorm * aberrationMul, 1.0, displacementFactor);
-
-    let rUV = localPos * rScale + glassCenter;
-    let gUV = localPos * gScale + glassCenter;
-    let bUV = localPos * bScale + glassCenter;
 
     // --- 81-tap (9x9) Gaussian blur at green UV + 2 aberration samples ---
     // Sample spacing is derived from the background texture's actual dimensions
