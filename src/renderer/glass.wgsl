@@ -70,12 +70,6 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
     let clampedRadius = min(glass.cornerRadius * dpr, min(rectHalf.x, rectHalf.y));
     let dist = sdRoundedBox(pixelPos - rectCenter, rectHalf, clampedRadius);
 
-    // Early discard: skip ALL expensive work for pixels outside the glass region
-    // 2px feather margin for antialiasing
-    if (dist > 2.0) {
-        return vec4f(0.0, 0.0, 0.0, 0.0);
-    }
-
     let fw = fwidth(dist);
     let mask = smoothstep(fw, -fw, dist);
 
