@@ -75,53 +75,59 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
     let rimSpread = mix(3.0, 6.0, modeF);
     let aberrationMul = mix(1.0, 1.5, modeF);
 
-    // --- Convex lens magnification (Snell's law inspired) ---
-    // iOS glass shows the background MAGNIFIED inside the circle — content
-    // appears slightly zoomed in, with maximum distortion at edges.
-    // This is a UV scale operation (not offset): UVs are pulled toward center,
-    // making the sampled region smaller → magnification effect.
-    //
-    // The scale factor varies from 1.0 (no zoom) at edges to (1 - strength)
-    // at center, creating barrel distortion: edges show the most displacement
-    // because the scale gradient is steepest there.
+    // --- Plano-convex dome refraction (Apple Liquid Glass model) ---
+    // Simulates a glass dome: flat back, curved front like a water droplet.
+    // SDF depth = glass thickness. Center is deep (thick, flat surface = no
+    // refraction). Edges are shallow (steep surface = maximum refraction).
+    // Uses Snell's law: offset = -surfaceNormal * tan(θt - θi)
     let glassCenter = glass.rect.xy + glass.rect.zw * 0.5;
     let localPos = uv - glassCenter;
 
     let glassMinHalf = min(rectHalf.x, rectHalf.y);
 
-    // Edge proximity: 1.0 right at the boundary, 0.0 deep inside
-    let innerZone = glassMinHalf * 0.8;
-    let depthFactor = smoothstep(0.0, innerZone, -dist);     // 0 at edge, 1 at center
-    let edgeFactor = 1.0 - depthFactor;                       // 1 at edge, 0 at center
-    // displacementFactor for specular/aberration blend
-    let displacementFactor = depthFactor;
+    // SDF gradient = surface normal direction (via central differences)
+    let gradX = sdRoundedBox((pixelPos + vec2f(1.0, 0.0)) - rectCenter, rectHalf, clampedRadius)
+              - sdRoundedBox((pixelPos - vec2f(1.0, 0.0)) - rectCenter, rectHalf, clampedRadius);
+    let gradY = sdRoundedBox((pixelPos + vec2f(0.0, 1.0)) - rectCenter, rectHalf, clampedRadius)
+              - sdRoundedBox((pixelPos - vec2f(0.0, 1.0)) - rectCenter, rectHalf, clampedRadius);
+    let surfaceNormal = vec2f(gradX, gradY) * 0.5;  // central diff → divide by 2
+    let normalLen = length(surfaceNormal);
 
-    // Convex lens magnification: UVs scale toward center more at edges.
-    // At center: scaleFactor ≈ 1.0 (no distortion, identity UV).
-    // At edge: scaleFactor < 1.0 (UVs pulled toward center = magnification).
-    // This creates barrel distortion: edges show maximum displacement.
-    let effectiveRefraction = glass.refractionStrength * refractionMul;
-    let scaleFactor = 1.0 - effectiveRefraction * edgeFactor;
+    // Glass dome thickness: 0 at edge (SDF=0), increases toward center
+    let glassThickness = glassMinHalf * glass.refractionStrength;
+    let normalizedDepth = clamp(-dist / glassThickness, 0.0, 1.0);
 
-    // Per-channel scaling for chromatic aberration (dispersion)
-    let aberrationNorm = glass.aberration * 0.008 * aberrationMul;
-    let rScale = scaleFactor * (1.0 + aberrationNorm * (1.0 - depthFactor));
-    let gScale = scaleFactor;
-    let bScale = scaleFactor * (1.0 - aberrationNorm * (1.0 - depthFactor));
+    // Snell's law on the dome surface:
+    // incidentAngle from depth ratio (quadratic ramp for natural droplet shape)
+    let depthRatio = 1.0 - normalizedDepth;  // 1 at edge, 0 at center
+    let incidentAngle = asin(clamp(depthRatio * depthRatio, 0.0, 0.999));
+    let ior = glass.fresnelIOR;
+    let transmittedAngle = asin(clamp(sin(incidentAngle) / ior, -0.999, 0.999));
 
-    let rUV = localPos * rScale + glassCenter;
-    let gUV = localPos * gScale + glassCenter;
-    let bUV = localPos * bScale + glassCenter;
+    // Edge shift: tangent of angle difference (how much the ray bends)
+    let edgeShift = -tan(transmittedAngle - incidentAngle);
 
-    // --- 81-tap (9x9) Gaussian blur at green UV + 2 aberration samples ---
-    // Sample spacing is derived from the background texture's actual dimensions
-    // (via textureDimensions), NOT glass.resolution. When the scene texture is
-    // lower-res than the glass canvas (e.g. renderer at CSS pixels, glass at
-    // device pixels), using glass.resolution would make samples land within the
-    // same source texel, producing blocky blur.
-    // blurRadius is in CSS pixels which matches source texture texels (no DPR
-    // multiplier needed). Step = blurRadius/4 so the outermost tap (index ±4)
-    // lands exactly ±blurRadius source texels from center.
+    // UV offset: surface normal direction × shift × dome thickness
+    // surfaceNormal has magnitude ~1 (unit normal from SDF gradient).
+    // edgeShift is the tangent of the angle difference (dimensionless).
+    // Multiplying by glassThickness converts to pixel-scale displacement
+    // proportional to the dome size — larger glass = more refraction.
+    let refractPixels = surfaceNormal * edgeShift * glassThickness * 0.5;
+    let refractOffset = refractPixels / glass.resolution;
+
+    // Chromatic aberration: different IOR per channel (dispersion)
+    let aberrationNorm = glass.aberration * 0.002 * aberrationMul;
+    let rUV = uv + refractOffset * (1.0 + aberrationNorm);
+    let gUV = uv + refractOffset;
+    let bUV = uv + refractOffset * (1.0 - aberrationNorm);
+
+    // displacementFactor for specular/aberration blend (1=center, 0=edge)
+    let displacementFactor = normalizedDepth;
+
+    // --- 81-tap (9x9) Gaussian blur at REFRACTED UV ---
+    // Blur is applied at the refracted position so the frosted glass effect
+    // shows through the dome displacement. Each blur sample is offset by
+    // refractOffset so the entire blurred patch is displaced, not averaged away.
     let bgDims = vec2f(textureDimensions(texBackground));
     let texelSize = 1.0 / bgDims;
     let sampleStep = glass.blurRadius / 4.0;
@@ -129,6 +135,7 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
     var blurColor = vec4f(0.0);
     var totalWeight = 0.0;
 
+    // Blur centered on the refracted UV (gUV = uv + refractOffset)
     for (var x = -4; x <= 4; x++) {
         for (var y = -4; y <= 4; y++) {
             let r2 = f32(x * x + y * y);
@@ -140,7 +147,7 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
     }
     blurColor /= totalWeight;
 
-    // Chromatic aberration (edge-only, 2 extra samples)
+    // Chromatic aberration: sample sharp (unblurred) at dispersed UVs
     let rSample = textureSample(texBackground, texSampler, rUV);
     let bSample = textureSample(texBackground, texSampler, bUV);
 

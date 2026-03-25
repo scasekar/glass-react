@@ -100,7 +100,8 @@ export const TUNING_PHASES: TuningPhase[] = [
       // Set visually via manual comparison with iOS reference.
       // { key: 'refraction',  min: 0,   max: 1.0,  step: 0.1,  minStep: 0.02 },
       { key: 'aberration',  min: 0,   max: 8,    step: 0.8,  minStep: 0.1 },
-      { key: 'fresnelIOR',  min: 1.0, max: 2.5,  step: 0.15, minStep: 0.03 },
+      // fresnelIOR is LOCKED at 1.5 — tuner zeroes refraction by setting IOR=1.0
+      // { key: 'fresnelIOR',  min: 1.0, max: 2.5,  step: 0.15, minStep: 0.03 },
     ],
     maxCycles: 5,
   },
