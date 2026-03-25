@@ -2,20 +2,7 @@
 
 ## What This Is
 
-A React component library implementing Apple's "Liquid Glass" visual aesthetic using a shared WebGPU context between a C++20/WASM background engine and React UI components. The C++ engine renders either procedural simplex noise or a loaded image to a GPU texture via a two-pass architecture, and React glass components (GlassPanel, GlassButton, GlassCard) sample that texture through refraction/blur/tint shaders with premium visual effects including chromatic aberration, specular highlights, rim lighting, and smooth morphing transitions. Includes a full visual parity toolchain: SwiftUI reference app, automated screenshot diffing, and coordinate-descent tuning loop for converging toward Apple's native Liquid Glass appearance.
-
-## Current Milestone: v3.0 Architecture Redesign
-
-**Goal:** Redesign the rendering architecture so JS/WebGPU owns the glass shader pipeline while C++/WASM only handles background rendering, with shared GPU texture between them. This makes the glass library pluggable — any C++ WebGPU engine (noise, image, or external engines like `sc`) can provide a scene texture that React glass components composite over.
-
-**Target features:**
-- JS creates GPUDevice and passes it to C++ engine (flip from current C++-creates-device)
-- C++ engine renders backgrounds (noise/image) to an offscreen texture only — all glass shader code removed from C++
-- JS/WebGPU glass rendering pipeline: refraction, blur, tint, Fresnel, specular, chromatic aberration — driven entirely from TypeScript
-- Shared texture bridge: C++ exposes scene texture handle, JS reads it for glass compositing
-- Same React component API (GlassPanel, GlassButton, GlassCard) backed by JS WebGPU rendering
-- Dev-oriented tuning page redesigned with frontend-design + ui-ux-pro-max skills
-- Re-tuning and visual diff validation against iOS reference after architecture change
+A React component library implementing Apple's "Liquid Glass" visual aesthetic using WebGPU. A C++20/WASM engine renders procedural noise or image backgrounds to a GPU texture, and a JS/WebGPU glass pipeline applies refraction, blur, tint, Fresnel, specular highlights, rim lighting, and chromatic aberration effects. React components (GlassPanel, GlassButton, GlassCard) drive the glass renderer with typed props. Architecture is pluggable — any C++ WebGPU engine can provide a background texture. Includes a visual parity toolchain: SwiftUI reference app, automated screenshot diffing, and coordinate-descent tuning.
 
 ## Core Value
 
@@ -41,16 +28,17 @@ Glass components that look and feel like Apple's Liquid Glass — the refraction
 - ✓ Automated screenshot-based visual diffing (Playwright + iOS Simulator + pixelmatch) — v2.0
 - ✓ Coordinate-descent auto-tuning loop to converge shader params toward Apple's Liquid Glass — v2.0
 - ✓ Bundled default wallpaper image — v2.0
+- ✓ JS creates GPUDevice, passes to C++ engine via importJsDevice pattern — v3.0
+- ✓ C++ engine renders only backgrounds to offscreen texture — glass shaders removed from C++ — v3.0
+- ✓ JS/WebGPU glass rendering pipeline (refraction, blur, tint, Fresnel, specular, chromatic aberration, rim lighting) — v3.0
+- ✓ Shared texture bridge: C++ exposes scene texture, JS reads it for glass compositing — v3.0
+- ✓ React components backed by JS WebGPU rendering with same prop API — v3.0
+- ✓ Dev tuning page redesigned with design tokens, SectionAccordion, preset chips — v3.0
+- ✓ Visual parity maintained after architecture change — plano-convex dome refraction — v3.0
 
 ### Active
 
-- [ ] JS creates GPUDevice and passes to C++ engine via preinitializedWebGPUDevice pattern
-- [ ] C++ engine renders only backgrounds (noise/image) to offscreen texture — glass shaders removed from C++
-- [ ] JS/WebGPU glass rendering pipeline with all current effects (refraction, blur, tint, Fresnel, specular, chromatic aberration, rim lighting)
-- [ ] Shared texture bridge: C++ exposes scene texture, JS reads it for glass compositing
-- [ ] React components (GlassPanel, GlassButton, GlassCard) backed by JS WebGPU rendering with same prop API
-- [ ] Dev tuning page redesigned using frontend-design + ui-ux-pro-max skills
-- [ ] Visual parity maintained: re-tune and validate against iOS reference after architecture change
+(None yet — planning next milestone)
 
 ### Out of Scope
 
@@ -66,11 +54,11 @@ Glass components that look and feel like Apple's Liquid Glass — the refraction
 
 ## Context
 
-Shipped v2.0 with ~18K lines changed across C++, TypeScript, WGSL, and Swift.
+Shipped v3.0 with ~6,874 LOC across C++, TypeScript, WGSL. 29 commits in v3.0 milestone.
 Tech stack: React 19, Vite 6.4, Emscripten 4.0.16, emdawnwebgpu, C++20, WebGPU, Playwright, pixelmatch.
-Architecture (v2.0, being redesigned): C++ engine renders noise or image to offscreen texture → C++ glass shader samples with refraction/blur → multi-region rendering with dynamic uniform buffer offsets → React components track DOM positions via rAF.
-Target architecture (v3.0): JS creates GPUDevice → passes to C++ engine → C++ renders background to offscreen texture → JS/WebGPU glass pipeline reads texture and applies all effects → React components drive JS glass renderer.
-Reference pattern: `../sc/scTarsiusWeb` uses JS-creates-device + `preinitializedWebGPUDevice` + `emscripten_webgpu_get_device()` + offscreen scene texture exposed via `getSceneTextureJS()`.
+Architecture (v3.0): JS creates GPUDevice → passes to C++ engine via importJsDevice → C++ renders background to offscreen texture → JS GlassRenderer class reads texture and applies all glass effects → React components drive JS glass renderer via registerRegion/setRegionXxx API.
+Pluggable design: Any C++ WebGPU engine providing a scene texture can replace the built-in noise/image engine.
+Reference pattern: `../sc/scTarsiusWeb` uses same JS-creates-device + `preinitializedWebGPUDevice` architecture.
 Tuning toolchain: Playwright captures web screenshots, xcrun simctl captures iOS Simulator, sRGB normalization + pixelmatch diffing with ROI masking, coordinate-descent optimizer.
 Package: ESM bundle with SINGLE_FILE embedded WASM, peer dependency on React ^18/^19.
 
@@ -109,9 +97,11 @@ Package: ESM bundle with SINGLE_FILE embedded WASM, peer dependency on React ^18
 | Fresnel as additive specular layer | Physics-based edge reflection on top of existing specular, not replacement | ✓ Good — visually accurate |
 | Chrome channel for Playwright WebGPU | Bundled Chromium lacks GPU; system Chrome with --enable-gpu flags works | ✓ Good — reliable headless captures |
 | Coordinate descent with tint decomposition | Tint split into 3 independent axes for per-channel optimization | ✓ Good — converges efficiently |
-| JS-creates-device architecture for v3.0 | Matches scTarsiusWeb pattern; enables pluggable C++ engines; JS owns glass pipeline | — Pending |
-| Glass shaders move from C++ to JS/WebGPU | Glass is web-only UI concern; C++ engines target many platforms, glass is web-specific | — Pending |
-| frontend-design + ui-ux-pro-max for test page | Dev tuning tool gets design refresh; showcase page deferred to next milestone | — Pending |
+| JS-creates-device architecture for v3.0 | Matches scTarsiusWeb pattern; enables pluggable C++ engines; JS owns glass pipeline | ✓ Good — pluggable architecture achieved |
+| Glass shaders move from C++ to JS/WebGPU | Glass is web-only UI concern; C++ engines target many platforms, glass is web-specific | ✓ Good — GlassRenderer TypeScript class with 27 unit tests |
+| frontend-design + ui-ux-pro-max for test page | Dev tuning tool gets design refresh; showcase page deferred to next milestone | ✓ Good — design tokens, SectionAccordion, preset chips |
+| Plano-convex dome refraction model | Snell's law with SDF gradient normals and pow4 depth curve matches Apple's water-droplet effect | ✓ Good — discovered during v3.0 visual tuning |
+| Explicit bind group layouts over layout:'auto' | Required for multi-region texture sharing across draw calls | ✓ Good — stable pipeline, no layout conflicts |
 
 ---
-*Last updated: 2026-03-24 after v3.0 milestone start*
+*Last updated: 2026-03-25 after v3.0 milestone completion*

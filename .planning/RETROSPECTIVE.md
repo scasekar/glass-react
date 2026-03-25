@@ -2,6 +2,50 @@
 
 *A living document updated after each milestone. Lessons feed forward into future planning.*
 
+## Milestone: v3.0 — Architecture Redesign
+
+**Shipped:** 2026-03-25
+**Phases:** 5 | **Plans:** 14
+
+### What Was Built
+- Flipped device ownership: JS creates GPUDevice, passes to C++ via importJsDevice (60% WASM binary reduction)
+- GlassRenderer TypeScript class with explicit bind group layouts, dynamic offset uniform buffer, 27 unit tests
+- React integration preserved: same GlassPanel/GlassButton/GlassCard API, all 16 shader params, accessibility
+- Plano-convex dome refraction via Snell's law — pow4 depth curve, SDF gradient surface normals, edge-focused displacement matching iOS
+- Tuning page redesigned with design tokens, SectionAccordion, preset chips, Copy URL
+- Visual validation pipeline updated for new architecture
+
+### What Worked
+- Parallel phases: 15+16 ran in parallel (GlassRenderer tested against synthetic texture), 18+19 ran in parallel
+- Research agents caught key architecture patterns early (explicit bind group layouts, ArrayBuffer pass-through for writeBuffer)
+- Incremental integration approach: each phase produced independently testable artifacts
+- Guard-pattern setters for safe no-op on unknown region IDs prevented runtime errors during integration
+
+### What Was Inefficient
+- REACT-04 and VIS-01 requirement checkboxes not updated despite being delivered — recurring traceability gap from v2.0
+- STATE.md progress tracking fell behind (showed 97% when all 14 plans were complete)
+- v3.0 progress table in ROADMAP.md had column misalignment for phases 15-19
+
+### Patterns Established
+- JS-creates-device + preinitializedWebGPUDevice pattern for pluggable C++ engines
+- Explicit bind group layouts (not layout:'auto') for multi-region texture sharing
+- CSS custom property `--pct` for range track fill gradient (no JS painting needed)
+- Token object as-const for TS type safety over CSS custom properties
+
+### Key Lessons
+1. Requirement checkbox tracking must happen in the same commit as SUMMARY.md — this is the third milestone with traceability gaps
+2. Explicit bind group layouts are required when sharing textures across draw calls — layout:'auto' causes silent failures
+3. Plano-convex dome refraction (Snell's law + SDF gradients) is the key to matching Apple's water-droplet glass aesthetic
+4. ArrayBuffer pass-through for writeBuffer satisfies @webgpu/types strict typing without unsafe casts
+
+### Cost Observations
+- Model mix: quality profile (Opus for research/roadmap)
+- 29 commits across v3.0, ~6,874 LOC total
+- Most plans completed in 1-2 min; Phase 18-01 (visual validation) took 10 min
+- Notable: Architecture redesign (5 phases) completed faster than visual toolchain (6 phases in v2.0)
+
+---
+
 ## Milestone: v2.0 — Visual Parity
 
 **Shipped:** 2026-03-24
@@ -54,8 +98,10 @@
 |-----------|--------|-------|------------|
 | v1.0 MVP | 8 | 16 | Initial project setup, core engine + React components |
 | v2.0 Visual Parity | 6 | 13 | Added visual toolchain (reference app, diffing, auto-tuning) |
+| v3.0 Architecture Redesign | 5 | 14 | JS/WebGPU owns glass pipeline; C++ background-only; pluggable architecture |
 
 ### Top Lessons (Verified Across Milestones)
 
-1. AllowSpontaneous callbacks for emdawnwebgpu device init — discovered in v1.0, remained critical through v2.0
+1. AllowSpontaneous callbacks for emdawnwebgpu device init — discovered in v1.0, remained critical through v3.0
 2. sRGB color space correctness must be validated early — affects both rendering and comparison pipelines
+3. Requirement checkbox tracking must happen in the same commit as SUMMARY.md — traceability gaps recurred in v2.0 and v3.0
