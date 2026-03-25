@@ -51,14 +51,14 @@ describe('GlassTabBar', () => {
     expect(screen.getByText('Profile')).toBeDefined();
   });
 
-  it('active tab has aria-pressed="true"', () => {
+  it('active tab has data-state="on" (Radix ToggleGroup active state)', () => {
     render(
       <GlassTabBar value="home" onValueChange={() => {}} tabs={tabs} />
     );
     const homeBtn = screen.getByLabelText('Home');
-    expect(homeBtn.getAttribute('aria-pressed')).toBe('true');
+    expect(homeBtn.getAttribute('data-state')).toBe('on');
     const searchBtn = screen.getByLabelText('Search');
-    expect(searchBtn.getAttribute('aria-pressed')).toBe('false');
+    expect(searchBtn.getAttribute('data-state')).toBe('off');
   });
 
   it('clicking a non-active tab calls onValueChange with that tab value', async () => {
