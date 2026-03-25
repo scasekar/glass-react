@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v4.0
 milestone_name: Glass Control Library & Showcase
 status: executing
-stopped_at: Completed 20-01-PLAN.md
-last_updated: "2026-03-25T05:06:48Z"
-last_activity: 2026-03-25 — Completed 20-01 (region budget + deps)
+stopped_at: Completed 20-02-PLAN.md
+last_updated: "2026-03-25T05:12:41Z"
+last_activity: 2026-03-25 — Completed 20-02 (Apple tokens + GlassEffectContainer)
 progress:
   total_phases: 6
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 2
-  completed_plans: 1
-  percent: 8
+  completed_plans: 2
+  percent: 17
 ---
 
 # Project State
@@ -25,12 +25,12 @@ See: .planning/PROJECT.md (updated 2026-03-25)
 
 ## Current Position
 
-Phase: 20 of 25 (Foundation & Safety Rails)
-Plan: 1 of 2 complete
-Status: Executing Phase 20
-Last activity: 2026-03-25 — Completed 20-01 (region budget + deps)
+Phase: 20 of 25 (Foundation & Safety Rails) -- COMPLETE
+Plan: 2 of 2 complete
+Status: Phase 20 complete, ready for Phase 21
+Last activity: 2026-03-25 — Completed 20-02 (Apple tokens + GlassEffectContainer)
 
-Progress: [#░░░░░░░░░] 8%
+Progress: [##░░░░░░░░] 17%
 
 ## Performance Metrics
 
@@ -51,8 +51,9 @@ All prior decisions logged in PROJECT.md Key Decisions table.
 
 Research completed for v4.0:
 - motion (^12.38.0) + @radix-ui/* selected as new dependencies
-- GlassEffectContainer needed for shared morph ID grouping
+- GlassEffectContainer implemented with morph ID context (20-02 complete)
 - MAX_GLASS_REGIONS increased from 16 to 32 with overflow guard (20-01 complete)
+- Apple design tokens (APPLE_SPACING, APPLE_RADII, APPLE_CONTROL_SIZES) defined and exported (20-02 complete)
 - Showcase page needs IA/wireframe design before code (avoid kitchen sink)
 
 ### Pending Todos
@@ -65,6 +66,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-25T05:06:48Z
-Stopped at: Completed 20-01-PLAN.md
-Resume file: .planning/phases/20-foundation-safety-rails/20-01-SUMMARY.md
+Last session: 2026-03-25T05:12:41Z
+Stopped at: Completed 20-02-PLAN.md (Phase 20 complete)
+Resume file: .planning/phases/20-foundation-safety-rails/20-02-SUMMARY.md

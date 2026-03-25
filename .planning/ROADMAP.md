@@ -56,7 +56,7 @@ Full details: [milestones/v3.0-ROADMAP.md](milestones/v3.0-ROADMAP.md)
 
 **Milestone Goal:** Build a pixel-perfect Apple Liquid Glass control library with functional UI widgets and a polished showcase page that demonstrates library capabilities.
 
-- [ ] **Phase 20: Foundation & Safety Rails** - Region budget, design tokens, GlassEffectContainer, new dependencies
+- [x] **Phase 20: Foundation & Safety Rails** - Region budget, design tokens, GlassEffectContainer, new dependencies (completed 2026-03-25)
 - [ ] **Phase 21: Core Interactive Controls** - Toggle, slider, segmented control with spring animations
 - [ ] **Phase 22: Core Discrete Controls** - Chip, stepper, input field
 - [ ] **Phase 23: Navigation Controls** - Tab bar, navigation bar, toolbar, search bar
@@ -145,7 +145,7 @@ Plans:
 | 1-8 | v1.0 | 16/16 | Complete | 2026-02-10 |
 | 9-14 | v2.0 | 13/13 | Complete | 2026-03-24 |
 | 15-19 | v3.0 | 14/14 | Complete | 2026-03-25 |
-| 20. Foundation & Safety Rails | v4.0 | 1/2 | In Progress | - |
+| 20. Foundation & Safety Rails | 2/2 | Complete   | 2026-03-25 | - |
 | 21. Core Interactive Controls | v4.0 | 0/TBD | Not started | - |
 | 22. Core Discrete Controls | v4.0 | 0/TBD | Not started | - |
 | 23. Navigation Controls | v4.0 | 0/TBD | Not started | - |

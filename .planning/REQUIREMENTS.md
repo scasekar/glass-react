@@ -7,9 +7,9 @@
 
 ### Foundation
 
-- [ ] **FND-01**: GlassEffectContainer primitive provides shared sampling region and morph ID grouping for child controls
+- [x] **FND-01**: GlassEffectContainer primitive provides shared sampling region and morph ID grouping for child controls
 - [x] **FND-02**: MAX_GLASS_REGIONS increased from 16 to 32 with addRegion() guard preventing overflow
-- [ ] **FND-03**: Apple design tokens (spacing, radii, control sizes) defined as TypeScript const objects
+- [x] **FND-03**: Apple design tokens (spacing, radii, control sizes) defined as TypeScript const objects
 
 ### Core Controls
 
@@ -67,9 +67,9 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| FND-01 | Phase 20 | Pending |
+| FND-01 | Phase 20 | Complete |
 | FND-02 | Phase 20 | Complete |
-| FND-03 | Phase 20 | Pending |
+| FND-03 | Phase 20 | Complete |
 | CTRL-01 | Phase 21 | Pending |
 | CTRL-02 | Phase 21 | Pending |
 | CTRL-03 | Phase 21 | Pending |
