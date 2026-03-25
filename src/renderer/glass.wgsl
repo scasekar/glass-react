@@ -110,8 +110,8 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
     let edgeShift = -tan(transmittedAngle - incidentAngle);
 
     // UV offset: surface normal × shift × dome thickness
-    // 0.8 multiplier calibrated to match iOS edge displacement (~15-20px)
-    let refractPixels = surfaceNormal * edgeShift * glassThickness * 0.8;
+    // 3.0 multiplier calibrated to match iOS edge displacement (~40-50px)
+    let refractPixels = surfaceNormal * edgeShift * glassThickness * 3.0;
     let refractOffset = refractPixels / glass.resolution;
 
     // Chromatic aberration: different IOR per channel (dispersion)
