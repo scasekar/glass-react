@@ -39,7 +39,7 @@
 - [x] **SHOW-01**: Showcase page replaces tuning page as main landing with professional product layout
 - [x] **SHOW-02**: TuningDrawer provides slide-in access to all existing tuning controls from showcase
 - [x] **SHOW-03**: IntersectionObserver-based section virtualization keeps active GPU regions within budget
-- [ ] **SHOW-04**: Wallpaper selector allows switching background image/noise from showcase page
+- [x] **SHOW-04**: Wallpaper selector allows switching background image/noise from showcase page
 
 ## Future Requirements
 
@@ -87,7 +87,7 @@
 | SHOW-01 | Phase 25 | Complete |
 | SHOW-02 | Phase 25 | Complete |
 | SHOW-03 | Phase 25 | Complete |
-| SHOW-04 | Phase 25 | Pending |
+| SHOW-04 | Phase 25 | Complete |
 
 **Coverage:**
 - v4.0 requirements: 21 total
