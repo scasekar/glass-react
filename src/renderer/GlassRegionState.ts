@@ -111,6 +111,11 @@ export function buildGlassUniformData(u: GlassUniforms): Float32Array {
  * speed: 0 = instant snap, 1 = very slow
  */
 export function morphLerp(current: GlassUniforms, target: GlassUniforms, dt: number, morphSpeed: number): void {
+  // morphSpeed=0 means instant snap (no animation)
+  if (morphSpeed === 0 || dt === 0) {
+    Object.assign(current, { ...target, resolution: current.resolution, rect: current.rect, dpr: current.dpr });
+    return;
+  }
   const decay = Math.exp(-morphSpeed * dt);
   const lerp = (a: number, b: number) => a + (b - a) * (1 - decay);
 

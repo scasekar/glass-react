@@ -86,7 +86,7 @@ export default function App() {
             envReflectionStrength={params.envReflectionStrength}
             glareDirection={params.glareDirection}
           >
-            5
+            {/* No content — matches iOS reference which uses Color.clear */}
           </GlassButton>
         </div>
       </GlassProvider>

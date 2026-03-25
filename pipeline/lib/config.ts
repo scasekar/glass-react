@@ -57,8 +57,8 @@ function presetToQueryString(presetName: string): string {
 export const CONFIG: PipelineConfig = {
   size: 800,
   viewport: { width: 800, height: 800 },
-  devServerUrl: 'http://localhost:5173',
-  devServerPort: 5173,
+  devServerUrl: 'http://localhost:5174',
+  devServerPort: 5174,
 
   presets: {
     light: 'Clear Light',
