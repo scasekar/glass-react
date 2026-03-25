@@ -26,3 +26,11 @@ export type { EngineModule } from './wasm/loader';
 
 // Design tokens
 export { APPLE_SPACING, APPLE_RADII, APPLE_CONTROL_SIZES } from './tokens/apple';
+
+// Effect container
+export { GlassEffectContainer } from './components/GlassEffectContainer';
+export type { GlassEffectContainerProps } from './components/GlassEffectContainer';
+
+// Effect context hook (advanced usage)
+export { useGlassEffect } from './context/GlassEffectContext';
+export type { GlassEffectContextValue } from './context/GlassEffectContext';
