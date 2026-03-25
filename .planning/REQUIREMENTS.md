@@ -67,33 +67,33 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| FND-01 | — | Pending |
-| FND-02 | — | Pending |
-| FND-03 | — | Pending |
-| CTRL-01 | — | Pending |
-| CTRL-02 | — | Pending |
-| CTRL-03 | — | Pending |
-| CTRL-04 | — | Pending |
-| CTRL-05 | — | Pending |
-| CTRL-06 | — | Pending |
-| NAV-01 | — | Pending |
-| NAV-02 | — | Pending |
-| NAV-03 | — | Pending |
-| NAV-04 | — | Pending |
-| OVR-01 | — | Pending |
-| OVR-02 | — | Pending |
-| OVR-03 | — | Pending |
-| OVR-04 | — | Pending |
-| SHOW-01 | — | Pending |
-| SHOW-02 | — | Pending |
-| SHOW-03 | — | Pending |
-| SHOW-04 | — | Pending |
+| FND-01 | Phase 20 | Pending |
+| FND-02 | Phase 20 | Pending |
+| FND-03 | Phase 20 | Pending |
+| CTRL-01 | Phase 21 | Pending |
+| CTRL-02 | Phase 21 | Pending |
+| CTRL-03 | Phase 21 | Pending |
+| CTRL-04 | Phase 22 | Pending |
+| CTRL-05 | Phase 22 | Pending |
+| CTRL-06 | Phase 22 | Pending |
+| NAV-01 | Phase 23 | Pending |
+| NAV-02 | Phase 23 | Pending |
+| NAV-03 | Phase 23 | Pending |
+| NAV-04 | Phase 23 | Pending |
+| OVR-01 | Phase 24 | Pending |
+| OVR-02 | Phase 24 | Pending |
+| OVR-03 | Phase 24 | Pending |
+| OVR-04 | Phase 24 | Pending |
+| SHOW-01 | Phase 25 | Pending |
+| SHOW-02 | Phase 25 | Pending |
+| SHOW-03 | Phase 25 | Pending |
+| SHOW-04 | Phase 25 | Pending |
 
 **Coverage:**
 - v4.0 requirements: 21 total
-- Mapped to phases: 0
-- Unmapped: 21 ⚠️
+- Mapped to phases: 21
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-25*
-*Last updated: 2026-03-25 after initial definition*
+*Last updated: 2026-03-25 after roadmap creation*

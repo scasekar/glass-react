@@ -5,6 +5,7 @@
 - ✅ **v1.0 MVP** — Phases 1-8 (shipped 2026-02-10)
 - ✅ **v2.0 Visual Parity** — Phases 9-14 (shipped 2026-03-24)
 - ✅ **v3.0 Architecture Redesign** — Phases 15-19 (shipped 2026-03-25)
+- **v4.0 Glass Control Library & Showcase** — Phases 20-25 (in progress)
 
 ## Phases
 
@@ -39,7 +40,7 @@ Full details: [milestones/v2.0-ROADMAP.md](milestones/v2.0-ROADMAP.md)
 </details>
 
 <details>
-<summary>✅ v3.0 Architecture Redesign (Phases 15-19) — SHIPPED 2026-03-25</summary>
+<summary>v3.0 Architecture Redesign (Phases 15-19) — SHIPPED 2026-03-25</summary>
 
 - [x] Phase 15: WASM Thinning (3/3 plans) — completed 2026-03-24
 - [x] Phase 16: JS Glass Renderer (3/3 plans) — completed 2026-03-24
@@ -51,6 +52,89 @@ Full details: [milestones/v3.0-ROADMAP.md](milestones/v3.0-ROADMAP.md)
 
 </details>
 
+### v4.0 Glass Control Library & Showcase (In Progress)
+
+**Milestone Goal:** Build a pixel-perfect Apple Liquid Glass control library with functional UI widgets and a polished showcase page that demonstrates library capabilities.
+
+- [ ] **Phase 20: Foundation & Safety Rails** - Region budget, design tokens, GlassEffectContainer, new dependencies
+- [ ] **Phase 21: Core Interactive Controls** - Toggle, slider, segmented control with spring animations
+- [ ] **Phase 22: Core Discrete Controls** - Chip, stepper, input field
+- [ ] **Phase 23: Navigation Controls** - Tab bar, navigation bar, toolbar, search bar
+- [ ] **Phase 24: Overlay Controls** - Action sheet, alert, sheet, popover with portals
+- [ ] **Phase 25: Showcase Page** - Product landing page replacing tuning page as main entry
+
+## Phase Details
+
+### Phase 20: Foundation & Safety Rails
+**Goal**: Infrastructure and shared primitives are in place so controls can be built without hitting GPU limits or hardcoding pixel values
+**Depends on**: Phase 19 (v3.0 complete)
+**Requirements**: FND-01, FND-02, FND-03
+**Success Criteria** (what must be TRUE):
+  1. Adding a 17th glass region triggers a console warning and returns a no-op handle instead of corrupting the uniform buffer
+  2. GlassEffectContainer wraps multiple glass children and provides a shared morph ID namespace visible in React DevTools
+  3. Apple design tokens (APPLE_SPACING, APPLE_RADII, APPLE_CONTROL_SIZES) are importable from the library and match Apple HIG reference dimensions
+  4. motion and @radix-ui/* packages are installed and a smoke test (spring animation on a GlassPanel) renders without errors
+**Plans**: TBD
+
+### Phase 21: Core Interactive Controls
+**Goal**: Users can interact with toggle, slider, and segmented controls that feel like native Apple Liquid Glass widgets
+**Depends on**: Phase 20
+**Requirements**: CTRL-01, CTRL-02, CTRL-03
+**Success Criteria** (what must be TRUE):
+  1. GlassToggle renders at Apple's 51x31px dimensions, thumb slides with spring overshoot, and toggling updates bound state
+  2. GlassSlider thumb tracks pointer drag smoothly, value updates continuously, and glass fill reflects current position
+  3. GlassSegmentedControl displays a glass thumb capsule that spring-animates between segments when selection changes
+  4. All three controls respect reduced-motion (no spring overshoot) and reduced-transparency (solid fallback) preferences
+  5. Keyboard navigation works for all three controls (Tab to focus, Space/Arrow to operate)
+**Plans**: TBD
+
+### Phase 22: Core Discrete Controls
+**Goal**: Users can interact with chip, stepper, and input controls that complete the core control palette
+**Depends on**: Phase 20
+**Requirements**: CTRL-04, CTRL-05, CTRL-06
+**Success Criteria** (what must be TRUE):
+  1. GlassChip renders as a selectable pill with glass background, toggles selected/unselected state on click
+  2. GlassStepper renders +/- buttons with glass surfaces, increments and decrements a bound numeric value with min/max clamping
+  3. GlassInput renders a text field with glass border that gains a visible focus ring and glass intensity change on focus
+  4. All three controls are keyboard-accessible and announce state changes to screen readers
+**Plans**: TBD
+
+### Phase 23: Navigation Controls
+**Goal**: Users see familiar iOS navigation patterns (tab bar, nav bar, toolbar, search bar) rendered with Liquid Glass
+**Depends on**: Phase 21 (validates composition pattern at scale)
+**Requirements**: NAV-01, NAV-02, NAV-03, NAV-04
+**Success Criteria** (what must be TRUE):
+  1. GlassTabBar renders at screen bottom with glass background, highlights the active tab, and switching tabs updates content
+  2. GlassNavigationBar renders at screen top with glass background, displays a title, and a back action triggers its callback
+  3. GlassToolbar renders a row of icon buttons with glass background, each button triggers its callback on click
+  4. GlassSearchBar renders a glass capsule input that expands on focus, accepts text input, and has working clear/cancel actions
+  5. All navigation controls render correctly when composed together in a single viewport (no region conflicts)
+**Plans**: TBD
+
+### Phase 24: Overlay Controls
+**Goal**: Users can trigger and dismiss modal overlays (action sheets, alerts, sheets, popovers) that render with glass backgrounds above page content
+**Depends on**: Phase 20 (GlassEffectContainer, design tokens), Phase 21 (button patterns for action rows)
+**Requirements**: OVR-01, OVR-02, OVR-03, OVR-04
+**Success Criteria** (what must be TRUE):
+  1. GlassActionSheet slides up from bottom with glass option rows, each row triggers its callback, cancel dismisses the sheet
+  2. GlassAlert renders centered with glass background, displays title/message, and action buttons trigger callbacks and dismiss
+  3. GlassSheet renders as a half-height or full-height modal with glass background and can be dismissed by dragging down
+  4. GlassPopover renders anchored to its trigger element with glass background and dismisses on outside click
+  5. All overlay controls trap focus while open, return focus to trigger on dismiss, and close on Escape key
+**Plans**: TBD
+
+### Phase 25: Showcase Page
+**Goal**: A polished product landing page replaces the tuning page as the default route, demonstrating all controls in context with professional design quality
+**Depends on**: Phase 22, Phase 23, Phase 24 (all controls complete)
+**Requirements**: SHOW-01, SHOW-02, SHOW-03, SHOW-04
+**Success Criteria** (what must be TRUE):
+  1. Loading the app shows a showcase page with hero section, contextual control demonstrations, and developer quick-start — not the tuning UI
+  2. A toggle or drawer provides access to all existing tuning controls without leaving the showcase page
+  3. Scrolling through the showcase page does not exceed the GPU region budget — IntersectionObserver virtualizes off-screen sections
+  4. A wallpaper selector on the showcase page allows switching between background images and noise mode, updating all glass controls live
+  5. The showcase page looks like a professional product landing page, not a component kitchen sink
+**Plans**: TBD
+
 ## Progress
 
 | Phase | Milestone | Plans Complete | Status | Completed |
@@ -58,3 +142,9 @@ Full details: [milestones/v3.0-ROADMAP.md](milestones/v3.0-ROADMAP.md)
 | 1-8 | v1.0 | 16/16 | Complete | 2026-02-10 |
 | 9-14 | v2.0 | 13/13 | Complete | 2026-03-24 |
 | 15-19 | v3.0 | 14/14 | Complete | 2026-03-25 |
+| 20. Foundation & Safety Rails | v4.0 | 0/TBD | Not started | - |
+| 21. Core Interactive Controls | v4.0 | 0/TBD | Not started | - |
+| 22. Core Discrete Controls | v4.0 | 0/TBD | Not started | - |
+| 23. Navigation Controls | v4.0 | 0/TBD | Not started | - |
+| 24. Overlay Controls | v4.0 | 0/TBD | Not started | - |
+| 25. Showcase Page | v4.0 | 0/TBD | Not started | - |

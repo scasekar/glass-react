@@ -2,12 +2,12 @@
 gsd_state_version: 1.0
 milestone: v4.0
 milestone_name: Glass Control Library & Showcase
-status: defining_requirements
+status: ready_to_plan
 stopped_at: null
 last_updated: "2026-03-25"
-last_activity: "2026-03-25 -- Milestone v4.0 started"
+last_activity: "2026-03-25 -- Roadmap created with 6 phases (20-25)"
 progress:
-  total_phases: 0
+  total_phases: 6
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -21,14 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-25)
 
 **Core value:** Glass components that look and feel like Apple's Liquid Glass -- visually convincing refraction at 60FPS.
-**Current focus:** Defining requirements for v4.0 Glass Control Library & Showcase
+**Current focus:** Phase 20 - Foundation & Safety Rails
 
 ## Current Position
 
-Phase: Not started (defining requirements)
-Plan: —
-Status: Defining requirements
-Last activity: 2026-03-25 — Milestone v4.0 started
+Phase: 20 of 25 (Foundation & Safety Rails)
+Plan: Ready to plan
+Status: Ready to plan Phase 20
+Last activity: 2026-03-25 — Roadmap created for v4.0 (6 phases, 21 requirements)
+
+Progress: [░░░░░░░░░░] 0%
 
 ## Performance Metrics
 
@@ -39,13 +41,19 @@ Last activity: 2026-03-25 — Milestone v4.0 started
 | v1.0 MVP | 8 | 16 | 2026-02-10 |
 | v2.0 Visual Parity | 6 | 13 | 2026-03-24 |
 | v3.0 Architecture Redesign | 5 | 14 | 2026-03-25 |
-| v4.0 Glass Control Library | — | — | In progress |
+| v4.0 Glass Control Library | 6 | TBD | In progress |
 
 ## Accumulated Context
 
 ### Decisions
 
 All prior decisions logged in PROJECT.md Key Decisions table.
+
+Research completed for v4.0:
+- motion (^12.38.0) + @radix-ui/* selected as new dependencies
+- GlassEffectContainer needed for shared morph ID grouping
+- MAX_GLASS_REGIONS must increase from 16 to 32 before controls are built
+- Showcase page needs IA/wireframe design before code (avoid kitchen sink)
 
 ### Pending Todos
 
@@ -58,5 +66,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-03-25
-Stopped at: Defining requirements
+Stopped at: Roadmap created, ready to plan Phase 20
 Resume file: None
