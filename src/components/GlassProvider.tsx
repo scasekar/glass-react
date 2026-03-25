@@ -205,11 +205,16 @@ export function GlassProvider({ children, backgroundMode = 'image', engineRef }:
     });
   }, [ready]);
 
-  // Sync backgroundMode prop to C++ engine
+  // Sync backgroundMode prop to C++ engine and refresh scene texture
   useEffect(() => {
     if (!ready || !moduleRef.current) return;
     // 0 = Image, 1 = Noise (matches C++ BackgroundMode enum)
     moduleRef.current.setBackgroundMode(backgroundMode === 'image' ? 0 : 1);
+    // Refresh scene texture bind group — C++ may recreate offscreen texture on mode switch
+    const newTex = getSceneTexture(moduleRef.current);
+    if (newTex && rendererRef.current) {
+      rendererRef.current.setSceneTexture(newTex);
+    }
   }, [backgroundMode, ready]);
 
   const registerRegion = useCallback((element: HTMLElement): GlassRegionHandle | null => {

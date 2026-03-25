@@ -1,4 +1,4 @@
-import { useSyncExternalStore } from 'react';
+import { useSyncExternalStore, useMemo } from 'react';
 import type { AccessibilityPreferences } from '../components/types';
 
 interface MediaQueryStore {
@@ -44,5 +44,8 @@ export function useAccessibilityPreferences(): AccessibilityPreferences {
     darkModeStore.getServerSnapshot,
   );
 
-  return { reducedMotion, reducedTransparency, darkMode };
+  return useMemo(
+    () => ({ reducedMotion, reducedTransparency, darkMode }),
+    [reducedMotion, reducedTransparency, darkMode]
+  );
 }

@@ -33,21 +33,23 @@ export function useGlassRegion(
 ) {
   const ctx = useGlassEngine();
   const handleRef = useRef<GlassRegionHandle | null>(null);
-  const { preferences: prefs } = ctx;
+  const { preferences: prefs, registerRegion, unregisterRegion, ready } = ctx;
 
-  // Register region when engine is ready and element exists
+  // Register region when engine is ready and element exists.
+  // Depends on stable function refs — NOT the context object itself,
+  // to avoid re-registering all regions on unrelated context changes.
   useEffect(() => {
-    if (!ctx.ready || !elementRef.current) return;
-    const handle = ctx.registerRegion(elementRef.current);
+    if (!ready || !elementRef.current) return;
+    const handle = registerRegion(elementRef.current);
     handleRef.current = handle;
     return () => {
       if (handle) {
         handle.remove();
-        ctx.unregisterRegion(handle.id);
+        unregisterRegion(handle.id);
       }
       handleRef.current = null;
     };
-  }, [ctx.ready, ctx, elementRef]);
+  }, [ready, registerRegion, unregisterRegion, elementRef]);
 
   // Sync effective params (considering a11y preferences) to engine
   useEffect(() => {
@@ -142,6 +144,6 @@ export function useGlassRegion(
     props.glareDirection,
     prefs.reducedTransparency,
     prefs.darkMode,
-    ctx.ready,
+    ready,
   ]);
 }
