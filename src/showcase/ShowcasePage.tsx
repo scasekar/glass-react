@@ -7,6 +7,7 @@ import { InteractiveSection } from './sections/InteractiveSection';
 import { NavigationSection } from './sections/NavigationSection';
 import { OverlaySection } from './sections/OverlaySection';
 import { FormSection } from './sections/FormSection';
+import { DeveloperSection } from './sections/DeveloperSection';
 
 export interface ShowcasePageProps {
   backgroundMode: 'image' | 'noise';
@@ -163,33 +164,24 @@ export function ShowcasePage({ backgroundMode, onBackgroundModeChange }: Showcas
           <FormSection />
         </VirtualSection>
 
-        {/* Developer Quick Start -- placeholder for Plan 03 */}
+        {/* Developer Quick Start */}
         <VirtualSection id="developer" minHeight={300}>
-          <div style={{ paddingTop: 120, paddingBottom: 60 }}>
-            <h2
-              style={{
-                fontSize: '2rem',
-                fontWeight: 700,
-                margin: 0,
-                textAlign: 'center',
-                color: '#fff',
-              }}
-            >
-              Developer Quick Start
-            </h2>
-            <p
-              style={{
-                fontSize: '1rem',
-                color: 'rgba(255, 255, 255, 0.6)',
-                margin: '12px 0 0',
-                textAlign: 'center',
-              }}
-            >
-              Install command, API example, and GitHub link coming soon.
-            </p>
-          </div>
+          <DeveloperSection />
         </VirtualSection>
       </main>
+
+      {/* Footer */}
+      <footer
+        style={{
+          textAlign: 'center',
+          padding: '60px 0',
+          color: 'rgba(255, 255, 255, 0.4)',
+          fontSize: '0.85rem',
+          fontFamily: FONT_STACK,
+        }}
+      >
+        Built with WebGPU
+      </footer>
 
       {/* TuningDrawer -- always mounted */}
       <TuningDrawer open={tuningOpen} onClose={() => setTuningOpen(false)} />
