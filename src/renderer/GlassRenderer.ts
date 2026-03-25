@@ -315,10 +315,23 @@ export class GlassRenderer {
     pass.setBindGroup(1, this.perRegionBindGroup, [0]);
     pass.draw(3);
 
-    // Draws 2..N: glass regions
+    // Draws 2..N: glass regions with scissor rects
+    // Scissor limits fragment shader execution to just the region's pixel area,
+    // avoiding full-screen 81-tap blur for a 100x40px button.
     for (let i = 0; i < regionCount; i++) {
-      pass.setBindGroup(1, this.perRegionBindGroup, [(i + 1) * UNIFORM_STRIDE]);
-      pass.draw(3);
+      const cr = activeRegions[i].cachedRect;
+      // Convert CSS rect to pixel rect with padding for blur radius + antialiasing
+      const pad = 20; // pixels of padding for blur bleed + AA
+      const sx = Math.max(0, Math.floor(cr.left * dpr) - pad);
+      const sy = Math.max(0, Math.floor(cr.top * dpr) - pad);
+      const sw = Math.min(canvasW - sx, Math.ceil(cr.width * dpr) + pad * 2);
+      const sh = Math.min(canvasH - sy, Math.ceil(cr.height * dpr) + pad * 2);
+
+      if (sw > 0 && sh > 0) {
+        pass.setScissorRect(sx, sy, sw, sh);
+        pass.setBindGroup(1, this.perRegionBindGroup, [(i + 1) * UNIFORM_STRIDE]);
+        pass.draw(3);
+      }
     }
 
     pass.end();

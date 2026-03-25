@@ -57,6 +57,11 @@ fn sdRoundedBox(p: vec2f, b: vec2f, r: f32) -> f32 {
 fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
     let bgColor = textureSample(texBackground, texSampler, uv);
 
+    // --- Blit pass fast path (rect.z = 0 sentinel) ---
+    if (glass.rect.z <= 0.0) {
+        return vec4f(bgColor.rgb, 1.0);
+    }
+
     // --- SDF mask (pixel space) ---
     let pixelPos = uv * glass.resolution;
     let rectCenter = (glass.rect.xy + glass.rect.zw * 0.5) * glass.resolution;
@@ -64,6 +69,12 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
     let dpr = max(glass.dpr, 1.0);
     let clampedRadius = min(glass.cornerRadius * dpr, min(rectHalf.x, rectHalf.y));
     let dist = sdRoundedBox(pixelPos - rectCenter, rectHalf, clampedRadius);
+
+    // Early discard: skip ALL expensive work for pixels outside the glass region
+    // 2px feather margin for antialiasing
+    if (dist > 2.0) {
+        return vec4f(0.0, 0.0, 0.0, 0.0);
+    }
 
     let fw = fwidth(dist);
     let mask = smoothstep(fw, -fw, dist);
@@ -202,14 +213,10 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
     let specular = coolSpec * coolColor + warmSpec * warmColor + vec3f(rimGlow);
 
     // --- Final composite ---
-    // For background blit (rectW=0): mask=0, isBlit=true → output bgColor with alpha=1.
-    // For glass regions: output glass color with alpha=mask so alpha blending
+    // Glass regions: output glass color with alpha=mask so alpha blending
     // composites only the glass area over the previously drawn background.
-    let isBlit = glass.rect.z <= 0.0;
     var glassColor = tinted + specular;
     glassColor += envRef;
     let glassRgb = clamp(glassColor, vec3f(0.0), vec3f(1.0));
-    let outColor = select(glassRgb, bgColor.rgb, isBlit);
-    let outAlpha = select(mask, 1.0, isBlit);
-    return vec4f(outColor, outAlpha);
+    return vec4f(glassRgb, mask);
 }
