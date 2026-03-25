@@ -1,7 +1,32 @@
 node_modules/
 dist/
+demo-dist/
 engine/build-web/
 *.tsbuildinfo
 
-# iOS reference screenshots (captured output, not source)
+# OS files
+.DS_Store
+
+# IDE
+.idea/
+*.swp
+*.swo
+
+# Test artifacts
+test-results/
+playwright-report/
+tests/screenshots/
+
+# iOS reference
+ios-reference/build/
 ios-reference/screenshots/*.png
+ios-reference/GlassReference.xcodeproj/project.xcworkspace/
+
+# Playwright MCP
+.playwright-mcp/
+
+# GSD internal state
+.gsd/
+
+# Misc generated
+screenshots/
