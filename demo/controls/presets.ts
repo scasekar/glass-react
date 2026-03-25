@@ -30,7 +30,7 @@ export const DEFAULTS: GlassParams = {
   blur: 0.3,
   opacity: 0.155,
   cornerRadius: 24,
-  refraction: 10,        // Snell's law: max displacement in pixels at edge
+  refraction: 0.08,       // convex lens magnification (0.08 = 8% zoom at center)
   aberration: 0.0,
   specular: 0.05,
   rim: 0.5,
@@ -61,7 +61,7 @@ export const PRESETS: Record<string, GlassParams> = {
     saturation: 1.15,
     specular: 0.12,
     rim: 0.3,
-    refraction: 10,
+    refraction: 0.08,
     aberration: 4.0,
     envReflectionStrength: 0.14,
     fresnelExponent: 0.5,
