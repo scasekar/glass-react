@@ -76,7 +76,7 @@ Full details: [milestones/v3.0-ROADMAP.md](milestones/v3.0-ROADMAP.md)
   4. motion and @radix-ui/* packages are installed and a smoke test (spring animation + Radix Switch) renders without errors
 **Plans**: 2 plans
 Plans:
-- [ ] 20-01-PLAN.md — Region budget increase, overflow guard, dependency installation, smoke test
+- [x] 20-01-PLAN.md — Region budget increase, overflow guard, dependency installation, smoke test
 - [ ] 20-02-PLAN.md — Apple design tokens and GlassEffectContainer primitive
 
 ### Phase 21: Core Interactive Controls
@@ -145,7 +145,7 @@ Plans:
 | 1-8 | v1.0 | 16/16 | Complete | 2026-02-10 |
 | 9-14 | v2.0 | 13/13 | Complete | 2026-03-24 |
 | 15-19 | v3.0 | 14/14 | Complete | 2026-03-25 |
-| 20. Foundation & Safety Rails | v4.0 | 0/2 | Planning | - |
+| 20. Foundation & Safety Rails | v4.0 | 1/2 | In Progress | - |
 | 21. Core Interactive Controls | v4.0 | 0/TBD | Not started | - |
 | 22. Core Discrete Controls | v4.0 | 0/TBD | Not started | - |
 | 23. Navigation Controls | v4.0 | 0/TBD | Not started | - |
