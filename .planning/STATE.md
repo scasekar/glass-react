@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v4.0
 milestone_name: Glass Control Library & Showcase
 status: completed
-stopped_at: Completed 22-02-PLAN.md (Phase 22 complete)
-last_updated: "2026-03-25T05:32:24.778Z"
+stopped_at: Completed 21-01-PLAN.md
+last_updated: "2026-03-25T05:32:32.568Z"
 last_activity: 2026-03-25 — Completed 22-02 (GlassInput + barrel exports)
 progress:
   total_phases: 6
@@ -61,6 +61,7 @@ Research completed for v4.0:
 - GlassInput: CSS outline focus ring for WCAG SC 1.4.11, not shader rim alone (22-02)
 - Focus-driven glass params pattern: track focused state, pass increased specular/rim as GlassPanel props (22-02)
 - [Phase 21]: GlassSlider thumb uses GlassPanel not GlassButton -- Radix handles pointer capture
+- [Phase 21]: No motion animation on slider thumb to avoid double-transform with Radix CSS positioning
 
 ### Pending Todos
 
@@ -72,6 +73,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-25T05:30:18Z
-Stopped at: Completed 22-02-PLAN.md (Phase 22 complete)
-Resume file: .planning/phases/22-core-discrete-controls/22-02-SUMMARY.md
+Last session: 2026-03-25T05:32:32.565Z
+Stopped at: Completed 21-01-PLAN.md
+Resume file: None
