@@ -7,7 +7,7 @@ import {
   type GlassRegionState,
 } from './GlassRegionState';
 
-const MAX_GLASS_REGIONS = 16;
+export const MAX_GLASS_REGIONS = 32;
 const UNIFORM_STRIDE = 256; // WebGPU minUniformBufferOffsetAlignment
 
 export class GlassRenderer {
@@ -169,6 +169,13 @@ export class GlassRenderer {
    * @returns Region ID (stable until removeRegion is called)
    */
   addRegion(element: HTMLElement, initialUniforms?: Partial<GlassUniforms>): number {
+    if (this.regions.size >= MAX_GLASS_REGIONS) {
+      throw new Error(
+        `GlassRenderer: MAX_GLASS_REGIONS (${MAX_GLASS_REGIONS}) exceeded. ` +
+        `Currently ${this.regions.size} active regions. ` +
+        `Unmount off-screen glass components or increase MAX_GLASS_REGIONS.`
+      );
+    }
     const id = this.nextId++;
     const uniforms: GlassUniforms = {
       ...DEFAULT_GLASS_UNIFORMS,

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { GlassRenderer } from '../GlassRenderer';
+import { GlassRenderer, MAX_GLASS_REGIONS } from '../GlassRenderer';
 import { DEFAULT_GLASS_UNIFORMS, type GlassRegionState } from '../GlassRegionState';
 
 /** Stub element -- no real DOM needed for setter tests */
@@ -153,5 +153,77 @@ describe('GlassRenderer region setters', () => {
     expect(region.current.cornerRadius).toBe(originalCornerRadius);
     expect(region.current.tint.r).toBe(originalTintR);
     expect(region.current.aberration).toBe(originalAberration);
+  });
+});
+
+describe('addRegion overflow guard', () => {
+  it('MAX_GLASS_REGIONS equals 32', () => {
+    expect(MAX_GLASS_REGIONS).toBe(32);
+  });
+
+  it('addRegion() throws Error when regions.size >= 32', () => {
+    const renderer = new GlassRenderer();
+    const regions = (renderer as any)['regions'] as Map<number, GlassRegionState>;
+
+    // Fill 32 stub regions using keys 100-131 to avoid colliding with nextId
+    for (let i = 0; i < 32; i++) {
+      regions.set(100 + i, {
+        id: 100 + i,
+        element: stubEl,
+        current: { ...DEFAULT_GLASS_UNIFORMS, tint: { ...DEFAULT_GLASS_UNIFORMS.tint }, rect: { ...DEFAULT_GLASS_UNIFORMS.rect }, resolution: { ...DEFAULT_GLASS_UNIFORMS.resolution } },
+        target: { ...DEFAULT_GLASS_UNIFORMS, tint: { ...DEFAULT_GLASS_UNIFORMS.tint }, rect: { ...DEFAULT_GLASS_UNIFORMS.rect }, resolution: { ...DEFAULT_GLASS_UNIFORMS.resolution } },
+        morphSpeed: 8,
+      });
+    }
+
+    expect(regions.size).toBe(32);
+    expect(() => renderer.addRegion(stubEl)).toThrowError(/MAX_GLASS_REGIONS/);
+  });
+
+  it('addRegion() succeeds when regions.size is 31 (just under the limit)', () => {
+    const renderer = new GlassRenderer();
+    const regions = (renderer as any)['regions'] as Map<number, GlassRegionState>;
+
+    // Fill 31 stub regions using keys 100-130 to avoid colliding with nextId
+    for (let i = 0; i < 31; i++) {
+      regions.set(100 + i, {
+        id: 100 + i,
+        element: stubEl,
+        current: { ...DEFAULT_GLASS_UNIFORMS, tint: { ...DEFAULT_GLASS_UNIFORMS.tint }, rect: { ...DEFAULT_GLASS_UNIFORMS.rect }, resolution: { ...DEFAULT_GLASS_UNIFORMS.resolution } },
+        target: { ...DEFAULT_GLASS_UNIFORMS, tint: { ...DEFAULT_GLASS_UNIFORMS.tint }, rect: { ...DEFAULT_GLASS_UNIFORMS.rect }, resolution: { ...DEFAULT_GLASS_UNIFORMS.resolution } },
+        morphSpeed: 8,
+      });
+    }
+
+    expect(regions.size).toBe(31);
+    expect(() => renderer.addRegion(stubEl)).not.toThrow();
+    expect(regions.size).toBe(32);
+  });
+
+  it('after removing a region (reducing size below 32), addRegion() succeeds again', () => {
+    const renderer = new GlassRenderer();
+    const regions = (renderer as any)['regions'] as Map<number, GlassRegionState>;
+
+    // Fill 32 stub regions using keys 100-131 to avoid colliding with nextId
+    for (let i = 0; i < 32; i++) {
+      regions.set(100 + i, {
+        id: 100 + i,
+        element: stubEl,
+        current: { ...DEFAULT_GLASS_UNIFORMS, tint: { ...DEFAULT_GLASS_UNIFORMS.tint }, rect: { ...DEFAULT_GLASS_UNIFORMS.rect }, resolution: { ...DEFAULT_GLASS_UNIFORMS.resolution } },
+        target: { ...DEFAULT_GLASS_UNIFORMS, tint: { ...DEFAULT_GLASS_UNIFORMS.tint }, rect: { ...DEFAULT_GLASS_UNIFORMS.rect }, resolution: { ...DEFAULT_GLASS_UNIFORMS.resolution } },
+        morphSpeed: 8,
+      });
+    }
+
+    // At limit -- should throw
+    expect(() => renderer.addRegion(stubEl)).toThrowError(/MAX_GLASS_REGIONS/);
+
+    // Remove one region
+    renderer.removeRegion(100);
+    expect(regions.size).toBe(31);
+
+    // Now addRegion should succeed
+    expect(() => renderer.addRegion(stubEl)).not.toThrow();
+    expect(regions.size).toBe(32);
   });
 });
