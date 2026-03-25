@@ -56,7 +56,8 @@ export function GlassSegmentedControl({
           height: APPLE_CONTROL_SIZES.segmentedHeight,
           padding: APPLE_CONTROL_SIZES.segmentedPadding,
           borderRadius: APPLE_RADII.pill,
-          background: 'rgba(80, 80, 100, 0.4)',
+          background: 'rgba(80, 80, 100, 0.5)',
+          border: '1px solid rgba(255,255,255,0.1)',
           position: 'relative',
           ...style,
         }}
@@ -92,6 +93,8 @@ export function GlassSegmentedControl({
               >
                 <GlassPanel
                   cornerRadius={APPLE_RADII.pill}
+                  opacity={0.35}
+                  specular={0.25}
                   style={{ width: '100%', height: '100%' }}
                 />
               </motion.div>

@@ -54,6 +54,7 @@ export function GlassInput({
       )}
       <GlassPanel
         cornerRadius={APPLE_RADII.md}
+        opacity={0.2}
         specular={glassSpecular}
         rim={glassRim}
         style={{
@@ -61,12 +62,15 @@ export function GlassInput({
           alignItems: 'center',
           minHeight: APPLE_CONTROL_SIZES.minTapTarget,
           padding: `${APPLE_SPACING.sm}px ${APPLE_SPACING.md}px`,
+          border: focused
+            ? '1px solid rgba(255,255,255,0.4)'
+            : '1px solid rgba(255,255,255,0.15)',
           // Visible focus ring via CSS -- required for WCAG SC 1.4.11
           outline: focused
             ? '2px solid rgba(255,255,255,0.65)'
             : '2px solid transparent',
           outlineOffset: 2,
-          transition: 'outline-color 0.15s',
+          transition: 'outline-color 0.15s, border-color 0.15s',
         }}
       >
         <input

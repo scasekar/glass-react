@@ -45,6 +45,7 @@ export function GlassStepper({
     >
       <GlassButton
         cornerRadius={APPLE_RADII.pill}
+        opacity={0.2}
         aria-label="Decrease"
         disabled={disabled || value <= min}
         onClick={decrement}
@@ -56,6 +57,7 @@ export function GlassStepper({
           justifyContent: 'center',
           fontSize: 20,
           fontWeight: 500,
+          border: '1px solid rgba(255,255,255,0.15)',
         }}
       >
         {'\u2212'}
@@ -85,6 +87,7 @@ export function GlassStepper({
 
       <GlassButton
         cornerRadius={APPLE_RADII.pill}
+        opacity={0.2}
         aria-label="Increase"
         disabled={disabled || value >= max}
         onClick={increment}
@@ -96,6 +99,7 @@ export function GlassStepper({
           justifyContent: 'center',
           fontSize: 20,
           fontWeight: 500,
+          border: '1px solid rgba(255,255,255,0.15)',
         }}
       >
         +

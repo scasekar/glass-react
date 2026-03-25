@@ -70,6 +70,8 @@ export function GlassActionSheet({
               >
                 <GlassPanel
                   cornerRadius={APPLE_RADII.xl}
+                  opacity={0.4}
+                  blur={0.5}
                   style={{
                     borderBottomLeftRadius: 0,
                     borderBottomRightRadius: 0,

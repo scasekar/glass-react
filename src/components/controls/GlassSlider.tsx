@@ -49,6 +49,7 @@ export function GlassSlider({
       >
         <GlassPanel
           cornerRadius={APPLE_RADII.pill}
+          opacity={0.3}
           style={{
             position: 'absolute',
             inset: 0,
@@ -76,18 +77,11 @@ export function GlassSlider({
           height: sliderThumbSize,
           borderRadius: APPLE_RADII.pill,
           outline: 'none',
+          background: 'rgba(255, 255, 255, 0.9)',
+          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255,255,255,0.2)',
+          cursor: 'pointer',
         }}
-      >
-        <GlassPanel
-          cornerRadius={APPLE_RADII.pill}
-          style={{
-            width: sliderThumbSize,
-            height: sliderThumbSize,
-            display: 'block',
-            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.3)',
-          }}
-        />
-      </RadixSlider.Thumb>
+      />
     </RadixSlider.Root>
   );
 }

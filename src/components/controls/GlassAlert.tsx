@@ -70,6 +70,8 @@ export function GlassAlert({
               >
                 <GlassPanel
                   cornerRadius={APPLE_RADII.xl}
+                  opacity={0.4}
+                  blur={0.5}
                   style={{ width: '100%' }}
                 >
                   <div
