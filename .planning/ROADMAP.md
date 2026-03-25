@@ -59,9 +59,9 @@ Full details: [milestones/v3.0-ROADMAP.md](milestones/v3.0-ROADMAP.md)
 - [x] **Phase 20: Foundation & Safety Rails** - Region budget, design tokens, GlassEffectContainer, new dependencies (completed 2026-03-25)
 - [x] **Phase 21: Core Interactive Controls** - Toggle, slider, segmented control with spring animations (completed 2026-03-25)
 - [x] **Phase 22: Core Discrete Controls** - Chip, stepper, input field (completed 2026-03-25)
-- [ ] **Phase 23: Navigation Controls** - Tab bar, navigation bar, toolbar, search bar
+- [x] **Phase 23: Navigation Controls** - Tab bar, navigation bar, toolbar, search bar (completed 2026-03-25)
 - [x] **Phase 24: Overlay Controls** - Action sheet, alert, sheet, popover with portals (completed 2026-03-25)
-- [ ] **Phase 25: Showcase Page** - Product landing page replacing tuning page as main entry
+- [x] **Phase 25: Showcase Page** - Product landing page replacing tuning page as main entry (completed 2026-03-25)
 
 ## Phase Details
 
@@ -164,6 +164,6 @@ Plans:
 | 20. Foundation & Safety Rails | 2/2 | Complete   | 2026-03-25 | - |
 | 21. Core Interactive Controls | 2/2 | Complete   | 2026-03-25 | - |
 | 22. Core Discrete Controls | 2/2 | Complete   | 2026-03-25 | - |
-| 23. Navigation Controls | 1/2 | In Progress|  | - |
+| 23. Navigation Controls | 2/2 | Complete   | 2026-03-25 | - |
 | 24. Overlay Controls | 2/2 | Complete   | 2026-03-25 | - |
-| 25. Showcase Page | 2/3 | In Progress|  | - |
+| 25. Showcase Page | 3/3 | Complete   | 2026-03-25 | - |
