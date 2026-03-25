@@ -35,7 +35,9 @@ export type { GlassEffectContainerProps } from './components/GlassEffectContaine
 export { useGlassEffect } from './context/GlassEffectContext';
 export type { GlassEffectContextValue } from './context/GlassEffectContext';
 
-// Controls (Phase 21 + Phase 22)
-export { GlassToggle, GlassSlider, GlassSegmentedControl, GlassChip, GlassStepper, GlassInput } from './components/controls';
+// Controls (Phase 21 + Phase 22 + Phase 23 + Phase 24)
+export { GlassToggle, GlassSlider, GlassSegmentedControl, GlassChip, GlassStepper, GlassInput, GlassNavigationBar, GlassToolbar, GlassSearchBar, GlassTabBar, GlassAlert, GlassActionSheet, GlassSheet, GlassPopover } from './components/controls';
 export type { GlassToggleProps, GlassSliderProps, GlassSegmentedControlProps } from './components/controls';
 export type { GlassChipProps, GlassStepperProps, GlassInputProps } from './components/types';
+export type { GlassNavigationBarProps, GlassToolbarProps, GlassToolbarAction, GlassSearchBarProps, GlassTabBarProps, GlassTabItem } from './components/controls';
+export type { GlassAlertProps, GlassActionSheetProps, GlassSheetProps, GlassPopoverProps, OverlayAction } from './components/controls';
