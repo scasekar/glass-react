@@ -1,264 +1,208 @@
 # Stack Research
 
-**Domain:** JS/WebGPU glass rendering pipeline over C++/WASM background engine
-**Researched:** 2026-03-24
-**Scope:** v3.0 architecture only — JS/WebGPU device creation, texture sharing, and JS-side glass pipeline. Existing validated stack (Emscripten, emdawnwebgpu, React 19, Vite 6.4, C++20, Playwright, pixelmatch) is unchanged.
-**Confidence:** HIGH (core patterns validated against live codebase; interop mechanism verified against emscripten issue #13888 and emdawnwebgpu source)
+**Domain:** Apple Liquid Glass UI control library and showcase page
+**Researched:** 2026-03-25
+**Scope:** v4.0 milestone — NEW additions only. Existing validated stack (React 19, Vite 6.4, TypeScript, WebGPU/WASM pipeline, Playwright, inline styles) is unchanged and out of scope.
+**Confidence:** HIGH (all versions npm-verified on 2026-03-25; patterns corroborated by official documentation)
 
 ---
 
-## Context: What v3.0 Changes
+## Existing Stack Context (Do Not Re-research)
 
-The architecture flips ownership of the WebGPU device:
+The following is already in production and requires no changes for v4.0:
 
-- **v2.0 (current):** C++ engine calls `RequestAdapter` + `RequestDevice` and owns the entire pipeline — background rendering AND glass shaders
-- **v3.0 (target):** JS calls `navigator.gpu.requestAdapter()` + `adapter.requestDevice()`, passes device to C++ via emdawnwebgpu interop, C++ renders background only, JS/WebGPU pipeline renders all glass effects
-
-**No new npm packages are required for the core pipeline.** Every required piece is already present: `@webgpu/types` for TypeScript types, the emdawnwebgpu interop bridge (`WebGPU.importJsDevice` / `WebGPU.getJsObject`) for object-table crossing, the WGSL glass shaders (authored in C++ header files, to be ported to TS string literals), and the full Vite/TypeScript build infrastructure.
+| Technology | Version | Status |
+|------------|---------|--------|
+| React | 19.2.4 | Peer dep, unchanged |
+| Vite | 6.4.1 | Build + dev server, unchanged |
+| TypeScript | 5.9.3 | Strict mode, unchanged |
+| GlassRenderer (JS WebGPU) | in-repo | All glass effects, unchanged |
+| GlassPanel / GlassButton / GlassCard | in-repo | Base components, extended in v4.0 |
+| Inline styles only (no CSS files) | project convention | Styling approach, unchanged |
+| Playwright | 1.58.2 | E2E testing, unchanged |
+| Vitest | 4.1.1 | Unit tests, unchanged |
 
 ---
 
-## Recommended Stack
+## New Additions Required for v4.0
 
-### Core Technologies
+### 1. Spring Animation — `motion` (formerly Framer Motion)
 
 | Technology | Version | Purpose | Why Recommended |
 |------------|---------|---------|-----------------|
-| WebGPU (browser API) | W3C spec, Chrome 113+/Edge 113+ | JS-side device creation, render pipelines, bind groups, texture reads | Native browser API — no wrapper library needed; already typed via `@webgpu/types` |
-| `@webgpu/types` | `^0.1.69` (already installed) | TypeScript types for `GPUDevice`, `GPUTexture`, `GPURenderPipeline`, `GPUBindGroup`, etc. | Official gpuweb types package; `"types": ["@webgpu/types"]` already in `tsconfig.json` |
-| emdawnwebgpu interop bridge | Bundled with WASM build (`--use-port=emdawnwebgpu`) | `WebGPU.importJsDevice(jsDevice)` inserts JS `GPUDevice` into C++ object table; `WebGPU.getJsObject(handle)` resolves C++-produced texture pointer back to JS `GPUTexture` | Already validated in v2.0 codebase (`loader.ts` lines 86-89, `main.cpp` `initWithExternalDevice`); no separate install |
-| TypeScript | `^5.7.0` (already installed) | Type-safe WebGPU pipeline management | Strict mode + `@webgpu/types` catches WebGPU descriptor errors at compile time; `GPURenderPipelineDescriptor` is fully typed |
-| WGSL (inline TS strings) | WebGPU spec | Glass shader code (refraction, blur, Fresnel, chromatic aberration, specular, rim lighting) | Already authored in `engine/src/shaders/glass.wgsl.h`; migrate to TypeScript template literal strings or standalone `.wgsl` files imported with Vite `?raw` |
+| `motion` | ^12.38.0 | Spring physics animations, layout transitions, gesture state | Apple's controls are defined by spring physics. A toggle thumb that snaps with `stiffness: 500, damping: 30` is instantly recognizable as iOS. CSS `transition` cannot reproduce damped spring overshoot. Motion v12 is the rebranded `framer-motion` — same API, new package name and import path (`motion/react`). GPU-accelerated via WAAPI, 120fps capable, 30M+ monthly downloads. |
 
-### Supporting Libraries
+**Why spring physics are non-negotiable for Apple controls:**
+- Toggle thumb: slides with spring, not linear ease. The slight overshoot before settle is a signature iOS micro-interaction.
+- Segmented control indicator: glides between segments using `layoutId` layout animation — this is Motion's unique capability that React Spring and CSS transitions cannot replicate.
+- Modal/sheet entry: spring scale from 0.95 to 1.0, not a timed ease-in-out.
+- Popover: spring opacity + scale from anchor point.
 
-| Library | Version | Purpose | When to Use |
+**`layoutId` is the deciding factor over React Spring:** Motion's layout animations (`<motion.div layoutId="indicator" />`) allow the segmented control floating pill to physically morph between segments without the developer manually calculating positions. React Spring has no equivalent. This alone justifies the dependency.
+
+**Why not `framer-motion` (old package):** Deprecated. `motion` is the replacement. Import path is `motion/react` instead of `framer-motion`.
+
+**Why not CSS transitions:** No spring physics. No layout animations. `transition: all 0.3s ease` produces animations that feel generic, not iOS-native.
+
+**Why not GreenSock (GSAP):** Not React-idiomatic, license restrictions on some features, no layout animations.
+
+---
+
+### 2. Headless Accessible Primitives — Radix UI
+
+Interactive controls require WAI-ARIA roles, keyboard navigation, focus management, and screen reader announcements. Implementing these from scratch for each control violates the accessibility requirements established in v1.0 and is 2-3x the implementation work per component.
+
+Radix UI provides unstyled, behavior-only primitives. Each primitive is a separate npm package — tree-shakeable. The `asChild` pattern allows any Radix component to render as a custom element (e.g., a `GlassPanel`-wrapped div) without breaking the ARIA behavior.
+
+**Verified npm versions (2026-03-25):**
+
+| Package | Version | ARIA Role / Behavior | Why This One |
+|---------|---------|---------------------|--------------|
+| `@radix-ui/react-switch` | ^1.2.6 | `role="switch"`, Space key toggle, `aria-checked` | WAI-ARIA Switch pattern; handles both controlled and uncontrolled state |
+| `@radix-ui/react-slider` | ^1.3.6 | `role="slider"`, arrow key adjustment, `aria-valuenow/min/max` | Supports multi-thumb, step, range; keyboard increments follow ARIA spec |
+| `@radix-ui/react-toggle-group` | ^1.1.11 | Roving `tabindex`, arrow key navigation between items, `aria-pressed` | Correct pattern for segmented controls: single or multiple selection, keyboard-accessible |
+| `@radix-ui/react-dialog` | ^1.1.15 | Focus trap, Escape dismiss, scroll lock, `aria-modal`, portal | Modal sheets and alert dialogs; portals to `document.body` to escape z-index stacking context |
+| `@radix-ui/react-popover` | ^1.1.15 | Anchor positioning, outside-click dismiss, Escape key, portal | Popovers anchored to glass buttons; handles flip/collision detection |
+| `@radix-ui/react-tooltip` | ^1.2.8 | Hover+focus open, delay, `aria-describedby` | Glass tooltips with configurable delay; pairs with `aria-describedby` on trigger |
+| `@radix-ui/react-select` | ^2.2.6 | Full keyboard nav, virtual focus, screen reader announcements | Glass dropdown pickers for color/option selection in showcase controls |
+
+**Why Radix over Headless UI (`@headlessui/react`):**
+Headless UI is a monolithic package. Radix is individual packages per primitive — installers only take what they use, keeping library bundle lean. Radix's `asChild` composition is also cleaner for "wrap in glass shell" pattern than Headless UI's render props.
+
+**Why Radix over React Aria (Adobe):**
+React Aria is hooks-only and requires significantly more wiring per component (useSwitch, useToggleState, etc. composed manually). Radix's component tree maps cleanly to GlassPanel wrappers. React Aria is the better choice when you need maximum DOM attribute control; Radix is better when you want a composable tree.
+
+**Why not build from scratch:**
+Focus trap alone (required for modals) involves tabbable element detection, portal rendering, scroll locking, and restoration — a known footgun. ARIA switch/slider keyboard patterns are precisely specified by W3C and easy to implement incorrectly. Radix has been battle-tested by millions of installs.
+
+---
+
+## Styling Approach — Extend Existing Pattern
+
+The project already uses **inline styles exclusively** (no CSS files, no CSS modules, no utility classes). All new controls follow the same pattern.
+
+**Why inline styles are correct for this library:**
+- Glass controls are heavily prop-parameterized: corner radius, tint color, opacity, blur intensity — all driven by TypeScript props. CSS cannot bind to dynamic JS values without CSS custom properties gymnastics.
+- No external stylesheet means zero specificity conflicts when consumers import the library into their own apps.
+- All existing components (GlassPanel, GlassButton, GlassCard) use inline styles — consistency matters for the library's internal conventions.
+
+**Apple HIG constants to add as TypeScript `const` objects:**
+
+```typescript
+// src/tokens.ts — Apple 8pt grid + exact iOS control dimensions
+export const APPLE_SPACING = {
+  xs: 4, sm: 8, md: 16, lg: 20, xl: 24, xxl: 32, xxxl: 48
+} as const;
+
+export const APPLE_RADII = {
+  sm: 8, md: 14, lg: 20, xl: 28, pill: 9999
+} as const;
+
+export const APPLE_CONTROL_SIZES = {
+  toggleWidth: 51, toggleHeight: 31,    // Exact iOS toggle dimensions
+  sliderTrackHeight: 4,                 // iOS slider track height
+  segmentedHeight: 32,                  // iOS segmented control height
+} as const;
+```
+
+These are TypeScript constants, not CSS variables. This keeps the design system co-located with the components and typed.
+
+**Typography — system font stack, no external font package:**
+
+```typescript
+// Applied via inline style on all text-bearing glass controls
+fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif'
+```
+
+`-apple-system` resolves to SF Pro on macOS/iOS (Apple's native UI font). It falls back gracefully on Windows/Android. **Do NOT add Inter, Geist, or any web font package.** Apple devices render SF Pro natively via the system font stack — importing a web font would visually downgrade the experience on the exact devices being targeted.
+
+SF Pro cannot be embedded as a web font (Apple's licensing explicitly prohibits redistribution). The system font stack is the correct and only legal approach.
+
+---
+
+## What NOT to Add
+
+| Avoid | Why | Use Instead |
+|-------|-----|-------------|
+| Tailwind CSS | Requires consumers to install Tailwind; breaks library distribution model; inline styles already established and sufficient | Inline styles + TypeScript design tokens |
+| styled-components / Emotion | Runtime style injection (CSS-in-JS) conflicts with WebGPU canvas z-stacking context; adds ~15-20KB to bundle; runtime overhead | Inline styles |
+| `framer-motion` (old package) | Deprecated — no longer actively developed; `motion` is the drop-in replacement | `motion` ^12 |
+| React Spring | No layout animations; cannot reproduce segmented control floating indicator morphing | `motion` ^12 with `layoutId` |
+| GreenSock (GSAP) | Not React-idiomatic; commercial license for some features; no layout animations | `motion` ^12 |
+| `@headlessui/react` | Monolithic package; less composable than Radix for the "wrap in glass shell" pattern | `@radix-ui/*` individual packages |
+| shadcn/ui | Copy-paste model that generates files into the consumer's repo; requires Tailwind; antithetical to publishable library distribution | `@radix-ui/*` primitives directly |
+| CSS `backdrop-filter: blur()` for glass effects | Already handled by the WebGPU GlassRenderer pipeline; adding CSS backdrop-filter creates a double-blur artifact on top of the GPU glass and degraded GPU performance | GlassRenderer pipeline only |
+| External icon library (lucide-react, react-icons) | Adds 5-50KB for showcase-only icons; inline SVG components are sufficient and keep bundle lean | Inline SVG as TypeScript components |
+| Any external font package (Inter, Geist, etc.) | Degrades Apple-native typography on macOS/iOS; SF Pro is already available via system font stack | `-apple-system` system font stack |
+
+---
+
+## Optional — Phase-Dependent Additions
+
+Only install if the corresponding control is in v4.0 scope:
+
+| Library | Version | Purpose | When to Add |
 |---------|---------|---------|-------------|
-| `vite-plugin-wasm` | `^3.5.0` (already installed) | WASM MIME type and async import handling in Vite | Required for Emscripten ESM module loading |
-| `vite-plugin-top-level-await` | `^1.4.0` (already installed) | Allows top-level `await` for engine init | Required for clean async WASM init in library entry point |
-| `vite-plugin-dts` | `^4.5.4` (already installed) | TypeScript declaration generation for npm publish | Required for `.d.ts` output on `build:lib` |
-
-No new supporting libraries are needed for the JS WebGPU glass pipeline itself.
-
-### Development Tools
-
-| Tool | Purpose | Notes |
-|------|---------|-------|
-| `createRenderPipelineAsync()` | Async pipeline compilation | Prefer over synchronous `createRenderPipeline()` — avoids GPU stalls while shader compiler runs; resolve the Promise before first render frame |
-| `device.lost` promise handler | Device loss recovery | Register on every `GPUDevice` instance; re-init on transient loss; do not re-init if reason is `"destroyed"` |
-| `device.addEventListener('uncapturederror', ...)` | Catches WGSL compilation errors and bind group validation errors | WebGPU validation errors are otherwise silent in production; essential during development |
+| `@radix-ui/react-progress` | ^1.1.8 | Progress bar (ARIA progressbar role) | Only if progress indicators are in scope |
+| `@radix-ui/react-scroll-area` | ^1.2.10 | Custom scrollbar with glass styling | Only if showcase page requires glass-styled scrollbars |
 
 ---
 
 ## Installation
 
-No new packages required for v3.0. All needed packages are already present.
-
 ```bash
-# Verify existing packages are current
-npm install
+# Animation — required for interactive controls
+npm install motion
 
-# @webgpu/types is already a devDependency at ^0.1.69
-# No additional installs needed for the JS WebGPU glass pipeline
+# Radix UI primitives — install only what you build
+npm install @radix-ui/react-switch @radix-ui/react-slider @radix-ui/react-toggle-group
+npm install @radix-ui/react-dialog @radix-ui/react-popover @radix-ui/react-tooltip
+npm install @radix-ui/react-select
 ```
 
-If WGSL shaders are extracted to standalone `.wgsl` files, Vite handles `?raw` imports natively — no plugin needed:
-
-```typescript
-// Vite ?raw suffix — works without any plugin
-import glassShaderSource from './shaders/glass.wgsl?raw';
-```
-
----
-
-## How JS WebGPU Rendering Differs from C++ WebGPU Rendering
-
-This section captures the non-obvious differences that matter for the v3.0 migration.
-
-### Device Lifecycle
-
-**C++ (current v2.0):** `wgpu::Instance::RequestAdapter()` + `wgpu::Adapter::RequestDevice()` with `AllowSpontaneous` callbacks. Device lifetime tied to C++ global. The `AllowSpontaneous` mode was critical (double `WaitAny` corrupts emdawnwebgpu's internal Instance reference — see project MEMORY.md).
-
-**JS (v3.0):** `navigator.gpu.requestAdapter()` + `adapter.requestDevice()` — standard async/await. Device lifetime owned by `GlassProvider`. **A `GPUAdapter` instance can only be used once** to call `requestDevice`; subsequent calls return an already-lost device. Store the device, not the adapter.
-
-```typescript
-// Correct pattern — device is the long-lived object; adapter can be discarded
-const adapter = await navigator.gpu.requestAdapter({ powerPreference: 'high-performance' });
-if (!adapter) throw new Error('No WebGPU adapter');
-const device = await adapter.requestDevice();
-device.lost.then(info => {
-  if (info.reason !== 'destroyed') { /* re-init */ }
-});
-// adapter reference no longer needed
-```
-
-### Bind Group Immutability and Texture Change
-
-A `GPUBindGroup` is immutable after creation. When the C++ background texture is recreated (e.g., on canvas resize — `BackgroundEngine::createOffscreenTexture()` is called from `resize()`), the JS glass renderer must detect the change and recreate the bind group that references `texBackground`. This is the most common source of stale-bind-group bugs when bridging JS and C++ textures.
-
-Pattern: cache the `GPUTexture` reference returned from `module.WebGPU.getJsObject(handle)`. On each frame (or on resize), compare the current texture reference to the cached one. If different, rebuild all glass bind groups.
-
-### Uniform Buffer Alignment
-
-Both JS and C++ sides follow the same `minUniformBufferOffsetAlignment` rule: dynamic offsets must be multiples of 256 (the WebGPU spec default). The existing `GlassUniforms` struct is 112 bytes. When using dynamic offsets for multi-region rendering, the stride must be padded to 256 bytes:
-
-```
-stride = Math.ceil(112 / 256) * 256 = 256 bytes
-totalBufferSize = 16 regions × 256 bytes = 4096 bytes
-```
-
-This matches what the C++ side already allocates. The JS side must use the same layout when writing uniform data.
-
-### Pipeline Compilation Timing
-
-`createRenderPipelineAsync()` is mandatory for production use. Unlike C++, JS has no compile-time WGSL validation — runtime errors surface as uncaptured device errors. Compile and cache the pipeline during init, before the first render frame.
-
----
-
-## Device Creation and Texture Sharing Patterns
-
-These are the two critical interop patterns for v3.0.
-
-### Pattern 1: JS Creates Device, Passes to C++
-
-The `preinitializedWebGPUDevice` + `emscripten_webgpu_get_device()` pattern is **deprecated** and scheduled for removal. The current emdawnwebgpu pattern uses an object table managed by `library_webgpu.js`:
-
-```typescript
-// Already implemented in src/wasm/loader.ts (lines 86-89)
-const adapter = await navigator.gpu.requestAdapter({ powerPreference: 'high-performance' });
-const device = await adapter.requestDevice();
-
-// Insert JS GPUDevice into emdawnwebgpu's object table → returns integer handle
-const handle = module.WebGPU.importJsDevice(device);
-
-// C++ calls: wgpu::Device::Acquire(reinterpret_cast<WGPUDevice>(handle))
-module.initWithExternalDevice(handle);
-```
-
-The C++ side (`engine/src/main.cpp`, `initWithExternalDevice`) is already implemented. This pattern is validated in v2.0.
-
-### Pattern 2: C++ Exposes Background Texture, JS Reads It
-
-After C++ renders the background to an offscreen texture, JS retrieves the texture to use as input to the glass shader's bind group:
-
-```typescript
-// C++ returns a raw WGPUTexture* pointer cast to uintptr_t
-// (see main.cpp: getBackgroundTextureHandleJS → clone.MoveToCHandle())
-const handle: number = module.getBackgroundTextureHandle();
-
-// Resolve back to JS GPUTexture via emdawnwebgpu's object table
-const bgTexture = module.WebGPU.getJsObject(handle) as GPUTexture;
-
-// Create bind group for glass shader
-const bindGroup = device.createBindGroup({
-  layout: glassPipeline.getBindGroupLayout(0),
-  entries: [
-    { binding: 0, resource: sampler },
-    { binding: 1, resource: bgTexture.createView() },
-    { binding: 2, resource: {
-      buffer: uniformBuffer,
-      offset: regionIndex * UNIFORM_STRIDE,  // 256 bytes per region
-      size: UNIFORM_STRUCT_SIZE,             // 112 bytes
-    }},
-  ],
-});
-```
-
-The C++ function `getBackgroundTextureHandleJS()` already exists in `main.cpp`. The texture has `TextureBinding` usage already set (lines 280-282 of `background_engine.cpp`). No C++ changes required for this pattern.
-
-### Pattern 3: Texture Usage Flags (No Changes Required)
-
-The C++ offscreen background texture already has all required usage flags for JS sampling:
-
-```cpp
-// engine/src/background_engine.cpp (already correct)
-texDesc.usage = wgpu::TextureUsage::RenderAttachment |
-                wgpu::TextureUsage::TextureBinding |   // ← enables JS sampling
-                wgpu::TextureUsage::CopyDst;
-```
-
-`CopySrc` would only be needed if JS required a copy of the texture (e.g., for a ping-pong blur pass on a separate texture). The current architecture samples directly from the C++ texture within the same frame — no copy needed.
+These are production dependencies (shipped with the library), not devDependencies. Consumers who import glass controls need these at runtime.
 
 ---
 
 ## Alternatives Considered
 
-| Recommended | Alternative | When to Use Alternative |
-|-------------|-------------|-------------------------|
-| Direct texture sampling (zero-copy, same device) | `copyTextureToTexture` then sample copy | Only if JS and C++ used different `GPUDevice` instances — not applicable here since both share the same device |
-| `WebGPU.importJsDevice()` object table | `preinitializedWebGPUDevice` + `emscripten_webgpu_get_device()` | Never — the legacy pattern is deprecated and scheduled for removal |
-| `createRenderPipelineAsync()` | `createRenderPipeline()` (synchronous) | Use synchronous only in test harnesses where stalls are acceptable; never in production render loop |
-| Dynamic uniform buffer offsets, single 4KB buffer | Separate `GPUBuffer` per glass region | Use per-region buffers only if region count exceeds `maxUniformBufferBindingSize / 256`; 16 regions = 4KB, well within all device limits |
-| WGSL as TypeScript template literals | External `.wgsl` files via `?raw` import | Use `?raw` if iterating on shaders heavily during development; both are equivalent in production builds |
-| Per-frame bind group cache check (compare texture reference) | Recreate bind groups on every frame | Per-frame recreation would create GC pressure from short-lived objects; cache and invalidate only on resize |
-
----
-
-## What NOT to Use
-
-| Avoid | Why | Use Instead |
-|-------|-----|-------------|
-| `preinitializedWebGPUDevice` + `emscripten_webgpu_get_device()` | Deprecated in Emscripten; existed only for early-prototype compatibility; scheduled for removal | `WebGPU.importJsDevice(device)` → `module.initWithExternalDevice(handle)` (already implemented in `loader.ts`) |
-| `GPUDevice.importExternalTexture()` | Takes only `HTMLVideoElement` or `VideoFrame` — not applicable for a C++-rendered texture | Direct `GPUTexture` sampling via `texture.createView()` in bind group entry |
-| `GPUQueue.copyExternalImageToTexture()` from WASM | WASM code cannot call this because it cannot obtain the JS `GPUQueue` object from a raw `WGPUQueue` pointer (emscripten issue #13888) | Already solved: C++ uses `queue.WriteTexture()` for image upload; JS glass pipeline samples directly from the output texture |
-| `--use-port=webgpu` (Emscripten legacy flag) | Deprecated; the legacy bindings are unmaintained | `--use-port=emdawnwebgpu` in both compile and link flags (already correct in this project) |
-| Third-party WebGPU wrapper libraries (wgpu.js, TypeGPU, babylon.js, three.js WebGPU backend) | Add indirection that complicates the emdawnwebgpu interop boundary; none are designed for this hybrid JS+WASM architecture | Raw WebGPU browser API with `@webgpu/types` |
-| Separate `GPUDevice` per canvas or per component | JS and C++ must share the same device for zero-copy texture access; two devices cannot share textures | Single `GPUDevice` created in JS, passed to C++ via `importJsDevice` |
-| Per-frame `createRenderPipeline()` | Synchronous pipeline compilation blocks the GPU; even in async form, recreation is expensive | Compile pipeline once at init with `createRenderPipelineAsync()`, cache the result |
-
----
-
-## Stack Patterns by Scenario
-
-**On canvas resize:**
-- C++ `BackgroundEngine::resize()` destroys and recreates the offscreen texture
-- The `GPUTexture` reference previously retrieved via `getJsObject(handle)` becomes invalid
-- JS must re-call `getBackgroundTextureHandle()` → `getJsObject()` and recreate the glass bind groups
-- Trigger: `ResizeObserver` on the canvas element (already wired in `GlassProvider`)
-
-**On standalone mode (no external device):**
-- v3.0 deprecates standalone mode — JS-creates-device is the only supported path
-- If fallback is needed for existing users, C++ continues to work in its current self-init mode; the JS glass pipeline initializes after `module.getEngine()` returns non-null (existing poll loop in `GlassProvider`)
-
-**On glass region count > 16:**
-- `MAX_GLASS_REGIONS = 16` is a C++ constant in `background_engine.h`
-- The JS uniform buffer at 16 × 256 = 4KB is within all WebGPU device limits
-- Increasing the limit requires raising the constant and allocating a larger uniform buffer; no architectural change
-
-**On device loss:**
-- If the shared `GPUDevice` is lost, both C++ and JS become invalid
-- Recovery: recreate the device in JS, call `module.initWithExternalDevice(newHandle)`, reinitialize JS glass pipelines and uniform buffers, re-upload wallpaper image
-- The C++ engine must be destroyed and recreated (`module.destroyEngine()` then re-init)
+| Recommended | Alternative | When Alternative Is Better |
+|-------------|-------------|---------------------------|
+| `motion` ^12 | CSS transitions only | When controls are decorative-only with no spring physics requirement |
+| `motion` ^12 | `react-spring` | Never for this project — layout animations are required |
+| `@radix-ui/*` | React Aria hooks | When you need maximum per-attribute DOM control and can afford extra wiring per component |
+| `@radix-ui/*` | Build from scratch | Never — ARIA compliance from scratch is 2-3x work per component |
+| Inline styles | CSS Modules | When building a non-library app where scoped CSS performance matters more than prop-driven parameterization |
+| System font stack | Hosted web font (Inter, etc.) | When targeting non-Apple platforms where SF Pro system font is not present |
 
 ---
 
 ## Version Compatibility
 
-| Package | Compatible With | Notes |
-|---------|-----------------|-------|
-| `@webgpu/types@0.1.69` | TypeScript `^5.7.0` | Requires `"types": ["@webgpu/types"]` in `tsconfig.json`; already configured |
-| `@webgpu/types@0.1.69` | Chrome 113+, Edge 113+, Safari 18+ (partial) | WebGPU shipped in Chrome 113 (May 2023); target Chrome for full feature set |
-| emdawnwebgpu interop (`WebGPU.importJsDevice`, `WebGPU.getJsObject`) | Emscripten `>=4.0.10` | Project uses 4.0.16; interop API stable in this range |
-| JS `GPUDevice` → C++ `WGPUDevice` handle | `--use-port=emdawnwebgpu` (NOT `--use-port=webgpu`) | Already correct in this project's CMakeLists.txt |
-| Dynamic uniform offsets | `minUniformBufferOffsetAlignment = 256` (WebGPU spec default) | Safe to hard-code 256-byte stride; spec guarantees this as the default |
-| `wgpu::TextureUsage::TextureBinding` on offscreen texture | C++ engine current implementation | Already set; no C++ change required for JS sampling |
+| Package A | Compatible With | Notes |
+|-----------|-----------------|-------|
+| `motion` ^12.38.0 | React ^18 and ^19 | No breaking changes from framer-motion; import from `motion/react` not `framer-motion` |
+| `@radix-ui/*` ^1.x / ^2.x | React ^18 and ^19 | All Radix packages support React 19 concurrent features; no forwardRef wrapping needed with React 19 |
+| `motion` ^12 + `@radix-ui/react-dialog` | Compatible | Use `motion.div` as the inner content wrapper inside `Dialog.Content`; do not apply `motion` directly to Radix portal root |
+| `motion` ^12 + Radix `asChild` | Compatible | `<Radix.Root asChild><motion.div>...</motion.div></Radix.Root>` — standard composition pattern |
 
 ---
 
 ## Sources
 
-- [MDN: GPU.requestAdapter()](https://developer.mozilla.org/en-US/docs/Web/API/GPU/requestAdapter) — standard device creation API, HIGH confidence
-- [MDN: GPUAdapter.requestDevice()](https://developer.mozilla.org/en-US/docs/Web/API/GPUAdapter/requestDevice) — adapter single-use constraint documented, HIGH confidence
-- [MDN: GPUDevice.lost](https://developer.mozilla.org/en-US/docs/Web/API/GPUDevice/lost) — device loss handling pattern, HIGH confidence
-- [MDN: GPUDevice.createRenderPipelineAsync()](https://developer.mozilla.org/en-US/docs/Web/API/GPUDevice/createRenderPipelineAsync) — async pipeline recommendation, HIGH confidence
-- [Emscripten issue #13888: Mixed JS/WASM usage of WebGPU](https://github.com/emscripten-core/emscripten/issues/13888) — `importJsDevice`, `getJsObject`, object table (`JsValStore`) mechanism, MEDIUM confidence (issue thread, not official docs; matches what is in codebase)
-- [Emdawnwebgpu README](https://dawn.googlesource.com/dawn/+/refs/heads/main/src/emdawnwebgpu/pkg/README.md) — `--use-port=emdawnwebgpu` vs deprecated `--use-port=webgpu`, HIGH confidence
-- [WebGPU Bind Group Best Practices](https://toji.dev/webgpu-best-practices/bind-groups.html) — bind group immutability and recreation on resource change, MEDIUM confidence
-- [WebGPU Fundamentals: Uniforms](https://webgpufundamentals.org/webgpu/lessons/webgpu-uniforms.html) — `minUniformBufferOffsetAlignment = 256`, HIGH confidence
-- [MDN: GPURenderPassEncoder.setBindGroup()](https://developer.mozilla.org/en-US/docs/Web/API/GPURenderPassEncoder/setBindGroup) — dynamic offset constraint documentation, HIGH confidence
-- Live codebase: `src/wasm/loader.ts`, `engine/src/main.cpp`, `engine/src/background_engine.h`, `engine/src/background_engine.cpp` — validated interop patterns and texture usage flags, HIGH confidence (primary source)
+- npm registry (direct query, 2026-03-25) — `motion` 12.38.0, all `@radix-ui/*` versions — HIGH confidence
+- [motion.dev/docs/react](https://motion.dev/docs/react) — Official Motion v12 React docs, import path `motion/react` — HIGH confidence
+- [motion.dev/docs/react-upgrade-guide](https://motion.dev/docs/react-upgrade-guide) — framer-motion to motion migration, no API breaking changes — HIGH confidence
+- [radix-ui.com/primitives/docs/components/switch](https://www.radix-ui.com/primitives/docs/components/switch) — WAI-ARIA switch role, keyboard behavior — HIGH confidence
+- [radix-ui.com/primitives/docs/components/slider](https://www.radix-ui.com/primitives/docs/components/slider) — Range slider ARIA attributes — HIGH confidence
+- [radix-ui.com/primitives/docs/components/toggle-group](https://www.radix-ui.com/primitives/docs/components/toggle-group) — Roving tabindex, segmented control pattern — HIGH confidence
+- [radix-ui.com/primitives/docs/components/dialog](https://www.radix-ui.com/primitives/docs/components/dialog) — Focus trap, portal, scroll lock — HIGH confidence
+- [caniuse.com/css-backdrop-filter](https://caniuse.com/css-backdrop-filter) — backdrop-filter Baseline 2024, all modern browsers — HIGH confidence (confirms CSS glass is technically possible but intentionally excluded)
+- [developer.apple.com/fonts](https://developer.apple.com/fonts/) — SF Pro not licensed for web embedding — HIGH confidence
+- [css-tricks.com/snippets/css/system-font-stack](https://css-tricks.com/snippets/css/system-font-stack/) — `-apple-system` resolves to SF Pro on Apple platforms — HIGH confidence
+- WebSearch, multiple queries (2026-03-25) — Apple HIG iOS 26 control dimensions, Liquid Glass design patterns — MEDIUM confidence (no official Apple numerical spec found publicly; dimensions from community reference implementations)
 
 ---
 
-*Stack research for: JS/WebGPU glass rendering pipeline (v3.0 architecture)*
-*Researched: 2026-03-24*
+*Stack research for: Apple Liquid Glass UI Control Library and Showcase Page (v4.0)*
+*Researched: 2026-03-25*

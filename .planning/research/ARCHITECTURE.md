@@ -1,212 +1,89 @@
 # Architecture Research
 
-**Domain:** JS/WebGPU glass rendering pipeline with WASM background engine
-**Researched:** 2026-03-24
-**Confidence:** HIGH — based on direct codebase analysis of v2.0 source
+**Domain:** Apple Liquid Glass UI Control Library — v4.0 showcase and control set
+**Researched:** 2026-03-25
+**Confidence:** HIGH
+
+---
+
+## Context: What Changed in v3.0 (Stable Baseline)
+
+The v3.0 architecture is fully shipped and provides the integration point for all v4.0 work:
+
+- JS creates `GPUDevice` and passes it to C++ WASM engine
+- C++ renders background only (noise or image) to an offscreen `GPUTexture`
+- `GlassRenderer` (TypeScript) owns the glass shader pipeline — reads the C++ texture, renders glass over it per-region
+- React components (`GlassPanel`, `GlassButton`, `GlassCard`) call `useGlassRegion`, which registers DOM elements as glass regions in `GlassRenderer` via `GlassContext`
+- `GlassRegionHandle` interface bridges React prop changes to `GlassRenderer.setRegionXxx()` calls
+- `GlassProvider` owns the GPU device, the render loop, and provides `GlassContext`
+
+**v4.0 does not change any of the above.** The C++ engine, `GlassRenderer`, all primitives, and `useGlassRegion` are untouched. New controls and the showcase page compose on top of the existing system.
+
+---
 
 ## Standard Architecture
 
-### System Overview: v2.0 (Current — To Be Dismantled)
+### System Overview
 
 ```
-┌────────────────────────────────────────────────────────────────────┐
-│                         React Layer                                 │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐             │
-│  │  GlassPanel  │  │  GlassButton │  │  GlassCard   │             │
-│  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘             │
-│         └─────────────────┴─────────────────┘                      │
-│                           │ useGlassRegion hook                     │
-│                           ▼                                         │
-│                  ┌─────────────────┐                                │
-│                  │  GlassProvider  │  (owns canvas, lifecycle)      │
-│                  └────────┬────────┘                                │
-├────────────────────────────────────────────────────────────────────┤
-│                         WASM Bridge (loader.ts)                     │
-│                  ┌─────────────────┐                                │
-│                  │  initEngine()   │  (preinitializedWebGPUDevice   │
-│                  │  EngineModule   │   path exists but underused)   │
-│                  └────────┬────────┘                                │
-├────────────────────────────────────────────────────────────────────┤
-│                     C++ BackgroundEngine (WASM)                     │
-│  ┌──────────────────────────────────────────────────────────┐      │
-│  │  Pass 1: Noise/Image → offscreenTexture (RGBA8Unorm)     │      │
-│  │  Pass 2: offscreenTexture → Surface (glass shader)       │      │
-│  │          (refraction, blur, tint, Fresnel, specular,     │      │
-│  │           chromatic aberration, rim, morph lerp)         │      │
-│  └──────────────────────────────────────────────────────────┘      │
-│  Device owned by C++ (RequestAdapter → RequestDevice in main())    │
-└────────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────┐
+│                        React Application Layer                       │
+├─────────────────────────────────────┬───────────────────────────────┤
+│        Showcase Page (main landing) │  Tuning Drawer (overlay)      │
+│  ┌───────────────────────────────┐  │  ┌─────────────────────────┐  │
+│  │  ShowcasePage                 │  │  │   TuningDrawer           │  │
+│  │  (single-page scroll)        │  │  │   (existing tuning UI    │  │
+│  └─────────────┬─────────────────┘  │   wrapped in slide panel) │  │
+│                │                    │  └─────────────────────────┘  │
+│  ┌─────────────┴─────────────────────────────────────────────────┐  │
+│  │                    Showcase Sections                            │  │
+│  │  HeroSection  ButtonsSection  TogglesSection  SlidersSection   │  │
+│  │  SegmentedSection  ModalSection  PopoverSection  FormSection   │  │
+│  └─────────────┬─────────────────────────────────────────────────┘  │
+│                │                                                      │
+├────────────────┴─────────────────────────────────────────────────────┤
+│                     Glass Control Components (NEW v4.0)               │
+│  ┌──────────────┐  ┌──────────────┐  ┌────────────────────────────┐  │
+│  │ GlassToggle  │  │ GlassSlider  │  │ GlassSegmentedControl      │  │
+│  │ GlassSwitch  │  │ GlassStepper │  │ GlassModal                 │  │
+│  │ GlassChip    │  │ GlassInput   │  │ GlassPopover               │  │
+│  └──────┬───────┘  └──────┬───────┘  └───────────┬────────────────┘  │
+│         │                 │                       │                   │
+│    Each control composes GlassPanel and/or GlassButton                │
+├──────────────────────────────────────────────────────────────────────┤
+│                  Glass Primitives — UNCHANGED from v3.0               │
+│  ┌────────────┐  ┌────────────┐  ┌────────────┐  ┌──────────────┐   │
+│  │ GlassPanel │  │GlassButton │  │ GlassCard  │  │useGlassRegion│   │
+│  └─────┬──────┘  └─────┬──────┘  └─────┬──────┘  └──────┬───────┘   │
+│        └───────────────┴───────────────┴────────────────┘            │
+│                                │                                      │
+├────────────────────────────────┴─────────────────────────────────────┤
+│              GlassProvider / GlassRenderer — UNCHANGED from v3.0      │
+│  ┌──────────────────────────────────────────────────────────────┐    │
+│  │ GlassProvider: GPUDevice owner, rAF loop, ResizeObserver,    │    │
+│  │                GlassContext provider, a11y prefs             │    │
+│  │ GlassRenderer: WGSL pipeline, uniform buffers (16 regions),  │    │
+│  │                morph lerp, dynamic offset draw               │    │
+│  └──────────────────────────────────────────────────────────────┘    │
+├──────────────────────────────────────────────────────────────────────┤
+│                     C++ WASM Background Engine — UNCHANGED            │
+│  Background-only: noise or image → GPUTexture (offscreen)             │
+└──────────────────────────────────────────────────────────────────────┘
 ```
 
-Key problem with v2.0: C++ owns the GPUDevice AND runs the glass shader. Glass is a web UI
-concern and cannot be shared with other platforms. The C++ engine is not pluggable.
+### Component Responsibilities
 
----
-
-### System Overview: v3.0 (Target Architecture)
-
-```
-┌────────────────────────────────────────────────────────────────────┐
-│                         React Layer                                 │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐             │
-│  │  GlassPanel  │  │  GlassButton │  │  GlassCard   │             │
-│  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘             │
-│         └─────────────────┴─────────────────┘                      │
-│                           │ useGlassRegion hook (UNCHANGED API)     │
-│                           ▼                                         │
-│                  ┌─────────────────┐                                │
-│                  │  GlassProvider  │  (owns device, canvas,         │
-│                  └────────┬────────┘   JS glass renderer lifecycle) │
-├────────────────────────────────────────────────────────────────────┤
-│                    JS WebGPU Glass Pipeline (NEW)                   │
-│  ┌──────────────────────────────────────────────────────────┐      │
-│  │  GlassRenderer (TypeScript)                              │      │
-│  │  - Owns GPUDevice reference (acquired by GlassProvider)  │      │
-│  │  - Creates surface, configures swap chain                │      │
-│  │  - Compiles glass.wgsl from string at runtime            │      │
-│  │  - GlassUniformBuffer (dynamic offsets, up to 16 regions)│      │
-│  │  - Per-frame: write uniforms → draw background blit →    │      │
-│  │    draw each active region with alpha blend              │      │
-│  │  - Morph lerp in TypeScript (replaces C++ lerpUniforms)  │      │
-│  └──────────────────────┬───────────────────────────────────┘      │
-│                         │ reads sceneTexture (GPUTexture)           │
-│                         │ passes device handle to WASM              │
-├────────────────────────────────────────────────────────────────────┤
-│                     WASM Bridge (loader.ts — MODIFIED)              │
-│  ┌──────────────────────────────────────────────────────────┐      │
-│  │  initEngine({ device: GPUDevice })                       │      │
-│  │  - Always uses preinitializedWebGPUDevice path           │      │
-│  │  - WebGPU.importJsDevice(device) → handle                │      │
-│  │  - initWithExternalDevice(handle)                        │      │
-│  │  - getSceneTexture(): GPUTexture  (NEW export)           │      │
-│  └──────────────────────┬───────────────────────────────────┘      │
-├────────────────────────────────────────────────────────────────────┤
-│                C++ BackgroundEngine (WASM — SLIMMED)                │
-│  ┌──────────────────────────────────────────────────────────┐      │
-│  │  Pass 1 ONLY: Noise/Image → offscreenTexture             │      │
-│  │  glass.wgsl.h DELETED                                    │      │
-│  │  GlassRegion / GlassUniforms structs DELETED             │      │
-│  │  glassPipeline / glassBindGroup DELETED                  │      │
-│  │  surface.GetCurrentTexture() render DELETED              │      │
-│  │  NEW: getSceneTextureHandle() → uintptr_t                │      │
-│  │  Device received from JS (NOT self-created)              │      │
-│  └──────────────────────────────────────────────────────────┘      │
-└────────────────────────────────────────────────────────────────────┘
-```
-
----
-
-## Component Responsibilities
-
-| Component | v2.0 Responsibility | v3.0 Responsibility | Change |
-|-----------|---------------------|---------------------|--------|
-| `main.cpp` | RequestAdapter/RequestDevice OR externalDeviceMode shim | Always external device; delete standalone adapter/device init | SHRINKS |
-| `BackgroundEngine` | Pass 1 (noise/image) + Pass 2 (glass) + morph lerp + region mgmt | Pass 1 only; expose `getSceneTextureHandle()` | MAJOR CUT |
-| `glass.wgsl.h` | Glass shader embedded in C++ | Delete — shader moves to `src/renderer/glass.wgsl` | DELETE |
-| `GlassRegion`/`GlassUniforms` structs | C++ per-region state | Delete — TypeScript equivalent owns this | DELETE |
-| `loader.ts` / `initEngine()` | Optional external device path | Always external device; add `getSceneTexture()` helper | SIMPLIFY |
-| `GlassRenderer` (NEW) | — | JS class: device init, glass pipeline, uniform buffer, render loop | CREATE |
-| `GlassProvider` | Calls `initEngine`, owns canvas, proxies region calls to C++ | Creates GPUDevice, constructs GlassRenderer, wires initEngine, owns rAF | MODIFIED |
-| `GlassContext` / `GlassRegionHandle` | Interface for React components to C++ engine | Same interface — implementations switch from C++ to JS GlassRenderer calls | API UNCHANGED |
-| `useGlassRegion` | Maps props to C++ engine calls | Maps props to GlassRenderer calls via same GlassRegionHandle interface | INTERNAL ONLY |
-| React components (GlassPanel, etc.) | Use `useGlassRegion` | Use `useGlassRegion` — zero changes | NO CHANGE |
-
----
-
-## Data Flow
-
-### Initialization Flow
-
-```
-GlassProvider mounts
-    │
-    ├─ navigator.gpu.requestAdapter()
-    ├─ adapter.requestDevice()
-    │      │
-    │      ▼
-    │  GPUDevice (JS-owned)
-    │      │
-    ├──────┼─────────────────────────────────────────────────────┐
-    │      ▼ (pass to WASM)                                      ▼ (pass to GlassRenderer)
-    │  initEngine({ device })                          new GlassRenderer(device, canvas)
-    │      │                                                      │
-    │      ├─ WebGPU.importJsDevice(device) → handle             ├─ compile glass.wgsl pipeline
-    │      ├─ initWithExternalDevice(handle)                      ├─ createUniformBuffer()
-    │      └─ BackgroundEngine.init(device, ...)                  └─ createSampler()
-    │             └─ Pass 1 only: noise/image → offscreenTexture
-    │
-    ├─ getSceneTexture() returns offscreenTexture as GPUTexture
-    │      └─ GlassRenderer.setSceneTexture(sceneTexture)
-    │             └─ rebuild glass bind group with new texture view
-    │
-    └─ setReady(true) → React components can register regions
-```
-
-### Per-Frame Render Flow (rAF)
-
-```
-requestAnimationFrame (owned by GlassProvider)
-    │
-    ├─ 1. engine.update(dt)             [C++: advance time, noise animation]
-    ├─ 2. engine.renderBackground()     [C++: Pass 1 only — noise/image → offscreenTexture]
-    │
-    └─ 3. glassRenderer.render()        [JS: Pass 2 — glass compositor]
-           ├─ morphLerp all active regions (TypeScript exponential decay)
-           ├─ writeBuffer: blit passthrough uniforms → draw (background blit)
-           └─ for each active region: writeBuffer uniforms → draw with alpha blend
-```
-
-Note: Single rAF loop is owned by GlassProvider. The C++ `emscripten_set_main_loop(MainLoop)`
-is removed. C++ becomes call-driven — it renders only when JS invokes it.
-
-### Region Parameter Flow
-
-```
-GlassPanel prop change (e.g. blur=0.5 → 0.8)
-    │
-    ▼
-useGlassRegion (useEffect dependency fires)
-    │
-    ▼
-GlassRegionHandle.updateBlurRadius(24)    [JS interface — SAME as v2.0]
-    │
-    ▼
-GlassRenderer.setRegionBlurRadius(id, 24) [JS implementation — NEW]
-    │
-    ▼
-regions[id].target.blurRadius = 24        [TypeScript GlassRegion state]
-    │
-    ▼ (next rAF)
-morphLerp(regions[id].current, regions[id].target, t)
-    │
-    ▼
-GPUQueue.writeBuffer(uniformBuffer, offset, uniformData)
-    │
-    ▼
-glass.wgsl reads GlassUniforms at dynamic offset
-```
-
-### Texture Bridge Flow
-
-```
-C++ BackgroundEngine
-    offscreenTexture (wgpu::Texture, RenderAttachment | TextureBinding)
-    │
-    ▼
-getSceneTextureHandle() → uintptr_t   [via clone.MoveToCHandle()]
-    │
-    ▼ (in loader.ts)
-WebGPU.getJsObject(handle) → GPUTexture (JS handle, same GPU allocation)
-    │
-    ▼
-GlassRenderer.setSceneTexture(gpuTexture)
-    │
-    ▼
-glassBindGroup rebuilt with new GPUTextureView
-    │
-    ▼
-glass.wgsl textureSample(texBackground, ...)
-```
+| Component | Responsibility | v4.0 Status |
+|-----------|----------------|-------------|
+| `GlassProvider` | Owns `GPUDevice`, `GlassRenderer`, rAF loop, provides `GlassContext` | UNCHANGED |
+| `GlassRenderer` | WebGPU pipeline, per-region uniform buffers, 16-region draw, morph lerp | UNCHANGED |
+| `useGlassRegion` | Registers DOM element as glass region; syncs React props to `GlassRegionHandle` | UNCHANGED |
+| `GlassPanel` | Generic `<div>` with full 16-parameter glass surface | UNCHANGED — composable by controls |
+| `GlassButton` | `<button>` with hover/active morph built in | UNCHANGED — composable by controls |
+| `GlassCard` | `<article>` with glass surface | UNCHANGED |
+| **New: Glass control components** | Functional widgets that embed `GlassPanel`/`GlassButton` as their glass surface | NEW in v4.0 |
+| **New: ShowcasePage** | Full-viewport single-page scroll, section-per-control-family, main landing | NEW in v4.0 |
+| **New: TuningDrawer** | Existing tuning UI wrapped in a right-side slide-in panel | NEW wrapper in v4.0 |
 
 ---
 
@@ -214,307 +91,407 @@ glass.wgsl textureSample(texBackground, ...)
 
 ```
 src/
-├── renderer/                       # NEW — JS WebGPU glass pipeline
-│   ├── GlassRenderer.ts            # Core: device, pipeline, uniform buffer, render()
-│   ├── glass.wgsl                  # Glass shader (moved from engine/src/shaders/glass.wgsl.h)
-│   ├── GlassRegionState.ts         # TypeScript port of C++ GlassRegion/GlassUniforms
-│   └── morphLerp.ts                # TypeScript port of C++ lerpUniforms()
+├── components/
+│   ├── GlassProvider.tsx      # unchanged v3.0
+│   ├── GlassPanel.tsx         # unchanged v3.0
+│   ├── GlassButton.tsx        # unchanged v3.0
+│   ├── GlassCard.tsx          # unchanged v3.0
+│   ├── types.ts               # unchanged v3.0
+│   │
+│   └── controls/              # NEW: v4.0 widget controls
+│       ├── GlassToggle.tsx    # toggle switch (boolean on/off)
+│       ├── GlassSlider.tsx    # continuous range input
+│       ├── GlassSegmentedControl.tsx  # multi-option tab selector
+│       ├── GlassStepper.tsx   # increment/decrement counter
+│       ├── GlassChip.tsx      # tag / filter chip (GlassButton variant)
+│       ├── GlassModal.tsx     # full-screen overlay dialog (portal)
+│       ├── GlassPopover.tsx   # anchored overlay panel (portal)
+│       ├── GlassInput.tsx     # text field
+│       └── index.ts           # barrel export for all controls
 │
-├── components/                     # UNCHANGED API
-│   ├── GlassProvider.tsx           # MODIFIED: creates device, wires GlassRenderer + WASM
-│   ├── GlassPanel.tsx
-│   ├── GlassButton.tsx
-│   ├── GlassCard.tsx
-│   └── types.ts                    # UNCHANGED
-│
-├── context/
-│   └── GlassContext.ts             # UNCHANGED (GlassRegionHandle interface survives)
+├── showcase/                  # NEW: showcase page (not exported from index.ts)
+│   ├── ShowcasePage.tsx       # top-level layout, sticky header, section scroll
+│   ├── TuningDrawer.tsx       # existing tuning UI in a CSS-transform slide-in shell
+│   ├── sections/
+│   │   ├── HeroSection.tsx    # headline, tagline, background CTA buttons
+│   │   ├── ButtonsSection.tsx # GlassButton variants
+│   │   ├── TogglesSection.tsx # GlassToggle, GlassSwitch instances
+│   │   ├── SlidersSection.tsx # GlassSlider instances
+│   │   ├── SegmentedSection.tsx  # GlassSegmentedControl instances
+│   │   ├── ModalSection.tsx   # GlassModal trigger + demo
+│   │   ├── PopoverSection.tsx # GlassPopover trigger + demo
+│   │   └── FormSection.tsx    # GlassInput, GlassStepper, GlassChip
+│   └── tokens.ts              # design tokens (spacing, radii, type scale, animation)
 │
 ├── hooks/
-│   ├── useGlassRegion.ts           # UNCHANGED (calls same GlassRegionHandle interface)
-│   ├── useGlassEngine.ts           # UNCHANGED
-│   └── useAccessibilityPreferences.ts  # UNCHANGED
+│   ├── useGlassRegion.ts           # unchanged v3.0
+│   ├── useGlassEngine.ts           # unchanged v3.0
+│   ├── useAccessibilityPreferences.ts  # unchanged v3.0
+│   ├── useMergedRef.ts             # unchanged v3.0
+│   └── useOverlayPosition.ts       # NEW: anchor/viewport positioning for popover
 │
-└── wasm/
-    └── loader.ts                   # MODIFIED: always external device; add getSceneTexture()
-
-engine/src/
-├── main.cpp                        # MODIFIED: delete standalone adapter/device path
-├── background_engine.cpp           # MODIFIED: delete glass pass; add getSceneTextureHandle()
-├── background_engine.h             # MODIFIED: delete glass structs and methods
-└── shaders/
-    ├── noise.wgsl.h                # UNCHANGED
-    ├── image_blit.wgsl.h           # UNCHANGED
-    └── glass.wgsl.h                # DELETED (shader moves to src/renderer/glass.wgsl)
+├── context/
+│   └── GlassContext.ts        # unchanged v3.0
+│
+├── renderer/                  # unchanged v3.0
+├── wasm/                      # unchanged v3.0
+├── utils/
+│   ├── contrast.ts            # unchanged v3.0
+│   └── overlay.ts             # NEW: shared rect/clamp math for modal and popover
+│
+├── App.tsx                    # MODIFIED: mounts <ShowcasePage /> instead of demo
+├── index.ts                   # MODIFIED: adds new controls to public barrel export
+└── main.tsx                   # unchanged
 ```
+
+### Structure Rationale
+
+- **`components/controls/`:** Separates new high-level controls from the three stable primitives. Primitives are the core library API. Controls are higher-level widgets built on top. The subdirectory boundary enforces this distinction and prevents accidentally exposing internal control state in the base primitive API.
+- **`showcase/`:** Entirely separate from `components/` — showcase code is never exported from `index.ts`. It is the demo app, not the library. This pattern matches the existing project: the tuning page in v2.0/v3.0 was co-located but was not an exported library component.
+- **`showcase/sections/`:** One file per control family. Independent state, independent implementation. Enables shipping sections incrementally as controls are completed without cross-file entanglement.
+- **`hooks/useOverlayPosition.ts`:** Both `GlassModal` and `GlassPopover` need anchor-relative positioning. Extracting this avoids duplication and keeps positioning logic independently testable.
 
 ---
 
 ## Architectural Patterns
 
-### Pattern 1: preinitializedWebGPUDevice (Device Handoff)
+### Pattern 1: Glass Primitive Composition
 
-**What:** JS creates `GPUDevice` via `navigator.gpu`, injects it into the emdawnwebgpu object
-table via `WebGPU.importJsDevice(device)`, then passes the resulting `uintptr_t` handle to
-`initWithExternalDevice(handle)` in C++. C++ calls `wgpu::Device::Acquire(handle)`.
+**What:** New controls are thin functional wrappers around the existing glass primitives (`GlassPanel`, `GlassButton`). A `GlassToggle` renders a `GlassPanel` (the track) containing a `GlassButton` (the thumb). A `GlassSlider` renders a `GlassPanel` (the track), another `GlassPanel` (the active fill), and a `GlassButton` (the draggable thumb). Controls do not call `useGlassRegion` directly; they rely on the primitives to register and manage their own GPU regions.
 
-**When to use:** Any time JS must own the GPU device lifecycle (to share it, control teardown,
-or use it in JS WebGPU code simultaneously).
+**When to use:** Every new control that has a visible glass surface. This is the universal composition pattern for all v4.0 controls.
 
-**Trade-offs:** Requires `Module.externalDeviceMode = true` before WASM `main()` runs (via
-`moduleOptions` in `createEngineModule`). The existing `loader.ts` already implements this
-path when `options?.device` is supplied. In v3.0 this path becomes the only path — the
-standalone adapter/device path in `main.cpp` is deleted entirely.
+**Trade-offs:** Each primitive registers its own GPU region. A `GlassToggle` uses 2 regions (track + thumb). A `GlassSlider` uses up to 3 regions. The 16-region limit in `GlassRenderer` becomes the binding constraint for how many controls can be simultaneously mounted. Section-based virtualization (lazy-mount off-screen sections) is the mitigation — see Anti-Patterns.
 
-**Existing code to keep:** `loader.ts` lines 75–89 (the `if (options?.device)` block).
-The `moduleOptions.externalDeviceMode = true` pre-run flag and `WebGPU.importJsDevice` →
-`initWithExternalDevice` sequence is already correct and tested.
-
-### Pattern 2: Shared Texture via Handle Export (Zero-Copy Bridge)
-
-**What:** C++ engine exposes `getSceneTextureHandle()` which calls `clone.MoveToCHandle()` on
-the `offscreenTexture` to produce a `uintptr_t`. JS calls `WebGPU.getJsObject(handle)` to
-retrieve the `GPUTexture` JS object pointing to the same GPU allocation.
-
-**When to use:** Zero-copy texture sharing between WASM and JS WebGPU code. No GPU memory
-duplication.
-
-**Trade-offs:** The handle is only valid while the texture exists. After `engine.resize()`, a
-new `offscreenTexture` is created — `getSceneTexture()` must be called again and
-`GlassRenderer.setSceneTexture()` must be called to rebuild the bind group.
-
-**Existing code to keep:** `getBackgroundTextureHandleJS()` in `main.cpp` already does
-`MoveToCHandle()`. In v3.0 rename to `getSceneTextureHandleJS()`.
-
-### Pattern 3: JS-Owned Render Loop (rAF Controls Everything)
-
-**What:** Remove `emscripten_set_main_loop(MainLoop)` from C++. GlassProvider owns a
-`requestAnimationFrame` loop that calls `engine.update(dt)`, `engine.renderBackground()`,
-then `glassRenderer.render()` in sequence.
-
-**When to use:** When rAF must coordinate two rendering systems writing to different resources.
-
-**Trade-offs:** C++ `main()` can no longer self-drive its loop. The WASM module becomes
-purely reactive — it only renders when JS calls it. This is the correct model for a library.
-
-**Change required:** Replace `emscripten_set_main_loop(MainLoop, 0, false)` in `main.cpp`
-with a no-op (or delete it). Rename `render()` to `renderBackground()` (or keep `render()`
-scoped to Pass 1 only). Expose it as a new Embind binding.
-
-### Pattern 4: TypeScript GlassRegion State (Morph Lerp in JS)
-
-**What:** Port `GlassRegion` / `GlassUniforms` C++ structs to TypeScript interfaces. Port
-`lerpUniforms()` / exponential decay lerp to TypeScript. `GlassRenderer` holds
-`regions: GlassRegionState[]` and runs morph interpolation in `render()`.
-
-**When to use:** Required once the glass pass moves to JS. Morph state is JS-side and does
-not need to cross the WASM bridge.
-
-**Trade-offs:** Duplicates lerp logic in TypeScript, but the logic is trivial (15 scalar
-fields, one-liner lerp each). Eliminates a WASM call per frame per region.
-
----
-
-## What to Reuse vs. Rewrite
-
-### Reuse Directly (No Changes)
-
-| Item | Why |
-|------|-----|
-| `src/context/GlassContext.ts` | `GlassRegionHandle` interface is implementation-agnostic |
-| `src/hooks/useGlassRegion.ts` | Calls `GlassRegionHandle` methods — unchanged |
-| `src/hooks/useGlassEngine.ts` | Reads `GlassContext` — unchanged |
-| `src/hooks/useAccessibilityPreferences.ts` | Unchanged |
-| `src/components/types.ts` | Unchanged |
-| `GlassPanel`, `GlassButton`, `GlassCard` | Use `useGlassRegion` — unchanged |
-| `engine/src/shaders/noise.wgsl.h` | Noise shader stays in C++ |
-| `engine/src/shaders/image_blit.wgsl.h` | Image blit stays in C++ |
-| C++ `uploadImageData`, `setBackgroundMode` | Background-only concern — unchanged |
-
-### Migrate (Port to TypeScript)
-
-| Item | From | To |
-|------|------|----|
-| `GlassUniforms` struct | `background_engine.h` | `src/renderer/GlassRegionState.ts` |
-| `GlassRegion` struct | `background_engine.h` | `src/renderer/GlassRegionState.ts` |
-| `lerpUniforms()` | `background_engine.cpp` | `src/renderer/morphLerp.ts` |
-| `addGlassRegion()` logic | C++ | `GlassRenderer.addRegion()` |
-| `setRegionXxx()` methods (17 variants) | C++ | `GlassRenderer.setRegionXxx()` |
-| `MAX_GLASS_REGIONS = 16` | C++ constant | TypeScript constant |
-| `glass.wgsl` shader source | `engine/src/shaders/glass.wgsl.h` (C string literal) | `src/renderer/glass.wgsl` (Vite raw import `?raw`) |
-
-### Rewrite (New JS Code)
-
-| Item | Notes |
-|------|-------|
-| `GlassRenderer` class | Central new component — wraps device, pipeline, uniform buffer, render loop |
-| Glass pipeline creation in JS | Port `createGlassPipeline()` / `createGlassBindGroup()` to WebGPU JS API |
-| Uniform buffer management in JS | Port dynamic-offset buffer logic (stride, `MAX_GLASS_REGIONS + 1` slots) to TypeScript |
-| `GlassProvider` device init | Add `navigator.gpu` adapter/device acquisition; feed device to both systems |
-| `getSceneTexture()` helper in `loader.ts` | Wrap `getSceneTextureHandleJS()` → `WebGPU.getJsObject()` → `GPUTexture` |
-
-### Delete from C++
-
-| Item | Notes |
-|------|-------|
-| `BackgroundEngine::createGlassPipeline()` | Moved to JS |
-| `BackgroundEngine::createGlassBindGroup()` | Moved to JS |
-| `BackgroundEngine::lerpUniforms()` | Moved to JS |
-| `GlassRegion regions[MAX_GLASS_REGIONS]` | Moved to JS |
-| `glassUniformBuffer`, `glassPipeline`, `glassSampler`, related members | Moved to JS |
-| `BackgroundEngine::addGlassRegion()` and all `setRegionXxx()` | Moved to JS |
-| Embind bindings for glass region methods | Moved to JS |
-| `OnAdapterAcquired` / `OnDeviceAcquired` in `main.cpp` | JS now owns device |
-| `emscripten_set_main_loop(MainLoop)` | JS rAF owns frame loop |
-| `glass.wgsl.h` | Shader migrated to `src/renderer/glass.wgsl` |
-
----
-
-## Suggested Build Order (Phase Dependencies)
-
-```
-Phase 1: WASM Thinning
-  ├─ Delete glass pass from BackgroundEngine (createGlassPipeline, render Pass 2)
-  ├─ Delete glass region management from BackgroundEngine and Embind
-  ├─ Add getSceneTextureHandle() Embind export (rename from getBackgroundTextureHandleJS)
-  ├─ Add renderBackground() Embind export (scoped to Pass 1 only)
-  ├─ Remove standalone device init from main.cpp (delete OnAdapterAcquired/OnDeviceAcquired)
-  └─ Remove emscripten_set_main_loop — BackgroundEngine becomes call-driven
-  Deliverable: WASM binary that only does background rendering; clean boundary
-
-Phase 2: JS GlassRenderer Core
-  ├─ GlassRegionState.ts (TypeScript port of GlassUniforms + GlassRegion)
-  ├─ morphLerp.ts (TypeScript port of lerpUniforms + exponential decay)
-  ├─ Copy glass.wgsl.h shader source into src/renderer/glass.wgsl (strip C string wrapper)
-  ├─ GlassRenderer.ts: device/pipeline init, createUniformBuffer, createGlassBindGroup
-  └─ GlassRenderer.render(): background blit draw + per-region alpha-blend draw
-  Deliverable: GlassRenderer renders glass on a synthetic GPUTexture in isolation
-
-Phase 3: Wire GlassProvider
-  ├─ GlassProvider acquires GPUDevice via navigator.gpu (with error handling)
-  ├─ Pass device to initEngine({ device }) — already tested; simplify to always-external path
-  ├─ Call getSceneTexture() to get C++ offscreen texture as JS GPUTexture
-  ├─ Pass texture to GlassRenderer.setSceneTexture()
-  ├─ Replace C++ region method proxies with GlassRenderer calls via GlassRegionHandle
-  ├─ Own rAF loop in GlassProvider: update → renderBackground → glassRenderer.render()
-  └─ ResizeObserver: after resize call getSceneTexture() again to refresh bind group
-  Deliverable: Full stack works end-to-end; React components render glass over C++ background
-
-Phase 4: Visual Validation and Tuning
-  ├─ Re-run coordinate-descent tuner (params may shift due to pipeline change)
-  └─ Verify pixelmatch diff against iOS reference screenshots
-  Deliverable: Visual parity maintained post-architecture change
+**Example:**
+```typescript
+// GlassToggle: track = GlassPanel, thumb = GlassButton
+export function GlassToggle({ checked, onChange, label }: GlassToggleProps) {
+  return (
+    <GlassPanel
+      cornerRadius={16}
+      style={{ width: 51, height: 31, position: 'relative', cursor: 'pointer' }}
+      onClick={() => onChange(!checked)}
+      role="switch"
+      aria-checked={checked}
+      aria-label={label}
+    >
+      <GlassButton
+        cornerRadius={14}
+        style={{
+          position: 'absolute',
+          top: 2,
+          left: checked ? 22 : 2,
+          width: 27,
+          height: 27,
+          transition: 'left 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+        }}
+      />
+    </GlassPanel>
+  );
+}
 ```
 
-**Dependency rationale:**
+### Pattern 2: Controlled Component Interface
 
-- Phase 1 must come before Phase 3 — C++ surface/glass pass conflicts with JS glass pass;
-  both cannot write to the surface simultaneously
-- Phase 2 can run in parallel with Phase 1 — GlassRenderer can be tested against a synthetic
-  `device.createTexture(...)` without needing the thinned WASM
-- Phase 3 requires both Phase 1 (WASM exposes `getSceneTextureHandle` / `renderBackground`)
-  and Phase 2 (GlassRenderer exists and accepts a texture)
-- Phase 4 requires Phase 3 to be visually stable before tuning
+**What:** All new controls follow the controlled component pattern — state lives in the parent (or in a local `useState` within the showcase section). Controls receive `value`/`onChange` or `checked`/`onChange`. Controls never own their authoritative state internally.
+
+**When to use:** Every functional control in v4.0.
+
+**Trade-offs:** Showcase sections must manage per-control state locally, but this is intentional. Controlled components are composable in real applications without hidden internal state. The showcase sections serve as the state owners for the demo.
+
+**Example:**
+```typescript
+// Each section holds its own local state — no global store needed
+function TogglesSection() {
+  const [wifi, setWifi] = useState(true);
+  const [bluetooth, setBluetooth] = useState(false);
+  return (
+    <>
+      <GlassToggle checked={wifi} onChange={setWifi} label="Wi-Fi" />
+      <GlassToggle checked={bluetooth} onChange={setBluetooth} label="Bluetooth" />
+    </>
+  );
+}
+```
+
+### Pattern 3: Overlay Portal Pattern
+
+**What:** `GlassModal` and `GlassPopover` render into a `ReactDOM.createPortal` targeting `document.body`. This escapes any `overflow: hidden` stacking context in the showcase page. The `GlassPanel` inside the portal registers its GPU region normally — `getBoundingClientRect()` returns correct viewport-relative coordinates for portal elements.
+
+**When to use:** Modal dialogs and anchored popovers only. All other controls render in-place.
+
+**Trade-offs:** Portal contents are outside the normal DOM layout flow but React event delegation still works correctly in React 18/19. Accessibility requires `aria-modal="true"` on the dialog, `role="dialog"`, and a focus trap implementation.
+
+**Example:**
+```typescript
+export function GlassModal({ open, onClose, children }: GlassModalProps) {
+  if (!open) return null;
+  return ReactDOM.createPortal(
+    <div role="dialog" aria-modal="true"
+         style={{ position: 'fixed', inset: 0, zIndex: 9999 }}>
+      {/* Semi-transparent backdrop */}
+      <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.4)' }}
+           onClick={onClose} />
+      {/* GlassPanel registers its own GPU region — works correctly in portals */}
+      <GlassPanel cornerRadius={28}
+                  style={{ position: 'absolute', top: '50%', left: '50%',
+                           transform: 'translate(-50%, -50%)', minWidth: 320 }}>
+        {children}
+      </GlassPanel>
+    </div>,
+    document.body
+  );
+}
+```
+
+### Pattern 4: Section-Based Showcase Layout
+
+**What:** The showcase page is a single long scroll with semantically grouped `<section>` elements. Each section demonstrates one control family. A sticky header provides anchor navigation links and the tuning drawer toggle button. Sections are scrolled-into-view via in-page anchor links, not client-side routing.
+
+**When to use:** The showcase page layout. No React Router dependency is needed.
+
+**Trade-offs:** In-page scroll is simpler than routing and matches Apple's product showcase aesthetic. URL does not change per section, which is acceptable for a demo page. If a multi-page developer docs site is added later (out of scope for v4.0), routing can be introduced at that point.
+
+### Pattern 5: TuningDrawer as Always-Mounted Overlay
+
+**What:** The existing tuning UI (v3.0 dev page) is wrapped in a `TuningDrawer` component that is always mounted but hidden via `transform: translateX(100%)`. A settings icon in the showcase sticky header toggles a `tuningDrawerOpen` boolean in `ShowcasePage` state, which drives a CSS class/style that transitions the drawer into view.
+
+**When to use:** The tuning drawer pattern specifically. Do not conditionally mount/unmount the drawer.
+
+**Trade-offs:** Always-mounted preserves the tuning UI's internal state (slider positions, preset selections) when the drawer is dismissed. CSS transform avoids re-initialization cost. A conditionally-mounted approach would reset tuning state on each open, which is poor developer ergonomics when iterating on glass parameters.
 
 ---
 
-## Anti-Patterns
+## Data Flow
 
-### Anti-Pattern 1: Keeping Two rAF Loops
+### Glass Region Registration (Controls → Renderer)
 
-**What people do:** Leave `emscripten_set_main_loop(MainLoop)` in C++ while adding a
-`requestAnimationFrame` loop in JS for the glass pass.
+```
+GlassToggle renders
+    │
+    ├── GlassPanel (track)          GlassButton (thumb)
+    │       ↓                               ↓
+    │  useGlassRegion(ref, props)   useGlassRegion(ref, props)
+    │       ↓                               ↓
+    │  GlassContext.registerRegion(element) — both
+    │       ↓
+    │  GlassRenderer.addRegion(element) → assigns region ID
+    │       ↓
+    │  GlassRegionHandle stored in hook's handleRef
+    │
+    └── Per-frame: GlassRenderer reads getBoundingClientRect() live
+                   writes UV rect + uniforms → GPU uniform buffer
+                   glass WGSL shader draws each region
+```
 
-**Why it's wrong:** Two independent loops produce tearing — the glass pass reads the
-offscreen texture mid-update. The C++ loop also burns GPU time when the tab is hidden.
+### Interaction State Flow
 
-**Do this instead:** Remove `emscripten_set_main_loop` entirely. Drive all rendering from a
-single JS `requestAnimationFrame` callback: `engine.update(dt)`, then
-`engine.renderBackground()`, then `glassRenderer.render()` in that order.
+```
+User input (click, drag, keypress)
+    ↓
+Control event handler (e.g., GlassToggle onClick)
+    ↓
+Parent useState in showcase section (e.g., setWifi(true))
+    ↓
+Re-render → control receives new checked prop
+    ↓
+CSS transition animates visual position (thumb slide, etc.)
+    ↓
+useGlassRegion syncs updated GlassStyleProps to GlassRegionHandle
+    ↓
+GlassRenderer morph lerp smoothly transitions blur/opacity/etc.
+```
 
-### Anti-Pattern 2: Recreating the Glass Pipeline on Every Resize
+### Showcase Page State
 
-**What people do:** Tear down and reinitialize `GlassRenderer` after `engine.resize()` to
-pick up new resolution values.
+```
+ShowcasePage (top-level)
+├── tuningDrawerOpen: boolean  (useState)
+│     → controls TuningDrawer CSS transform
+│
+└── Each <section> component holds its own independent state:
+    HeroSection      → (no interactive state)
+    ButtonsSection   → activeVariant: string
+    TogglesSection   → { wifi, bluetooth, airdrop, ... }: boolean[]
+    SlidersSection   → { volume, brightness, zoom }: number[]
+    SegmentedSection → selectedIndex: number[]  (one per demo instance)
+    ModalSection     → modalOpen: boolean
+    PopoverSection   → popoverAnchor: HTMLElement | null
+    FormSection      → { name, value, count }: Record<string, unknown>
+```
 
-**Why it's wrong:** Pipeline compilation takes ~10ms. Resolution is a uniform value, not a
-pipeline constant.
-
-**Do this instead:** Pass canvas dimensions as uniform data in `GlassUniforms.resolution`.
-On resize, only rebuild the glass bind group (to reference the new `offscreenTextureView`)
-and update resolution in the uniform buffer. The pipeline itself never needs recreation.
-
-### Anti-Pattern 3: Routing Region State Through the WASM Bridge
-
-**What people do:** Keep `BackgroundEngine::setRegionXxx()` in C++ and call them from
-`GlassRegionHandle` implementations.
-
-**Why it's wrong:** In v3.0 the glass pass is entirely in JS. C++ no longer reads region
-data. Every call becomes a round-trip with no consumer.
-
-**Do this instead:** `GlassRegionHandle` implementations call `GlassRenderer.setRegionXxx()`
-directly. The WASM bridge is only used for `update(dt)`, `renderBackground()`, `resize()`,
-and `getSceneTextureHandle()`.
-
-### Anti-Pattern 4: Calling getSceneTexture() Every Frame
-
-**What people do:** Call `getSceneTextureHandle()` → `WebGPU.getJsObject()` on every rAF to
-get a fresh reference to the scene texture.
-
-**Why it's wrong:** The texture handle is stable between resize events. The `getJsObject`
-lookup has overhead and is unnecessary when the texture has not changed.
-
-**Do this instead:** Cache the `GPUTexture` reference in `GlassRenderer`. Only refresh after
-`engine.resize()` by calling `getSceneTexture()` once and calling
-`renderer.setSceneTexture(tex)` to rebuild the bind group.
+No global state manager is needed. `useState` within each section is sufficient. The only shared state at the page level is `tuningDrawerOpen`.
 
 ---
 
-## Integration Points
+## Build Order (Phase Implications)
 
-### Internal Boundaries
+The dependency graph is bottom-up. Primitives already exist. Build controls by ascending dependency layer:
 
-| Boundary | Communication | Notes |
-|----------|---------------|-------|
-| GlassProvider ↔ GlassRenderer | Direct TypeScript method calls | Provider creates and drives GlassRenderer |
-| GlassProvider ↔ WASM EngineModule | `loader.ts` typed interface | EngineModule needs two additions: `renderBackground()` and `getSceneTextureHandle()` |
-| GlassRenderer ↔ GPU device | WebGPU JS API | Same `GPUDevice` instance shared with C++ WASM |
-| WASM ↔ GPU device | emdawnwebgpu (`wgpu::Device::Acquire(handle)`) | Device shared via integer handle injection |
+**Layer 0 — Already shipped (v3.0):**
+`GlassPanel`, `GlassButton`, `GlassCard`, `useGlassRegion`, `GlassProvider`, `GlassRenderer`
 
-### Key Contract: Texture Lifetime
+**Layer 1 — Independent controls (no inter-control dependencies):**
+Each depends only on Layer 0 primitives. These can be built in parallel or sequentially.
 
-The `offscreenTexture` inside C++ `BackgroundEngine` is the sole handoff point. Its lifetime:
+| Control | Glass Regions Used | Notes |
+|---------|-------------------|-------|
+| `GlassChip` | 1 (GlassButton variant) | Simplest — just a styled GlassButton |
+| `GlassToggle` | 2 (track GlassPanel + thumb GlassButton) | Core boolean control |
+| `GlassSegmentedControl` | N+1 (container + one per segment) | Track where N = segment count |
+| `GlassStepper` | 3 (decrement button + display panel + increment button) | Uses GlassButton for ± |
+| `GlassInput` | 1 (GlassPanel wrapping native `<input>`) | Native input inside glass container |
+| `GlassSlider` | 3 (track + fill + thumb) | Most complex of Layer 1; needs pointer event handling |
 
-1. Created during `BackgroundEngine.init()` — stable until first `resize()`
-2. Destroyed and recreated on every `BackgroundEngine.resize()` call
-3. `GlassProvider` must call `getSceneTexture()` and `glassRenderer.setSceneTexture(tex)`
-   immediately after every `engine.resize()` in the `ResizeObserver` handler
+**Layer 2 — Overlay controls (require `useOverlayPosition` utility):**
+Build after Layer 1 to keep scope clean. Require portal + positioning logic.
 
-Failure to refresh after resize causes glass pass to sample a destroyed texture view —
-results in black screen or WebGPU validation errors.
+| Control | Dependencies | Notes |
+|---------|-------------|-------|
+| `GlassPopover` | `useOverlayPosition`, `GlassPanel`, portal | Anchored to a trigger element |
+| `GlassModal` | `GlassPanel`, portal, focus trap | Simpler positioning (center-screen) |
+
+**Layer 3 — Showcase sections (depend on Layer 1 + Layer 2 controls):**
+Build each section once its control is ready. Sections are independent of each other.
+
+**Layer 4 — Showcase page shell:**
+`ShowcasePage` assembles all sections. `TuningDrawer` wraps existing tuning UI. Both require all sections to exist first.
+
+**Layer 5 — Entry point:**
+Replace `App.tsx` with `<ShowcasePage />`. Add new controls to `src/index.ts` barrel export.
 
 ---
 
 ## Scaling Considerations
 
-| Scale | Architecture Adjustments |
-|-------|--------------------------|
-| 1–16 glass regions | Dynamic uniform buffer offset approach handles this; no changes needed |
-| 16+ regions | Increase `MAX_GLASS_REGIONS` or switch to storage buffer per-region data |
-| External engine (e.g. `sc`) as background | Architecture directly supports it: pass external scene texture to `GlassRenderer.setSceneTexture(tex)`; skip C++ background engine entirely |
-| Multiple GlassProvider instances | Each would need its own GPUDevice or shared device reference — deferred; not a current use case |
+This is a single-page demo app + library. The relevant scaling constraint is the GPU region budget.
+
+| Scenario | Architecture Adjustment |
+|----------|--------------------------|
+| 0–5 controls visible simultaneously | No issue. Well within `MAX_GLASS_REGIONS = 16`. |
+| 6–12 controls visible | Approaching limit. Controls using multiple regions (slider = 3, stepper = 3) count against budget. |
+| 12–16 controls visible | Near the limit. Requires careful counting. |
+| 16+ controls visible | Exceeds the hard limit. **Must** use section virtualization so off-screen sections do not mount glass regions. |
+
+### GPU Region Budget for Showcase
+
+The showcase page will have 8+ sections, each with multiple control instances. If all sections mount simultaneously, the region budget will be exceeded.
+
+**Recommended mitigation: `IntersectionObserver`-based section virtualization.** Wrap each `<section>` in a component that conditionally renders its children only when the section is within a 1-viewport-height proximity of the current scroll position. Controls that are unmounted release their GPU regions via `useGlassRegion`'s cleanup effect (`handle.remove()` + `ctx.unregisterRegion(handle.id)`).
+
+A lightweight `useIntersectionObserver(rootMargin: '100%')` hook provides the proximity flag without any library dependency.
+
+Alternatively: increasing `MAX_GLASS_REGIONS` beyond 16 is a one-line change in `GlassRenderer.ts` and `glass.wgsl` (the uniform buffer stride calculation). The GPU uniform buffer would grow to `N * 256` bytes. Up to 32–64 regions is well within WebGPU limits.
+
+---
+
+## Anti-Patterns
+
+### Anti-Pattern 1: Controls Calling `useGlassRegion` Directly
+
+**What people do:** Build a new control by calling `useGlassRegion(ref, props)` directly inside the control component, bypassing `GlassPanel` or `GlassButton`.
+
+**Why it's wrong:** Duplicates the accessibility override logic (reduced-transparency, dark/light defaults, morph speed), dark/light tint defaults, and all future changes to these defaults. A tuning update to default `blur` or `aberration` in `useGlassRegion` propagates to all primitives but not to direct-call controls.
+
+**Do this instead:** Compose `GlassPanel` or `GlassButton` as the glass surface. If neither element type fits (e.g., a `<span>` or `<li>` is needed), consider adding a new primitive (e.g., `GlassSurface` without a semantic element) rather than calling `useGlassRegion` raw inside a high-level widget.
+
+### Anti-Pattern 2: Global State Store for Showcase Demo Values
+
+**What people do:** Put all showcase interactive state in a React context, Zustand store, or Redux slice — `showcaseState.wifiEnabled`, `showcaseState.volume`, etc.
+
+**Why it's wrong:** Couples all sections together. A state update in `TogglesSection` causes re-renders in `SlidersSection`. For 30+ controls, this produces unnecessary re-render cascades on every user interaction.
+
+**Do this instead:** Each showcase section holds its own local `useState`. Sections are fully independent React subtrees. The only shared state at the `ShowcasePage` level is `tuningDrawerOpen`.
+
+### Anti-Pattern 3: Mounting All Sections on Page Load
+
+**What people do:** Render all showcase sections unconditionally when the page loads, mounting every control and registering all GPU regions at startup.
+
+**Why it's wrong:** 8 sections × ~4 glass primitives per section = ~32 GPU regions, double the `MAX_GLASS_REGIONS = 16` limit. Exceeding this silently drops regions from the render (no error, just missing glass effects on some controls).
+
+**Do this instead:** Use `IntersectionObserver` to mount section children only when the section is near the viewport. React's unmount cleanup in `useGlassRegion` automatically releases GPU regions when a section scrolls far away. This keeps the simultaneously-active region count within budget at all scroll positions.
+
+### Anti-Pattern 4: React Router for Section Navigation
+
+**What people do:** Add `react-router-dom` and define routes like `/showcase/buttons`, `/showcase/sliders` to allow deep-linking into showcase sections.
+
+**Why it's wrong:** Unnecessary dependency for a scroll-based single-page demo. Router adds complexity, changes URL behavior, and complicates state preservation in the tuning drawer across navigation events.
+
+**Do this instead:** Use anchor-based in-page navigation. Section elements get `id="buttons-section"`, header nav uses `href="#buttons-section"`, CSS provides `scroll-margin-top` to account for the sticky header. For animated scroll: `document.getElementById('buttons-section')?.scrollIntoView({ behavior: 'smooth' })`. No router needed.
+
+### Anti-Pattern 5: Deleting the Existing Tuning Page
+
+**What people do:** Remove the existing tuning UI components to simplify the codebase when building the showcase.
+
+**Why it's wrong:** The tuning page is the primary developer tool for adjusting the 16 shader parameters per region. It is also the interface that drives the coordinate-descent auto-tuner (`npm run tune`). Deleting it removes critical workflow capability.
+
+**Do this instead:** Move the tuning UI into a `TuningDrawer` — a right-side slide-in panel triggered by a settings icon in the showcase header. The tuning UI component itself is preserved; only a shell wrapper is added. The drawer is always-mounted but hidden via CSS transform.
+
+---
+
+## Integration Points
+
+### Composing with Existing Primitives
+
+| Boundary | Communication | Notes |
+|----------|---------------|-------|
+| New control → `GlassPanel` | Component composition — control renders `GlassPanel` as child/wrapper | GlassPanel self-registers region; control passes GlassStyleProps through to customize the glass appearance |
+| New control → `GlassButton` | Component composition — interactive surfaces use GlassButton | GlassButton handles hover/active morph state internally; no extra work for control authors |
+| New control → `useGlassEngine()` | Direct hook call only if control needs `preferences.darkMode` for text color outside of a GlassPanel | GlassPanel's built-in `textStyles` already handles dark/light mode text — most controls won't need this |
+
+### Portal Controls and GlassRenderer
+
+| Boundary | Communication | Notes |
+|----------|---------------|-------|
+| `GlassModal` / `GlassPopover` (portal) → `GlassRenderer` | `GlassPanel` inside portal registers region via `GlassContext` normally | Portal elements are in the DOM; `getBoundingClientRect()` returns correct viewport coordinates; glass effect renders correctly |
+| `GlassPopover` → anchor element | `useOverlayPosition(anchorRef)` reads `anchorRef.current.getBoundingClientRect()` and returns CSS position values | Must recompute on scroll and window resize; `ResizeObserver` on anchor element handles this |
+
+### TuningDrawer and Existing Tuning State
+
+| Boundary | Communication | Notes |
+|----------|---------------|-------|
+| `TuningDrawer` → existing tuning UI | Shell wrapper with CSS transform — the existing tuning component is a direct child | Tuning state is internal to the tuning component; the drawer only controls its visibility. No props or callbacks needed beyond `open` boolean. |
+| `ShowcasePage` → `TuningDrawer` | `tuningDrawerOpen: boolean` prop from ShowcasePage's useState | Minimal coupling — ShowcasePage owns the toggle, TuningDrawer receives it |
+
+### Public API Additions to `src/index.ts`
+
+```typescript
+// New additions alongside unchanged v3.0 exports:
+export { GlassToggle } from './components/controls/GlassToggle';
+export { GlassSlider } from './components/controls/GlassSlider';
+export { GlassSegmentedControl } from './components/controls/GlassSegmentedControl';
+export { GlassStepper } from './components/controls/GlassStepper';
+export { GlassChip } from './components/controls/GlassChip';
+export { GlassModal } from './components/controls/GlassModal';
+export { GlassPopover } from './components/controls/GlassPopover';
+export { GlassInput } from './components/controls/GlassInput';
+// Type exports:
+export type {
+  GlassToggleProps,
+  GlassSliderProps,
+  GlassSegmentedControlProps,
+  GlassStepperProps,
+  GlassChipProps,
+  GlassModalProps,
+  GlassPopoverProps,
+  GlassInputProps,
+} from './components/controls/index';
+```
+
+The showcase page components (`ShowcasePage`, `TuningDrawer`, sections) are **not** exported from `index.ts` — they are application code, not library code.
 
 ---
 
 ## Sources
 
-- Codebase analysis: `engine/src/background_engine.h`, `background_engine.cpp`, `main.cpp` (v2.0)
-- Codebase analysis: `src/wasm/loader.ts`, `src/components/GlassProvider.tsx` (v2.0)
-- Codebase analysis: `engine/src/shaders/glass.wgsl.h` — full shader implementation reviewed
-- Project context: `.planning/PROJECT.md` — v3.0 goals, key decisions table, reference pattern
-- emdawnwebgpu handoff: `loader.ts` lines 75–89 implement `preinitializedWebGPUDevice` already;
-  `main.cpp` lines 96–107 implement the C++ counterpart via `EM_ASM`
+- Live codebase direct read: `src/components/GlassPanel.tsx`, `GlassButton.tsx`, `GlassProvider.tsx`, `context/GlassContext.ts`, `hooks/useGlassRegion.ts`, `renderer/GlassRenderer.ts` — primary source for integration point analysis, region budget, cleanup patterns (HIGH confidence)
+- `.planning/PROJECT.md` — v4.0 milestone goals, active requirements, key architecture decisions table (HIGH confidence)
+- React 19 `ReactDOM.createPortal` — stable API since React 16; portal elements in DOM, events delegate normally (HIGH confidence)
+- `IntersectionObserver` MDN — browser-native API, widely supported (Chrome 51+, Safari 12.1+); no library needed (HIGH confidence)
+- `GlassRegionState.ts` `MAX_GLASS_REGIONS = 16` constant in `GlassRenderer.ts` — direct codebase read confirming region budget (HIGH confidence)
 
 ---
-*Architecture research for: glass-react v3.0 JS/WebGPU glass pipeline redesign*
-*Researched: 2026-03-24*
+
+*Architecture research for: Apple Liquid Glass v4.0 Control Library and Showcase Page*
+*Researched: 2026-03-25*

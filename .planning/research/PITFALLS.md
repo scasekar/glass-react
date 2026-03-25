@@ -1,12 +1,10 @@
-# Pitfalls Research: v3.0 Architecture Redesign
+# Pitfalls Research: v4.0 Glass Control Library & Showcase
 
-**Domain:** WebGPU pipeline split — C++/WASM background engine + JS/WebGPU glass shader pipeline
-**Researched:** 2026-03-24
-**Confidence:** HIGH (core pitfalls verified against emdawnwebgpu source, WebGPU spec, and project history)
+**Domain:** Pixel-perfect Apple Liquid Glass UI controls + showcase page on top of existing WebGPU rendering pipeline
+**Researched:** 2026-03-25
+**Confidence:** HIGH for GPU pipeline and React integration pitfalls (derived from v3.0 source + WebGPU spec); MEDIUM for Apple HIG fidelity and showcase design pitfalls (derived from community research, NNGroup, and Infinum accessibility audits)
 
-**Scope:** Pitfalls specific to the v3.0 redesign: flipping device ownership from C++ to JS, moving glass shaders from C++ WGSL to TypeScript WebGPU, sharing textures between WASM and JS, and maintaining visual parity after the rewrite.
-
-Prior v2.0 pitfalls (sRGB texture formats, premultiplied alpha, copyExternalImageToTexture, simulator color space) remain valid and are NOT repeated here. This document covers only new risk surfaces introduced by the architectural split.
+**Scope:** Pitfalls specific to v4.0: scaling from 3 glass components to 10+ functional controls, matching Apple's Liquid Glass design language pixel-perfectly, and building a showcase page that replaces the tuning page. v3.0 GPU/WASM pipeline pitfalls (device handle lifetime, WaitAny, UV convention, uniform buffer alignment) are addressed in the archived v3.0 PITFALLS research and are not repeated here — they remain valid and the patterns must not regress.
 
 ---
 
@@ -14,171 +12,171 @@ Prior v2.0 pitfalls (sRGB texture formats, premultiplied alpha, copyExternalImag
 
 ---
 
-### C1: emdawnwebgpu Object Handle Lifetime — JS Objects Deleted While C++ Holds the Handle
+### C1: Exceeding MAX_GLASS_REGIONS — Silent Rendering Corruption at >16 Controls
 
-**What goes wrong:** JS calls `module.WebGPU.importJsDevice(device)` or `module.WebGPU.importJsTexture(texture)`, gets back an integer handle, and passes it to C++. Later, the JS GPUDevice or GPUTexture is garbage-collected or explicitly destroyed while C++ still holds the handle. C++ code then dereferences the stale handle, causing a crash, silent wrong-result, or device loss that is nearly impossible to trace.
+**What goes wrong:** `GlassRenderer` has a hard cap of `MAX_GLASS_REGIONS = 16` (inherited from v3.0). The uniform buffer is allocated at `(16 + 1) * 256 = 4352 bytes`. If a showcase page renders more than 16 glass components simultaneously (e.g., a full row of segmented control segments + modal + panel + cards), controls beyond slot 16 write to unallocated buffer memory, producing undefined fragment shader output — silent corruption, not an error.
 
-**Why it happens:** `importJsDevice` / `importJsTexture` register the JS object in emdawnwebgpu's internal JS object table (`WebGPU.Internals.jsObjects`). The table holds only a weak conceptual reference — if the JS side drops the GPUDevice or GPUTexture reference, the entry becomes invalid. There is no automatic reference counting that keeps the JS object alive because the C++ handle holds it. The emdawnwebgpu `JsValStore` was designed for marshalling objects across call boundaries, not for long-lived ownership.
+**Why it happens:** The `addRegion()` method increments `this.nextId` without checking against the limit. The `regions` Map can grow beyond 16 entries. The render loop iterates `activeRegions.forEach((region, i) => ...)` and writes to offset `(i + 1) * UNIFORM_STRIDE` — when `i` exceeds 15, this writes past the allocated buffer end.
 
 **How to avoid:**
-1. Keep GPUDevice and GPUTexture alive in a JavaScript-owned variable (e.g., a `useRef` in GlassProvider) for the entire lifetime of the C++ engine that uses them.
-2. Never call `device.destroy()` or `texture.destroy()` from JS while C++ is still running. Always destroy the C++ engine first (call `module.destroyEngine()`), then destroy JS WebGPU objects.
-3. In the cleanup path of `GlassProvider`, enforce this order explicitly: `destroyEngine()` → `device.destroy()`. Add a comment explaining why the order matters.
-4. Do not pass handles obtained from `importJsTexture` across React renders without ensuring the originating texture is still live. Particularly risky when `externalTexture` prop changes — the old handle becomes stale when the new texture arrives.
+1. Add a guard in `GlassRenderer.addRegion()`: if `this.regions.size >= MAX_GLASS_REGIONS`, log a warning and return a sentinel ID (or throw). Never silently overwrite.
+2. Before building the showcase page, count how many simultaneous glass regions the page requires. If the showcase needs more than 16, either raise `MAX_GLASS_REGIONS` (update the buffer allocation in the same commit) or use CSS glass fallbacks for decorative-only elements.
+3. Use a single `GlassPanel` wrapping a complex control cluster rather than each sub-element having its own region. Segmented control segments should share one parent `GlassPanel` region, with CSS handling the individual segment rendering inside it.
+4. The uniform buffer size calculation is `(MAX + 1) * 256 bytes`. If raising the limit, update the `createBuffer({ size: ... })` call in `GlassRenderer.init()` to match. A mismatch between the runtime limit and the allocated buffer size is the silent corruption vector.
 
 **Warning signs:**
-- Device lost errors (`GPUDevice.lost` fires) with reason `"unknown"` or `"destroyed"` at unexpected times.
-- C++ engine renders a frame correctly once, then produces black output or crashes on the second frame.
-- Using `externalTexture` prop, switching to a new texture crashes rather than switching smoothly.
+- The 17th or later component on a page has no glass effect, or produces random colors.
+- `GlassRenderer.regions.size` exceeds `MAX_GLASS_REGIONS` in a debug log.
+- Adding a component to the showcase causes an unrelated earlier component to visually break.
 
-**Phase to address:** Phase 1 (JS device creation + C++ device injection). The handle lifetime contract must be established before any other cross-boundary code is written.
+**Phase to address:** Phase 1 (component API design). Audit the maximum region count before starting control implementation; raise the limit if needed with the buffer allocation update in the same commit.
 
 ---
 
-### C2: `preinitializedWebGPUDevice` / `emscripten_webgpu_get_device()` Are Deprecated — Do Not Use
+### C2: getBoundingClientRect on Scrolled or Transformed Containers — Glass Misalignment
 
-**What goes wrong:** Developer follows old tutorials or blog posts that use `preinitializedWebGPUDevice` (a Module property set before WASM init) and `emscripten_webgpu_get_device()` on the C++ side to receive the pre-injected device. This pattern no longer works with emdawnwebgpu (the current WebGPU port in Emscripten 4.0.10+). The C++ function `emscripten_webgpu_get_device()` does not exist in emdawnwebgpu — it was part of the old `USE_WEBGPU` implementation that was deprecated and removed.
+**What goes wrong:** `GlassRenderer.render()` calls `el.getBoundingClientRect()` every frame to get the element's viewport-relative position. This is correct for the full-page canvas model (where the canvas is `position: fixed; inset: 0`). If the showcase page introduces any scrollable container, CSS transform, or `position: sticky` ancestor, `getBoundingClientRect()` returns the viewport-adjusted rect correctly — but the glass canvas covers the full viewport, so the glass mask lands in the right place. The problem arises if a developer wraps components in a `overflow: auto` container that is itself positioned, or uses `transform: translateX()` for animations — these cause `getBoundingClientRect()` to drift from the canvas pixel position for offscreen elements.
 
-**Why it happens:** The project memory correctly documents this (`emscripten_webgpu_import_device()` does NOT exist in emdawnwebgpu). The correct pattern is `module.WebGPU.importJsDevice(device)` → `module.initWithExternalDevice(handle)`. The `loader.ts` already implements this correctly. The pitfall is accidentally reverting to the old pattern during the v3.0 rewrite when restructuring the loader.
+**Why it happens:** The architecture assumes one full-viewport canvas, one coordinate system. A scrolled container clips elements but the canvas does not know about the clip. When an element is partially scrolled out of view, the glass mask renders outside the visible area — the glass effect bleeds through the container's clipping boundary because the WebGPU canvas ignores CSS overflow clipping.
 
 **How to avoid:**
-1. Use only `module.WebGPU.importJsDevice(jsDevice)` to register the JS device, then call `module.initWithExternalDevice(handle)` from JS.
-2. The C++ side receives the device via the `handle` integer, not via any Emscripten-specific function.
-3. When referencing external examples or docs, verify they target emdawnwebgpu specifically (not the old `-sUSE_WEBGPU`). Old examples predate Emscripten 4.0.10 and use the removed API.
-4. Keep `loader.ts` as the single place where this bridging happens — do not spread device injection calls across multiple files.
+1. Keep the showcase page layout flat: use standard document flow with no scrollable inner containers wrapping glass components. One outer document scroll is fine.
+2. Do not apply CSS transforms to elements that have `useGlassRegion` — transforms offset `getBoundingClientRect()` relative to the layout, which is fine, but transforms applied via JS animation (e.g., Framer Motion `animate={{ x: 100 }}`) update mid-frame, causing a one-frame misalignment per animation tick.
+3. If any glass component needs a scroll container, clip the WebGPU output with a `<canvas>` element that matches the container dimensions rather than the full viewport — this requires architectural work and should be deferred to a later milestone.
+4. Test all showcase layouts at multiple scroll positions to verify glass regions track their DOM elements correctly.
 
 **Warning signs:**
-- Linker error: `undefined symbol: emscripten_webgpu_get_device` when building.
-- C++ code compiles but `getEngine()` always returns null (device init never completes because the old hook is not triggered).
-- Runtime error: `module.WebGPU` is undefined (happens if `--use-port=emdawnwebgpu` is missing from link flags).
+- Glass effect is offset from the visual element by a fixed amount equal to the container's scroll position.
+- Glass effect renders in the correct absolute position but outside the visible overflow boundary of its container.
+- Works correctly at scroll position 0, breaks when page is scrolled.
 
-**Phase to address:** Phase 1 (device ownership flip). Verified against project memory and emdawnwebgpu source.
+**Phase to address:** Phase 1 (showcase layout architecture). Establish the layout constraints before any controls are placed on the page.
 
 ---
 
-### C3: AllowSpontaneous vs. WaitAny — Double WaitAny Corrupts emdawnwebgpu Instance Reference
+### C3: Pixel-Perfect Apple Fidelity — Matching the Effect, Not Just the Parameters
 
-**What goes wrong:** When C++ needs to await both RequestAdapter and RequestDevice in sequence, using `WaitAny()` twice corrupts emdawnwebgpu's internal `Instance` reference. The second `WaitAny` call on a different future causes emdawnwebgpu to release or reset the Instance it needs to operate, producing an invalid device, silent failures, or crashes on subsequent WebGPU calls.
+**What goes wrong:** The v3.0 tuning loop converged shader parameters toward Apple's Liquid Glass look using a procedural noise background and the default wallpaper. When a different background (user wallpaper, gradient, or solid color) is used, those same parameters produce a noticeably different visual — the glass looks too heavy, too light, or the rim/specular interaction is wrong. Developers mistakenly think parameter convergence = pixel-perfect, but Apple's effect is inherently background-dependent.
 
-**Why it happens:** This is a known emdawnwebgpu bug/limitation already discovered and documented in project memory. In the v3.0 redesign, the device init path in C++ is being restructured (JS creates the device and passes it in, so the C++ adapter/device request path changes). If the rewrite inadvertently reintroduces a double-WaitAny — for example, to wait for any async initialization after device injection — the corruption reappears.
+**Why it happens:** The dome refraction model displaces background pixels based on their UV position relative to the glass shape. On a uniform or simple background the effect is subtle; on a complex high-frequency background (wallpaper) the effect is dramatic. The v3.0 tuned parameters are optimized for the bundled wallpaper — they are not universal.
 
 **How to avoid:**
-1. For device initialization in C++: use `AllowSpontaneous` chained callbacks, not `WaitAny` in sequence. The C++ `main()` already does this correctly in v2.0 — preserve this pattern in v3.0.
-2. In the JS-creates-device path: device creation is entirely async in JS (using `navigator.gpu.requestAdapter()` → `adapter.requestDevice()`). Pass the already-resolved `GPUDevice` into C++ only after it is fully initialized. C++ does not need to `WaitAny` for the device at all in this pattern.
-3. If any new async WebGPU initialization is needed on the C++ side after device injection, use `AllowSpontaneous` callbacks, not `WaitAny`.
-4. Add a test: after engine init, verify `getEngine()` returns non-null and a test render completes without device loss.
+1. Do not claim "pixel-perfect" for specific numeric parameters. Instead, design the control system so users can tune presets per background.
+2. For the showcase page, use the same bundled wallpaper as the reference background — this is the only context where v3.0 tuned parameters are validated.
+3. Per-control presets (button, toggle, slider, modal) should each have independently tuned defaults, not just the panel defaults. A small toggle behaves differently from a full-width panel because the ratio of rim area to interior area differs.
+4. When comparing to Apple's native effect, use the same content area (fixed wallpaper, fixed size) and test at the same DPR. Apple's `.clear` style on iPhone 16 Pro Simulator at 3x DPR is the reference — do not compare against macOS screenshots (different DPR, different rendering context).
 
 **Warning signs:**
-- `getEngine()` returns null indefinitely after `initWithExternalDevice()` is called.
-- Device is acquired (JS `requestDevice()` succeeds) but the engine never starts rendering.
-- Crash or silent hang inside `wgpu::Instance` methods after the second WaitAny.
+- Screenshots on a plain white background look washed out compared to the showcase wallpaper demo.
+- The "pixel-perfect" comparison passes on the reference wallpaper but fails when a user uploads their own image.
+- iOS Simulator visual diff score is good for a panel but poor for a button of the same nominal parameters.
 
-**Phase to address:** Phase 1 (C++ engine restructuring for external device). Pre-existing known issue — must not regress.
+**Phase to address:** Phase 2 (per-control visual tuning). Each control needs individual visual validation against the Apple reference, not just inherited panel defaults.
 
 ---
 
-### C4: Glass Shader Texture Coordinate Convention Drift During Port
+### C4: Functional Controls as Glass Wrappers — State and DOM Event Conflicts
 
-**What goes wrong:** The C++ glass shader (`glass.wgsl.h`) uses a specific UV convention: Y is flipped in the vertex shader (`1.0 - (position.y * 0.5 + 0.5)`), and the SDF is computed in pixel space relative to canvas resolution. When the shader is re-implemented in TypeScript WebGPU, a subtle difference in UV convention (Y up vs. Y down), NDC coordinate mapping, or pixel-space SDF origin causes the glass effect to appear upside-down, mirrored, or displaced relative to the actual DOM element position.
+**What goes wrong:** New controls (toggle, slider, segmented control) are implemented by wrapping native HTML inputs or custom elements in `GlassPanel`/`GlassButton`. The glass region is registered on the wrapper, which is a `div`. When the native input inside fires events (`onChange`, `onInput`, `onPointerDown`) and updates React state, the re-render causes the wrapper's position or size to change — `getBoundingClientRect()` returns a new rect on the next rAF frame. If the morph animation (`morphSpeed`) is too slow, the glass mask visually lags the DOM element during interactive transitions (toggle sliding, slider thumb dragging).
 
-**Why it happens:** The existing shader encodes three inter-related coordinate conventions that must all agree: (1) the vertex shader UV Y-flip, (2) the SDF pixel-space computation using `glass.resolution` and `glass.rect`, and (3) the `getBoundingClientRect()` values converted to normalized [0,1] space in `GlassProvider`. When transcribing from C++ WGSL (in a `.h` string) to TypeScript WGSL (in a `.ts` string), it is easy to accidentally change one convention without updating the others.
+**Why it happens:** The glass mask updates on the next rAF frame using the new `getBoundingClientRect()` value, but the DOM element updates immediately during the event. At 60FPS, a 16ms lag is invisible for static elements, but during a drag or toggle animation where the element changes shape/size/position at interactive speed, the one-frame lag becomes visible misalignment.
 
 **How to avoid:**
-1. Copy the existing `glass.wgsl.h` shader string verbatim as the starting point for the JS WGSL module. Do not rewrite from scratch — transcribe and refactor.
-2. Add a visual regression test immediately after the port: render a single glass panel and verify its position, size, and corner radius match the expected pixel coordinates within 2px tolerance.
-3. The pixel-space SDF test is the critical invariant: the glass mask must align with the element's `getBoundingClientRect()` at both 1x and 2x DPR. Test at both DPR values before declaring the port complete.
-4. Document the UV convention explicitly in the new JS shader file: "Y is flipped in vertex shader; UV (0,0) is top-left; pixel space uses canvas.width × canvas.height."
+1. Keep glass regions on stable-size containers, not on elements that change dimensions during interaction. A toggle track is stable; the thumb that slides inside it should be a CSS-only animation, not a separate glass region.
+2. For elements that must change size (e.g., an expanding panel), use a high `morphSpeed` (instantaneous snap at `morphSpeed: 0`) so the glass catches up in one frame.
+3. Sliders should register one glass region on the slider track (stable), with the thumb rendered purely via CSS. Do not give the draggable thumb its own glass region.
+4. Test each interactive control at 60FPS with Chrome DevTools slow-motion recording to verify no visible glass lag during interaction.
 
 **Warning signs:**
-- Glass effect appears in the correct location visually but the mask is upside-down (effects show on the wrong side of the element).
-- SDF distance field is correct in size but offset from the element by exactly `height - element.top` or similar systematic amount.
-- Refraction direction is reversed (background appears to magnify inward instead of outward).
+- Toggle animation looks fine at 30FPS but the glass mask briefly shows the old position at 60FPS during the toggle transition.
+- Slider drag causes the glass overlay to jitter or trail behind the thumb.
+- Any control that changes its CSS dimensions during interaction shows a one-frame glass misalignment.
 
-**Phase to address:** Phase 2 (JS glass pipeline, initial WGSL port). Pixel-position regression test should be a gate criterion for this phase.
+**Phase to address:** Phase 2 (functional controls). Design each control's region topology before implementing interaction, not after.
 
 ---
 
-### C5: Offscreen Texture Format Mismatch After Device Ownership Flip
+### C5: Overuse of Glass — Cognitive Overload and Readability Degradation
 
-**What goes wrong:** In v2.0, the C++ engine creates both the offscreen texture (background) and the glass pipeline textures — they share the same device and the C++ code controls all format decisions. In v3.0, JS creates the GPUDevice and may also create JS-side textures for the glass pipeline. If JS creates a texture with format `rgba8unorm` (sRGB-correct) and C++ creates its offscreen texture with `bgra8unorm` (preferred canvas format on macOS), sampling C++'s texture from the JS glass pipeline produces channel-swapped output (red and blue channels swapped).
+**What goes wrong:** Every component on the showcase page uses the full glass effect. When 10+ glass regions are visible simultaneously, the refraction of the complex background creates a "snow globe" effect — no single element stands out, text contrast drops below WCAG requirements on some backgrounds, and users cannot distinguish interactive from decorative elements.
 
-**Why it happens:** `GPU.getPreferredCanvasFormat()` returns `bgra8unorm` on macOS/Chrome. C++ currently uses `surfaceFormat` for its offscreen texture. JS may default to `rgba8unorm`. These are incompatible formats and `textureSample()` does not swap channels — it reads whatever raw bytes are there, so BGRA stored in an RGBA texture view produces swapped R/B channels.
+**Why it happens:** The library makes it easy to apply glass to anything, and during development every element is tested in isolation where the effect looks compelling. The showcase page renders everything together for the first time, revealing that the aggregated effect overwhelms the visual hierarchy.
 
 **How to avoid:**
-1. Establish a single canonical offscreen texture format agreed upon by both JS and C++ before writing any code. Recommendation: `rgba8unorm` for all offscreen textures (it is universally supported for sampling). Use the canvas-preferred format only for the swap chain surface.
-2. In C++, do not use `surfaceFormat` for the offscreen texture — use an explicit `wgpu::TextureFormat::RGBA8Unorm`. This is already done for the image texture; apply the same discipline to the noise offscreen texture.
-3. The JS glass pipeline must sample the texture with the format the C++ engine actually creates. Have C++ expose `getOffscreenTextureFormat()` (or hard-code RGBA8Unorm) so JS can verify alignment at startup.
-4. Add a one-frame validation render at engine startup: clear the offscreen texture to a known RGBA value (e.g., `(255, 0, 0, 255)` = pure red), sample it from JS, verify the JS-side reads `(1.0, 0.0, 0.0)`. This catches channel swap immediately.
+1. Use Apple's own HIG constraint: one primary glass material per logical view layer (toolbar, modal, floating card). Secondary elements within a glass panel should be CSS-only, not additional glass regions.
+2. Establish a visual hierarchy rule: only interactive or primary-focus elements get GPU glass regions. Decorative dividers, labels, and secondary text use CSS glassmorphism (`backdrop-filter: blur()`) or no glass at all.
+3. The showcase page should demonstrate the hierarchy visually — not a grid of equal-weight glass components, but a realistic app layout where glass is used purposefully.
+4. Test readability by disabling JavaScript (which removes all WebGPU effects) — if the layout still communicates hierarchy clearly, the glass is enhancing; if the layout collapses without it, the glass is carrying structural work it shouldn't.
 
 **Warning signs:**
-- Glass effect shows the background with cyan where red objects should be (R/B swap: `rgba8` reading `bgra8` bytes).
-- Correct colors on Windows/Linux (where preferred format is `rgba8unorm`) but wrong on macOS (where it is `bgra8unorm`).
-- sRGB-vs-linear artifacts (one side applies gamma, the other does not).
+- Screenshot of the showcase page looks "glassy everywhere" with no clear focal point.
+- A user in a usability test cannot identify which element is the primary call-to-action.
+- Contrast checker (browser extension or Lighthouse) fails more than 2 elements on the showcase page.
 
-**Phase to address:** Phase 1 (C++ engine restructuring) and Phase 2 (JS glass pipeline creation). Must be verified at the first texture handoff test.
+**Phase to address:** Phase 3 (showcase page layout). Establish a hierarchy document before placing components. This is a design decision, not an implementation fix.
 
 ---
 
-### C6: JS Glass Pipeline Skips DPR Scaling — Effects Look Different on Retina Displays
+### C6: Accessibility Regression — Glass Effects Defeating reducedTransparency Support
 
-**What goes wrong:** The existing C++ glass shader has DPR-aware scaling baked in at multiple points: `cornerRadius * dpr`, `blurRadius * dpr`, `cssDist = dist / dpr` for rim/specular falloff. When the glass shader is ported to JS, the DPR uniform must be populated identically. If the JS pipeline omits the DPR field, or populates it but from the wrong source (e.g., a stale value captured at mount time instead of the current display DPR), the glass effect looks correct on 1x displays but has over-large blur, over-thick rims, and wrong corner radii on Retina displays.
+**What goes wrong:** New controls (toggle, slider, modal) add their own hover/press state mutation of glass props (as `GlassButton` does: `effectiveBlur = pressed ? blur * 0.3 : blur`). When `reducedTransparency` is active, `useGlassRegion` correctly collapses all effects to an opaque surface. But if a control's interaction handler mutates the component's local state and bypasses the `reducedTransparency` guard in `useGlassRegion` — for example, by directly calling `handle.updateBlurRadius()` without checking `prefs.reducedTransparency` first — the control partially breaks the accessibility contract.
 
-**Why it happens:** DPR awareness in this codebase was a late addition (added in the v2.0 session that produced the HANDOFF.md). The uniform struct layout was retrofitted (repurposing `_pad7` at offset 108). When porting the shader to JS, a developer reading the struct definition may miss the DPR field because it is at the end of the struct and named to look like "just another scalar." DPR also changes at runtime when moving a window between displays — the engine must respond to ResizeObserver callbacks and update DPR dynamically.
+**Why it happens:** The `reducedTransparency` guard lives inside `useGlassRegion`'s second `useEffect` (the param-sync effect). It fires when `prefs.reducedTransparency` changes. But if a control calls `handle.updateXxx()` directly (bypassing `useGlassRegion`) in an event handler, that update fires before the next `useEffect` run, temporarily restoring glass effects in a reduced-transparency session.
 
 **How to avoid:**
-1. Copy the full `GlassUniforms` struct layout to the JS uniform buffer spec with explicit byte offsets. Include a comment at each field documenting its role, including `dpr` at offset 108.
-2. The JS pipeline's `ResizeObserver` callback must call `setDpr(window.devicePixelRatio)` (or equivalent) in addition to updating canvas dimensions — the same pattern as `GlassProvider.tsx`.
-3. Add a DPR regression test: render at `devicePixelRatio = 2`, verify corner radius in pixels is exactly `2 × cssCornerRadius`, and blur width is `2 × cssBlurRadius`.
-4. When `externalTexture` mode is active (C++ renders scene, JS renders glass), the DPR is the same for both pipelines since they share the same canvas and device. No conversion is needed.
+1. Never call `handle.updateXxx()` directly from event handlers. All glass parameter updates must go through the props passed to `useGlassRegion` — the hook's `useEffect` is the single authority over what params are sent to the renderer, and it already applies the `reducedTransparency` guard.
+2. New controls should express all interaction state as React state variables that feed into `useGlassRegion`'s props, following the exact pattern in `GlassButton`: `effectiveBlur`, `effectiveSpecular`, `effectiveRim` computed from state and passed as props.
+3. Add a test for each new control: enable `reducedTransparency`, interact with the control (click, drag), and verify the renderer's uniform buffer shows `blurIntensity: 0` throughout.
+4. The `useGlassRegion` defaults (line 94-113 of `useGlassRegion.ts`) also handle the `reducedMotion` preference via `handle.updateMorphSpeed(0)`. New controls that introduce additional morph animations must also respect this.
 
 **Warning signs:**
-- Glass effects look correct in Chrome DevTools at 1x zoom but have overly large blur at 2x zoom.
-- Corner radius appears half the expected size on Retina Mac.
-- Rim highlight is 1px wide on Retina instead of the intended CSS-pixel width.
+- A toggle click briefly flashes the glass effect when `reducedTransparency` is enabled in OS settings.
+- The toggle animation runs even when `reducedMotion` is enabled (animation should be instant).
+- A new control works correctly in normal mode but appears to glow or blur momentarily during interaction in accessibility mode.
 
-**Phase to address:** Phase 2 (JS glass pipeline). Must be part of the initial DPR test suite gate.
+**Phase to address:** Phase 2 (each control's interaction implementation). Test in reduced-transparency mode before marking any control complete.
 
 ---
 
-### C7: Uniform Buffer Alignment Divergence Between C++ Struct and JS TypedArray
+### C7: Demo vs. Production — Showcase Page Hiding Real Performance Cost
 
-**What goes wrong:** The C++ `GlassUniforms` struct at 112 bytes (7 × 16-byte vec4f blocks) is carefully padded to meet WGSL's alignment rules. When the JS side constructs the same uniform data in a `Float32Array` and writes it to a GPUBuffer, even a single off-by-4-byte error in field ordering produces entirely wrong shader results — the wrong float lands in the wrong uniform slot. The shader does not validate types; it just reads whatever bytes arrive.
+**What goes wrong:** The showcase page uses a hand-picked wallpaper background and fixed layout optimized to look good. Real-world usage (different backgrounds, different screen sizes, more components) exposes that the 81-tap Gaussian blur in the glass shader costs ~0.8ms per region on mobile GPUs. With 10 glass regions visible on the showcase, the shader alone costs ~8ms/frame — leaving only 8ms for background rendering, React updates, layout, and composite at 60FPS.
 
-**Why it happens:** WGSL struct layout rules require vec3f to be padded to 16 bytes, and vec4f blocks must align to 16-byte boundaries. The C++ struct mirrors this with explicit `_pad` fields. In JS, `Float32Array` is filled positionally — if the developer misreads the struct (e.g., writes `tint.r, tint.g, tint.b` as 3 floats without the implicit 4th padding float that makes it a vec4), all subsequent fields shift by 4 bytes and produce nonsensical values.
+**Why it happens:** The showcase is built on a desktop with a discrete GPU where 8ms of fragment shader work is trivially available. The performance budget is not validated on integrated/mobile GPU until a user reports jank. The existing 16-region cap prevents unbounded cost, but 10 regions is still expensive on weak hardware.
 
 **How to avoid:**
-1. Create a `buildGlassUniformData(params: GlassUniforms): Float32Array` helper function in TypeScript with explicit index assignments keyed to documented byte offsets: `data[0] = rect.x // offset 0`, `data[4] = cornerRadius // offset 16`, etc. Never use positional filling (`data[i++] = ...`).
-2. Add a compile-time assertion: `Float32Array.BYTES_PER_ELEMENT * data.length === 112` — the expected struct size.
-3. Write a unit test that creates a known uniform buffer, reads it back in a trivial shader that outputs a single uniform value to a storage texture, and verifies the output matches the input. This catches byte-offset errors before any visual debugging.
-4. Reference `background_engine.h` as the source of truth for field offsets. If the C++ struct changes, update the JS helper function in the same commit.
+1. Before finalizing the showcase layout, benchmark with the Chrome DevTools Performance panel on a CPU/GPU throttled profile (4x slowdown, mobile GPU simulation). Target <5ms total shader time.
+2. Apply the existing v3.0 region cap (16 max) as a showcase design constraint, not just a technical limit. Aim for 8 or fewer simultaneous glass regions on the primary showcase view.
+3. Controls that are not in the viewport should have their glass regions unregistered (via `useGlassRegion`'s cleanup path when the component unmounts or is hidden). Use `display: none` instead of `visibility: hidden` or `opacity: 0` — only `display: none` triggers unmount and region cleanup.
+4. Consider a "reduced effects" mode for the showcase page triggered by `prefers-reduced-motion` or a frame rate drop below 30FPS — fall back to CSS `backdrop-filter` for secondary components when the GPU is under pressure.
 
 **Warning signs:**
-- Shader renders but every visual parameter is wrong — blur is 0 or extreme, tint color is wrong, rect is at 0,0.
-- Changing one parameter in JS changes the visual output of a different parameter (offset slide).
-- In Chrome WebGPU DevTools, the uniform buffer contents look correct but the shader output is wrong (mismatch between write and read layout).
+- Chrome DevTools GPU timeline shows frame time exceeding 16ms on a 2020-era MacBook Air.
+- `requestAnimationFrame` callbacks are consistently scheduled more than 3ms late (visible in Chrome tracing).
+- The background animation (C++ noise) shows micro-stutters when more than 8 glass regions are visible.
 
-**Phase to address:** Phase 2 (JS glass pipeline). The uniform helper should be written and unit-tested before the first end-to-end glass render.
+**Phase to address:** Phase 1 (performance budget). Set the showcase region limit before building content, not after.
 
 ---
 
-### C8: Scene Texture Used as Both Render Target and Sample Source in Same Frame
+### C8: Showcase Page as a Landing Page — Navigation and Information Architecture Failures
 
-**What goes wrong:** C++ writes the background scene to the offscreen texture in Pass 1. JS then reads that texture in the glass pass. If both passes are submitted in the same `GPUCommandEncoder.finish()` / `queue.submit()`, WebGPU's implicit synchronization handles the hazard. But if JS reads the texture from a _previous_ `queue.submit()` while C++ is writing it in a _concurrent_ submit, or vice versa, the result is undefined — either the glass samples a partially-written frame (tearing) or the driver inserts unexpected stalls.
+**What goes wrong:** The showcase page is built as a technical demo: a grid of every control variant, labeled with prop names. While useful for developers, it fails as a landing page for designers and potential adopters — there is no narrative, no call-to-action, and the grid layout with 10+ controls in equal visual weight communicates nothing about what the library is for.
 
-**Why it happens:** In v2.0, both passes are encoded by the same C++ code in the same `render()` call, submitted together — no hazard possible. In v3.0, C++ submits a command buffer for background rendering, and JS submits a separate command buffer for glass rendering. If these are submitted in the same JS event loop tick (which requestAnimationFrame guarantees), the browser/GPU driver serializes them. But the order of submission matters: C++ background must finish before JS glass reads the texture.
+**Why it happens:** During development, the page is built incrementally (add a toggle, add a slider, add a modal) and the final layout is never designed — it just accumulates. The result looks like a component kitchen sink, not a product showcase.
 
 **How to avoid:**
-1. Structure the render loop so C++ `engine.render()` (background pass submit) is called first, then JS glass pipeline submits its command buffer in the same rAF callback. The single-threaded JS event loop ensures sequential ordering within one rAF tick.
-2. Never submit the JS glass command buffer from a different async context (setTimeout, Promise microtask) than the C++ render call — this can reorder submissions across frames.
-3. Verify the C++ engine uses `device.queue.submit([commandBuffer])` (not deferred submits) so the background is GPU-committed before JS reads it.
-4. Add a test frame: render a solid-color background, read one pixel from the glass output, verify it matches the background color (before glass effects are applied) — this proves the texture is fully written before the glass pass runs.
+1. Design the showcase page's information architecture before writing any components. It must answer three questions in order: (1) what is this? (2) why does it look amazing? (3) how do I use it? The components are the answer to #2, not the entire page.
+2. The showcase should tell a story: hero section (full-screen glass effect, headline), feature highlights (2-3 key controls in context), interactive demo (user can interact with controls), developer section (code snippet, install command).
+3. The tuning page is not removed — it becomes a secondary panel (drawer or tab) accessible from the showcase, as specified in the project requirements. Never build the showcase as a reskinned tuning page.
+4. Test the page with someone who has not seen the library before. If they cannot describe what the library does within 10 seconds of landing, the hierarchy is wrong.
 
 **Warning signs:**
-- Occasional flickering where the glass shows the previous frame's background (one-frame-old texture contents).
-- Frame-rate-dependent artifacts (looks correct at 30 FPS but flickers at 60 FPS).
-- Chrome GPU timeline shows the glass pass starting before the background pass completes.
+- The showcase page looks identical to the tuning page but with more components.
+- The first thing a visitor sees is a parameter slider or a labeled grid of component variants.
+- The page has no visible call-to-action (no install command, no GitHub link, no "try it" affordance).
 
-**Phase to address:** Phase 2 (render loop integration). The rAF ordering contract must be documented and enforced.
+**Phase to address:** Phase 3 (showcase layout). Define the IA document and a wireframe before any showcase code is written.
 
 ---
 
@@ -188,38 +186,53 @@ Shortcuts that seem reasonable but create long-term problems.
 
 | Shortcut | Immediate Benefit | Long-term Cost | When Acceptable |
 |----------|-------------------|----------------|-----------------|
-| Keep glass WGSL shader as a raw string in a `.ts` file | No build step for shader compilation | No syntax checking, refactoring, or IDE support for WGSL | MVP only — add a `.wgsl` file + Vite raw import once the port is proven |
-| Skip uniform buffer unit tests during initial port | Faster first render | Byte-offset bugs silently corrupt visual output; root cause is hard to find | Never — write the offset tests first |
-| Pass GPUTexture handle from C++ `getBackgroundTextureHandle()` as an integer and re-import it in JS via `WebGPU.getJsObject()` each frame | No C++ API changes needed | `jsObjects` table lookup on every frame; stale handle if C++ recreates texture on resize | Only if texture is stable (not recreated on resize) — prefer a persistent JS reference |
-| Reuse the existing single GPU canvas for both C++ background and JS glass | No architectural changes | Canvas context is owned by C++ surface; JS glass pipeline cannot also configure the same canvas as a WebGPU context | Never — JS glass must render to the same surface as C++, which requires coordinated surface ownership |
-| Delay DPR fix to "after the port works" | Simpler initial implementation | Visual regression test failures on Retina will block CI; hard to retrofit DPR awareness after shader is stabilized | Never — include DPR from the first working glass render |
+| Copy GlassButton's hover/press state logic into every new control | Fast first implementation | 6 copies of the same 15-line block; one bugfix must be applied to each manually | Never — extract to a `useGlassInteractionState(props)` hook and share |
+| Give every sub-element of a composite control its own glass region | Each sub-element independently refracts | Exceeds MAX_GLASS_REGIONS on a realistic page; per-element regions at small scale look over-engineered | Never for sub-elements — register one region on the control's outer container |
+| Hard-code Apple wallpaper as the only background option | Showcase always looks good | Library appears unusable with custom backgrounds; exposes parameter fragility | Acceptable for v4.0 demo; add background picker in a later milestone |
+| Inline all control styles in the component file | Zero CSS dependencies | Impossible to theme; 300+ lines of style object in each component file | MVP only — move to CSS custom properties with design tokens before publish |
+| Skip TypeScript discriminated unions for control variants | Faster to write with wide prop types | Consumers cannot distinguish `<GlassToggle checked />` from `<GlassToggle value="on" />` — type errors surface at runtime not compile time | Never for public API |
 
 ---
 
 ## Integration Gotchas
 
-Common mistakes when connecting C++ WASM and JS WebGPU code.
+Common mistakes when connecting new controls to the existing glass pipeline.
 
 | Integration Point | Common Mistake | Correct Approach |
 |---|---|---|
-| `module.WebGPU.importJsDevice(device)` | Calling before `createEngineModule()` resolves (Module not yet initialized) | Call only inside the `.then()` callback of `createEngineModule()`, after checking `module.WebGPU?.importJsDevice` is defined |
-| `module.initWithExternalDevice(handle)` | Calling it, then immediately calling `module.getEngine()` and getting null | `initWithExternalDevice` triggers async C++ device init; poll `getEngine()` with `setTimeout(50ms)` loop as in current `loader.ts` |
-| C++ `getBackgroundTexture()` handle | Returning handle as-is and assuming it is stable across frames | Handle is stable as long as C++ does not recreate the offscreen texture (e.g., on resize). On resize, C++ destroys and recreates the texture — JS must re-fetch the handle |
-| JS `GPUDevice` creation before WASM init | Creating the device and immediately passing to WASM — adapter features may not be requested | Request all needed adapter features/limits (`timestamp-query`, etc.) during `requestDevice()` before passing to WASM. C++ cannot request additional features after the fact |
-| emdawnwebgpu `--use-port=emdawnwebgpu` flag | Adding to compile flags only, missing from link flags | Must appear in BOTH `-DCMAKE_CXX_FLAGS` AND `-DCMAKE_EXE_LINKER_FLAGS` — confirmed in project memory |
+| New control registered with `useGlassRegion` | Registering before the element is mounted (ref is null at hook call time) | `useGlassRegion` already guards `if (!ctx.ready \|\| !elementRef.current) return;` — this is safe, but the ref must be attached to the DOM element, not a portal target |
+| Modal / overlay control | Registering the modal's glass region when the modal is hidden (`display: none`) | `display: none` triggers unmount → region cleanup automatically. Only mount the modal's glass content when the modal is open |
+| Segmented control segments | One glass region per segment | One glass region on the track container; segments are CSS-only borders inside the glass surface |
+| Slider thumb | Glass region on the thumb element (changes position during drag) | Glass region on the stable slider track; thumb is a CSS `::before` pseudo-element or absolutely-positioned div with no glass region |
+| Controlled components (external state) | Calling `handle.updateXxx()` directly in `onChange` | Update React state in `onChange`; let `useGlassRegion`'s `useEffect` sync params to the renderer on the next render cycle |
 
 ---
 
 ## Performance Traps
 
-Patterns that work at small scale but cause problems under load.
+Patterns that work at small scale but fail as control count grows.
 
 | Trap | Symptoms | Prevention | When It Breaks |
 |------|----------|------------|----------------|
-| JS glass pipeline creates a new `GPUBindGroup` per region per frame to bind the scene texture | Frame time spikes at >4 glass regions | Pre-create one bind group per region at setup time; only recreate when the underlying texture changes (resize or external texture swap) | Breaks at ~4 regions on mid-range hardware |
-| JS re-creates glass pipeline objects (shader modules, pipelines, bind group layouts) on every React re-render | 100ms+ stalls on each re-render | Store pipeline objects in a `useRef` or a singleton outside React's render cycle; never recreate in the render function | Breaks on first non-trivial re-render |
-| Per-region `queue.writeBuffer()` called individually from React event handlers (e.g., slider drag) | Jank during parameter updates | Collect all pending uniform updates in a JS object, flush them all in the rAF callback as a single `writeBuffer` covering the full uniform buffer | Breaks when any tuning slider is active |
-| 81-tap Gaussian blur evaluated per-region in the glass shader | GPU fragment shader cost grows linearly with regions | Region count is capped at 16 in C++ (`MAX_GLASS_REGIONS`); enforce same cap in JS — do not lift it without measuring cost | Breaks at >8 regions on mobile/integrated GPU |
+| Each control calls `getBoundingClientRect()` in a useEffect during render | Layout thrashing during page load — all elements force sync layout sequentially | `GlassRenderer.render()` already batches all `getBoundingClientRect()` calls in one rAF loop; controls must NOT call it outside the rAF loop | Breaks when >4 controls mount simultaneously (compounding forced reflows) |
+| Showcase page mounts all controls at page load, including off-screen ones | Page load time spikes; MAX_GLASS_REGIONS exceeded before visible components mount | Use lazy mounting for components below the fold (`IntersectionObserver` → mount on first intersection) | Breaks at >6 controls if any are below the fold |
+| Each hover state change triggers React re-render of parent | CPU usage spikes on rapid mouse movement over a control cluster | Isolate hover state inside the control component; do not lift hover state to a parent that re-renders siblings | Breaks when >3 controls are hovered in quick succession (mouse sweep) |
+| `morphSpeed` set to 0 for all interactive state transitions | Eliminates transition lag | All transitions are frame-0 snaps — loses the smooth-morph feel that distinguishes the library | Acceptable for reducedMotion mode only; all other modes should use morphSpeed >= 4 |
+| CSS `transition` applied to the same properties managed by morphLerp | Smooth double-transition | CSS transition and morphLerp fight each other — the rendered position oscillates | Never apply CSS transitions to properties that useGlassRegion controls (cornerRadius, blur, opacity) |
+
+---
+
+## UX Pitfalls
+
+Common user experience mistakes specific to this domain.
+
+| Pitfall | User Impact | Better Approach |
+|---------|-------------|-----------------|
+| Text placed directly over glass without enforced minimum contrast | Text is unreadable on complex wallpapers — contrast ratio as low as 1.5:1 (NNGroup audit of iOS 26 found this exact failure) | Apply `textShadow` (dark mode) or strong background scrim under text; measure contrast ratio against the actual background pixels, not a solid color approximation |
+| Touch targets inside glass controls smaller than 44×44pt | Tap error rate increases significantly on mobile; users hit adjacent controls | Every interactive element inside a glass region must be at minimum 44×44 CSS pixels — Apple's own HIG requirement |
+| All controls animate identically (same morphSpeed, same specular boost on hover) | Interface feels mechanical and undifferentiated; no visual affordance distinguishes control types | Differentiate interaction feel by control type: buttons get specular boost, toggles get rim intensity change, sliders animate blurRadius along the track |
+| Glass modal covers the entire viewport with no apparent edge | Users cannot tell the modal is dismissible or how large it is; "no exit" feeling | Give modals a distinct corner radius (larger than panels), a clear close affordance, and a subtle drop shadow or rim outside the glass edge to define the modal boundary |
+| Segmented control active segment not visually distinct | Users cannot tell which segment is selected | Active segment needs a meaningfully different glass effect — higher opacity, stronger specular, or a CSS-only highlight ring — not just a subtle tint change invisible against a busy background |
 
 ---
 
@@ -227,12 +240,15 @@ Patterns that work at small scale but cause problems under load.
 
 Things that appear complete but are missing critical pieces.
 
-- [ ] **Device injection:** `module.initWithExternalDevice(handle)` is called and returns — verify `getEngine()` eventually returns non-null (async init may still be in progress)
-- [ ] **Scene texture bridge:** C++ `getBackgroundTextureHandle()` returns a handle — verify the JS-side `importJsTexture` or `getJsObject` lookup produces a valid GPUTexture, not `undefined`
-- [ ] **Glass pass ordering:** JS glass command buffer is submitted after C++ background submit in the same rAF tick — verify by logging submit order in a debug build for 10 frames
-- [ ] **Resize handling:** Canvas is resized → C++ recreates offscreen texture → JS re-fetches texture handle → JS recreates bind group — all four steps must be wired, not just the first
-- [ ] **Shader port completeness:** WGSL port compiles and produces visible output — verify all 15 GlassUniforms fields (including `dpr` at offset 108) are populated correctly by running the uniform offset unit test
-- [ ] **Visual parity baseline:** A 3-second video of the glass effect post-port looks identical to pre-port — run the existing `npm run diff` and verify the score does not regress more than 2% from the v2.0 baseline before proceeding to re-tuning
+- [ ] **Toggle control:** Animates visually, but `onChange` callback is never wired to parent state — verify with a controlled test that toggling updates the parent value.
+- [ ] **Slider control:** Thumb drags smoothly, but `onValueChange` is not called on every drag event — verify value updates continuously, not just on `pointerup`.
+- [ ] **Segmented control:** Active segment highlighted, but keyboard navigation (Tab + Arrow keys) is not wired — verify via keyboard-only interaction test.
+- [ ] **Modal control:** Opens and closes with animation, but focus is not trapped inside the modal while open — verify using screen reader or Tab key.
+- [ ] **Any control:** Glass region registered, but `aria-label` or semantic role is missing — verify each control passes `axe-core` accessibility scan.
+- [ ] **Showcase page:** Components render in development, but the page crashes in production build due to missing WASM binary or incorrect Vite asset handling — verify `npm run build && npm run preview` produces a working page before any milestone review.
+- [ ] **Showcase page:** Looks good on MacBook at 100% zoom, but breaks at 150% browser zoom or on a 1366×768 laptop screen — verify at 1280px viewport width.
+- [ ] **All controls:** Work with default (image) background mode but have not been tested with `backgroundMode="noise"` — verify all controls render correctly in noise mode.
+- [ ] **MAX_GLASS_REGIONS:** Showcase page appears to work, but region count has not been measured — verify `GlassRenderer.regions.size` is always below `MAX_GLASS_REGIONS` during showcase page interaction.
 
 ---
 
@@ -242,12 +258,13 @@ When pitfalls occur despite prevention, how to recover.
 
 | Pitfall | Recovery Cost | Recovery Steps |
 |---------|---------------|----------------|
-| C1: Stale JS object handle | MEDIUM | Add explicit `handle = null` assignments at cleanup boundaries; check `module.WebGPU.Internals.jsObjects[handle]` in browser console to confirm object is still live |
-| C3: WaitAny corruption | HIGH | Revert C++ init path to the `AllowSpontaneous` pattern from v2.0 baseline; do not attempt to fix with additional WaitAny calls |
-| C4: UV convention mismatch | LOW | Apply the known Y-flip: change `uv.y = 1.0 - uv.y` in the vertex shader; run position regression test to confirm |
-| C5: Channel swap (BGRA/RGBA) | LOW | Add `if (format === 'bgra8unorm') swapChannels = true` guard in JS and add explicit `rgba8unorm` to C++ offscreen texture creation |
-| C7: Uniform offset error | MEDIUM | Add explicit `console.log` of every field in the JS uniform buffer builder, compare against C++ struct offsets in `background_engine.h` field by field |
-| C8: Texture read/write ordering | MEDIUM | Ensure both C++ submit and JS submit happen in the same rAF callback in fixed order (C++ first); add 1-frame pipeline barrier test |
+| C1: Silent rendering corruption past region 16 | LOW | Add guard in `addRegion()` — one-line fix; audit showcase page to reduce simultaneous regions below 16 |
+| C2: Glass misalignment in scrolled container | HIGH | Remove the scrollable container wrapping glass components; restructure layout to use document scroll only |
+| C4: Glass mask lags interaction | LOW | Move the glass region to the stable outer container; use CSS-only animations for the inner interactive element |
+| C5: Cognitive overload from too many glass regions | MEDIUM | Reclassify decorative components as CSS `backdrop-filter` only; redesign showcase hierarchy |
+| C6: Accessibility regression in new controls | MEDIUM | Revert to the `useGlassRegion` props pattern; remove any direct `handle.updateXxx()` calls from event handlers |
+| C7: Performance budget exceeded on mobile | MEDIUM | Reduce visible regions below 8 on the primary showcase view; add lazy-mount for off-screen controls |
+| C8: Showcase looks like a kitchen sink | HIGH | Rebuild showcase layout from an IA document; treat it as a product landing page design project, not a component grid |
 
 ---
 
@@ -255,34 +272,30 @@ When pitfalls occur despite prevention, how to recover.
 
 | Pitfall | Prevention Phase | Verification |
 |---------|------------------|--------------|
-| C1: Handle lifetime | Phase 1 — JS device creation | Cleanup test: destroy engine while device is live; verify no crash |
-| C2: Deprecated device pattern | Phase 1 — C++ restructuring | Build succeeds with no `emscripten_webgpu_*` calls in C++ |
-| C3: Double WaitAny | Phase 1 — C++ restructuring | Engine starts rendering within 2s; `getEngine()` returns non-null |
-| C4: UV convention drift | Phase 2 — WGSL shader port | Position regression: glass aligns with DOM element ±2px at 1x and 2x DPR |
-| C5: Texture format mismatch | Phase 1 + Phase 2 | Color correctness test: solid red background renders as red through glass (not cyan) |
-| C6: DPR scaling omission | Phase 2 — JS pipeline | DPR regression: 2× DPR produces same CSS-pixel sizes as 1× DPR |
-| C7: Uniform buffer alignment | Phase 2 — JS pipeline | Uniform offset unit test passes for all 28 float fields in GlassUniforms |
-| C8: Frame ordering hazard | Phase 2 — render loop integration | No flickering over 1000 rAF frames; chrome GPU timeline shows background before glass |
+| C1: Region cap exceeded | Phase 1 — component API design | Count simultaneous regions on showcase page; guard in `addRegion()` logs warning if exceeded |
+| C2: Scroll container misalignment | Phase 1 — showcase layout architecture | Smoke test at 3 scroll positions; glass must track DOM element ±2px |
+| C3: Parameter fragility on non-reference background | Phase 2 — per-control visual tuning | Visual diff against iOS Simulator at same DPR for each control individually |
+| C4: Glass lag on interactive controls | Phase 2 — each functional control | 60FPS recording shows no visible glass misalignment during toggle/slider interaction |
+| C5: Cognitive overload | Phase 3 — showcase page layout | Usability test: 3 people can identify the CTA within 10 seconds of first seeing the page |
+| C6: Accessibility regression | Phase 2 — each control | `axe-core` passes; reducedTransparency manual test for each control shows opaque surface during interaction |
+| C7: Mobile GPU performance | Phase 1 and Phase 3 | Chrome DevTools throttled GPU benchmark: <5ms shader time total on showcase primary view |
+| C8: Showcase IA failure | Phase 3 — showcase layout | Pre-build wireframe review before any showcase code is written |
 
 ---
 
 ## Sources
 
-- [Emscripten mixed JS/WASM WebGPU issue #13888](https://github.com/emscripten-core/emscripten/issues/13888) — JsValStore design and importJsDevice origin — MEDIUM confidence (GitHub issue, author is Austin Eng / Chrome WebGPU team)
-- [emdawnwebgpu README](https://dawn.googlesource.com/dawn/+/refs/heads/main/src/emdawnwebgpu/pkg/README.md) — emdawnwebgpu port distribution and versioning — HIGH confidence (official Dawn source)
-- [WebGPU Bind Group Best Practices — toji.dev](https://toji.dev/webgpu-best-practices/bind-groups.html) — bind group recreation cost — HIGH confidence
-- [WebGPU Device Loss Best Practices — toji.dev](https://toji.dev/webgpu-best-practices/device-loss.html) — device lost recovery, resource recreation — HIGH confidence
-- [WebGPU Data Memory Layout — webgpufundamentals.org](https://webgpufundamentals.org/webgpu/lessons/webgpu-memory-layout.html) — uniform buffer alignment and offset computation — HIGH confidence
-- [WebGPU Uniforms — webgpufundamentals.org](https://webgpufundamentals.org/webgpu/lessons/webgpu-uniforms.html) — Float32Array uniform buffer population pitfalls — HIGH confidence
-- [WebGPU Multiple Render Passes — matthewmacfarquhar.medium.com](https://matthewmacfarquhar.medium.com/webgpu-rendering-part-6-multiple-render-passes-b42157dfbcb5) — multi-pass texture ordering — MEDIUM confidence
-- [gpuweb/gpuweb issue #1388: getCurrentTexture binding identity](https://github.com/gpuweb/gpuweb/issues/1388) — texture handle uniqueness per frame — HIGH confidence (gpuweb spec issue)
-- [Emscripten emdawnwebgpu deprecation of USE_WEBGPU — issue #24265](https://github.com/emscripten-core/emscripten/issues/24265) — `preinitializedWebGPUDevice` removal — HIGH confidence
-- Project memory: `AllowSpontaneous` vs. double `WaitAny` — known emdawnwebgpu issue, already validated in production
-- Project memory: `--use-port=emdawnwebgpu` required in both compile and link — already validated in production
-- Project source: `engine/src/background_engine.h` — `GlassUniforms` struct with byte-offset comments — HIGH confidence (source of truth)
-- Project source: `engine/src/shaders/glass.wgsl.h` — UV convention, DPR scaling, SDF pixel-space computation — HIGH confidence (source of truth)
-- Project source: `src/wasm/loader.ts` — `importJsDevice` / `initWithExternalDevice` pattern — HIGH confidence (working implementation)
+- [NNGroup: Liquid Glass Is Cracked, and Usability Suffers in iOS 26](https://www.nngroup.com/articles/liquid-glass/) — touch target violations, animation overuse, navigation pattern failures — MEDIUM confidence (NNGroup is authoritative on UX but this covers Apple's implementation specifically)
+- [Infinum: Apple's iOS 26 Liquid Glass — Sleek, Shiny, and Questionably Accessible](https://infinum.com/blog/apples-ios-26-liquid-glass-sleek-shiny-and-questionably-accessible/) — contrast ratios as low as 1.5:1 in beta testing, reducedTransparency shortfalls — MEDIUM confidence (verified against Apple's HIG)
+- [Apple Human Interface Guidelines — Liquid Glass](https://developer.apple.com/documentation/TechnologyOverviews/liquid-glass) — authoritative source on when and how to apply glass — HIGH confidence
+- [DebugBear: How To Fix Forced Reflows And Layout Thrashing](https://www.debugbear.com/blog/forced-reflows) — `getBoundingClientRect()` in rAF loops — HIGH confidence
+- [WebGPU Fundamentals: WebGPU Scale](https://webgpufundamentals.org/webgpu/lessons/webgpu-scale.html) — draw call overhead, uniform buffer patterns — HIGH confidence
+- [TanStack/virtual issue #359: getBoundingClientRect() is called on every frame](https://github.com/TanStack/virtual/issues/359) — real-world getBoundingClientRect performance in rAF loops — MEDIUM confidence
+- Project source: `src/renderer/GlassRenderer.ts` lines 10-12 (`MAX_GLASS_REGIONS = 16`, `UNIFORM_STRIDE = 256`, `uniformBuffer` allocation) — HIGH confidence (source of truth for region cap)
+- Project source: `src/hooks/useGlassRegion.ts` lines 62-88 (reducedTransparency guard pattern) — HIGH confidence (source of truth for accessibility contract)
+- Project source: `src/components/GlassButton.tsx` lines 54-62 (hover/press state → effective props pattern) — HIGH confidence (source of truth for interaction state pattern)
+- Designedforhumans.tech: Apple's New Liquid Glass Design: Practical Guidance — minimum contrast enforcement, visual hierarchy rules — MEDIUM confidence
 
 ---
-*Pitfalls research for: v3.0 JS/WASM WebGPU pipeline split*
-*Researched: 2026-03-24*
+*Pitfalls research for: v4.0 Glass Control Library & Showcase*
+*Researched: 2026-03-25*
