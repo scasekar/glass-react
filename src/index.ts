@@ -34,3 +34,7 @@ export type { GlassEffectContainerProps } from './components/GlassEffectContaine
 // Effect context hook (advanced usage)
 export { useGlassEffect } from './context/GlassEffectContext';
 export type { GlassEffectContextValue } from './context/GlassEffectContext';
+
+// Controls (Phase 22)
+export { GlassChip, GlassStepper, GlassInput } from './components/controls';
+export type { GlassChipProps, GlassStepperProps, GlassInputProps } from './components/types';
