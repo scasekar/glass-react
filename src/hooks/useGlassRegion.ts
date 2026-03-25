@@ -98,8 +98,8 @@ export function useGlassRegion(
 
       // Sync visual effect props — defaults match tuned presets
       handle.updateAberration(props.aberration ?? 7.2);
-      handle.updateSpecular(props.specular ?? 0.15);
-      handle.updateRim(props.rim ?? 0.45);
+      handle.updateSpecular(props.specular ?? 0.08);
+      handle.updateRim(props.rim ?? 0.15);
       handle.updateMode(props.refractionMode === 'prominent' ? 1.0 : 0.0);
       handle.updateContrast(props.contrast ?? 1.24);
       handle.updateSaturation(props.saturation ?? 1.05);
