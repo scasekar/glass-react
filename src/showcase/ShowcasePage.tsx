@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { GlassPanel } from '../components/GlassPanel';
 import { VirtualSection } from './VirtualSection';
 import { TuningDrawer } from './TuningDrawer';
 import { HeroSection } from './sections/HeroSection';
@@ -14,20 +13,7 @@ export interface ShowcasePageProps {
   onBackgroundModeChange: (mode: 'image' | 'noise') => void;
 }
 
-const NAV_LINKS = [
-  { label: 'Controls', id: 'interactive' },
-  { label: 'Navigation', id: 'navigation' },
-  { label: 'Overlays', id: 'overlays' },
-  { label: 'Forms', id: 'forms' },
-  { label: 'Get Started', id: 'developer' },
-];
-
 const FONT_STACK = "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
-
-function handleNavClick(e: React.MouseEvent<HTMLAnchorElement>, id: string) {
-  e.preventDefault();
-  document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
-}
 
 /**
  * Top-level showcase shell with sticky header, content sections, and tuning drawer.
@@ -45,89 +31,32 @@ export function ShowcasePage({ backgroundMode, onBackgroundModeChange }: Showcas
         zIndex: 1,
       }}
     >
-      {/* Sticky Header */}
-      <header
+      {/* Settings gear — fixed in top-right corner */}
+      <button
+        onClick={() => setTuningOpen(o => !o)}
+        aria-label="Toggle tuning drawer"
         style={{
-          position: 'sticky',
-          top: 0,
+          position: 'fixed',
+          top: 16,
+          right: 16,
           zIndex: 100,
-          height: 60,
+          background: 'rgba(255, 255, 255, 0.1)',
+          border: '1px solid rgba(255,255,255,0.15)',
+          borderRadius: 10,
+          width: 40,
+          height: 40,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          cursor: 'pointer',
+          color: 'rgba(255, 255, 255, 0.7)',
+          fontSize: '1.2rem',
+          backdropFilter: 'blur(8px)',
+          WebkitBackdropFilter: 'blur(8px)',
         }}
       >
-        <GlassPanel
-          style={{
-            height: '100%',
-            maxWidth: 1200,
-            margin: '0 auto',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '0 24px',
-          }}
-          cornerRadius={0}
-        >
-          {/* Left: Logo */}
-          <span
-            style={{
-              fontWeight: 700,
-              fontSize: '1.1rem',
-              letterSpacing: '-0.02em',
-            }}
-          >
-            LiquidGlass
-          </span>
-
-          {/* Center: Nav links — hidden on narrow viewports via CSS class */}
-          <nav
-            className="showcase-nav-links"
-            style={{
-              display: 'flex',
-              gap: 24,
-              alignItems: 'center',
-            }}
-          >
-            {NAV_LINKS.map(link => (
-              <a
-                key={link.id}
-                href={`#${link.id}`}
-                onClick={e => handleNavClick(e, link.id)}
-                style={{
-                  color: 'rgba(255, 255, 255, 0.7)',
-                  textDecoration: 'none',
-                  fontSize: '0.85rem',
-                  fontWeight: 500,
-                  transition: 'color 0.2s',
-                }}
-                onMouseEnter={e => (e.currentTarget.style.color = 'rgba(255, 255, 255, 1)')}
-                onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255, 255, 255, 0.7)')}
-              >
-                {link.label}
-              </a>
-            ))}
-          </nav>
-
-          {/* Right: Tuning toggle */}
-          <button
-            onClick={() => setTuningOpen(o => !o)}
-            aria-label="Toggle tuning drawer"
-            style={{
-              background: 'rgba(255, 255, 255, 0.1)',
-              border: 'none',
-              borderRadius: 8,
-              width: 36,
-              height: 36,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer',
-              color: 'rgba(255, 255, 255, 0.7)',
-              fontSize: '1.1rem',
-            }}
-          >
-            {'\u2699'}
-          </button>
-        </GlassPanel>
-      </header>
+        {'\u2699'}
+      </button>
 
       {/* Main content */}
       <main

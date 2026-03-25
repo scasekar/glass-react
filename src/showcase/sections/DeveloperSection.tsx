@@ -5,9 +5,9 @@ import { APPLE_RADII, APPLE_SPACING } from '../../tokens/apple';
 
 const FONT_STACK = "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
 
-const INSTALL_COMMAND = 'npm install liquidglass-react';
+const INSTALL_COMMAND = 'npm install glass-react';
 
-const CODE_EXAMPLE = `import { GlassProvider, GlassButton } from 'liquidglass-react';
+const CODE_EXAMPLE = `import { GlassProvider, GlassButton } from 'glass-react';
 
 function App() {
   return (

@@ -37,7 +37,7 @@ export function HeroSection({ backgroundMode, onBackgroundModeChange }: HeroSect
             color: '#fff',
           }}
         >
-          Liquid Glass for React
+          Glass for React
         </h1>
 
         {/* Tagline */}

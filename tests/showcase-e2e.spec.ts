@@ -39,25 +39,11 @@ test.describe('Showcase page load & layout', () => {
   });
 
   test('page loads with showcase (not old tuning UI)', async ({ page }) => {
-    // ShowcasePage should be visible — check for hero headline
     const hero = page.locator('h1');
-    await expect(hero).toContainText('Liquid Glass', { timeout: 10_000 });
+    await expect(hero).toContainText('Glass for React', { timeout: 10_000 });
   });
 
-  test('sticky header is visible with nav links', async ({ page }) => {
-    const header = page.locator('header');
-    await expect(header).toBeVisible();
-
-    // Nav links present
-    for (const label of ['Controls', 'Navigation', 'Overlays', 'Forms', 'Get Started']) {
-      await expect(header.locator(`a:has-text("${label}")`)).toBeVisible();
-    }
-
-    // LiquidGlass branding
-    await expect(header.locator('text=LiquidGlass')).toBeVisible();
-  });
-
-  test('header has tuning gear toggle button', async ({ page }) => {
+  test('settings gear button is visible', async ({ page }) => {
     const gearBtn = page.locator('button[aria-label="Toggle tuning drawer"]');
     await expect(gearBtn).toBeVisible();
   });
@@ -93,7 +79,7 @@ test.describe('Hero section', () => {
   });
 
   test('headline and tagline are visible', async ({ page }) => {
-    await expect(page.locator('h1')).toContainText('Liquid Glass');
+    await expect(page.locator('h1')).toContainText('Glass for React');
     await expect(page.locator('text=WebGPU-powered')).toBeVisible();
   });
 
@@ -486,7 +472,7 @@ test.describe('Developer section', () => {
   });
 
   test('install command is shown', async ({ page }) => {
-    await expect(page.locator('text=npm install liquidglass-react')).toBeVisible();
+    await expect(page.locator('text=npm install glass-react')).toBeVisible();
   });
 
   test('code example is shown', async ({ page }) => {
@@ -506,20 +492,7 @@ test.describe('Developer section', () => {
 
 // ─── Navigation (anchor links) ────────────────────────────────────────
 
-test.describe('Header navigation', () => {
-  test.beforeEach(async ({ page }) => {
-    await waitForShowcase(page);
-  });
-
-  test('nav link scrolls to correct section', async ({ page }) => {
-    const formsLink = page.locator('header a:has-text("Forms")');
-    await formsLink.click();
-    await page.waitForTimeout(1000);
-
-    const formsSection = page.locator('#forms');
-    await expect(formsSection).toBeInViewport();
-  });
-});
+// Header nav removed — settings gear tested in "Tuning drawer" section
 
 // ─── VirtualSection (GPU region budget) ───────────────────────────────
 
@@ -546,9 +519,9 @@ test.describe('VirtualSection virtualization', () => {
       await scrollToSection(page, id);
     }
 
-    // Page should still be responsive
-    const header = page.locator('header');
-    await expect(header).toBeVisible();
+    // Page should still be responsive — settings gear visible
+    const gear = page.locator('button[aria-label="Toggle tuning drawer"]');
+    await expect(gear).toBeVisible();
 
     // GPU canvas should still be rendering
     const canvas = page.locator('#gpu-canvas');
