@@ -1,5 +1,21 @@
 # Milestones
 
+## v3.0 Architecture Redesign (Shipped: 2026-03-25)
+
+**Phases completed:** 5 phases (15-19), 14 plans
+
+**Delivered:** Full architectural redesign — JS/WebGPU owns the glass shader pipeline while C++/WASM only handles background rendering. Plano-convex dome refraction matching Apple's Liquid Glass water-droplet effect.
+
+**Key accomplishments:**
+1. Flipped device ownership: JS creates GPUDevice, passes to C++ via importJsDevice (60% WASM binary reduction)
+2. GlassRenderer TypeScript class with explicit bind group layouts, dynamic offset uniform buffer, 27 unit tests
+3. React integration preserved: same GlassPanel/GlassButton/GlassCard API, all 16 shader params, accessibility
+4. Plano-convex dome refraction via Snell's law — pow4 depth curve, SDF gradient surface normals, edge-focused displacement matching iOS
+5. Tuning page redesigned with design tokens, SectionAccordion, preset chips, Copy URL
+6. Visual validation pipeline updated for new architecture
+
+---
+
 ## v2.0 Visual Parity (Shipped: 2026-03-24)
 
 **Phases completed:** 6 phases (9-14), 13 plans
