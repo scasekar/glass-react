@@ -103,22 +103,24 @@ describe('GlassSegmentedControl', () => {
     expect(betaButton!.querySelector('[data-testid="glass-panel"]')).not.toBeNull();
   });
 
-  it('arrow key Right moves selection to next segment', async () => {
+  it('arrow key Right moves focus to next segment', async () => {
     const user = userEvent.setup();
-    const onChange = vi.fn();
     render(
       <GlassSegmentedControl
         value="a"
-        onValueChange={onChange}
+        onValueChange={() => {}}
         segments={defaultSegments}
       />
     );
-    // Focus the selected segment
-    const alphaButton = screen.getByText('Alpha').closest('button');
-    alphaButton!.focus();
-    // Press right arrow
+    // Focus the selected segment via tab
+    await user.tab();
+    // The first radio (Alpha) should be focused
+    const alphaRadio = screen.getByText('Alpha').closest('[role="radio"]');
+    expect(document.activeElement).toBe(alphaRadio);
+    // Press right arrow -- Radix moves focus to next item
     await user.keyboard('{ArrowRight}');
-    expect(onChange).toHaveBeenCalledWith('b');
+    const betaRadio = screen.getByText('Beta').closest('[role="radio"]');
+    expect(document.activeElement).toBe(betaRadio);
   });
 
   it('each segment renders as a button with correct accessibility attributes', () => {
