@@ -163,7 +163,6 @@ export class GlassRenderer {
       current: { ...uniforms, tint: { ...uniforms.tint }, rect: { ...uniforms.rect }, resolution: { ...uniforms.resolution } },
       target: { ...uniforms, tint: { ...uniforms.tint }, rect: { ...uniforms.rect }, resolution: { ...uniforms.resolution } },
       morphSpeed: 8,
-      // Perf: cached rect from getBoundingClientRect
       cachedRect: { left: 0, top: 0, width: 0, height: 0 },
       rectDirty: true,
     };
@@ -234,14 +233,8 @@ export class GlassRenderer {
     const activeRegions = this.cachedRegionList;
     const regionCount = activeRegions.length;
 
-    // ── Detect scroll change for rect cache ──
-    const sx = window.scrollX;
-    const sy = window.scrollY;
-    if (sx !== this.scrollX || sy !== this.scrollY) {
-      this.rectCacheDirty = true;
-      this.scrollX = sx;
-      this.scrollY = sy;
-    }
+    // Rects are always read fresh — getBoundingClientRect in rAF is cheap
+    // (browser has already committed layout before rAF fires).
 
     // ── Write blit uniforms to slot 0 ──
     const floatsPerSlot = UNIFORM_STRIDE / 4;
@@ -264,18 +257,14 @@ export class GlassRenderer {
       region.current.resolution.y = canvasH;
       region.current.dpr = dpr;
 
-      // ── Rect: use cached value unless dirty ──
-      if (this.rectCacheDirty || region.rectDirty) {
-        const el = region.element;
-        const domRect = el.getBoundingClientRect();
-        region.cachedRect.left = domRect.left;
-        region.cachedRect.top = domRect.top;
-        region.cachedRect.width = domRect.width;
-        region.cachedRect.height = domRect.height;
-        region.rectDirty = false;
-      }
-
+      // Always read fresh DOM rect — getBoundingClientRect is cheap in rAF
+      const el = region.element;
+      const domRect = el.getBoundingClientRect();
       const cr = region.cachedRect;
+      cr.left = domRect.left;
+      cr.top = domRect.top;
+      cr.width = domRect.width;
+      cr.height = domRect.height;
       region.current.rect.x = cr.left / canvasW * dpr;
       region.current.rect.y = cr.top / canvasH * dpr;
       region.current.rect.w = cr.width / canvasW * dpr;
@@ -288,9 +277,6 @@ export class GlassRenderer {
       const slotOffset = (i + 1) * floatsPerSlot;
       staging.set(this.regionScratch, slotOffset);
     }
-
-    // Clear rect dirty flag after all regions processed
-    this.rectCacheDirty = false;
 
     // ── Single batched writeBuffer for all slots ──
     const totalBytes = (regionCount + 1) * UNIFORM_STRIDE;
@@ -320,15 +306,20 @@ export class GlassRenderer {
     // avoiding full-screen 81-tap blur for a 100x40px button.
     for (let i = 0; i < regionCount; i++) {
       const cr = activeRegions[i].cachedRect;
-      // Convert CSS rect to pixel rect with padding for blur radius + antialiasing
       const pad = 20; // pixels of padding for blur bleed + AA
-      const sx = Math.max(0, Math.floor(cr.left * dpr) - pad);
-      const sy = Math.max(0, Math.floor(cr.top * dpr) - pad);
-      const sw = Math.min(canvasW - sx, Math.ceil(cr.width * dpr) + pad * 2);
-      const sh = Math.min(canvasH - sy, Math.ceil(cr.height * dpr) + pad * 2);
+
+      // Compute pixel-space rect, clamped to canvas bounds
+      // When panel is partially off-screen, x0/y0 clamp to 0 and
+      // x1/y1 clamp to canvas size — the visible portion is the intersection.
+      const x0 = Math.max(0, Math.floor(cr.left * dpr) - pad);
+      const y0 = Math.max(0, Math.floor(cr.top * dpr) - pad);
+      const x1 = Math.min(canvasW, Math.ceil((cr.left + cr.width) * dpr) + pad);
+      const y1 = Math.min(canvasH, Math.ceil((cr.top + cr.height) * dpr) + pad);
+      const sw = x1 - x0;
+      const sh = y1 - y0;
 
       if (sw > 0 && sh > 0) {
-        pass.setScissorRect(sx, sy, sw, sh);
+        pass.setScissorRect(x0, y0, sw, sh);
         pass.setBindGroup(1, this.perRegionBindGroup, [(i + 1) * UNIFORM_STRIDE]);
         pass.draw(3);
       }
