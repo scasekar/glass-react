@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v4.0
 milestone_name: Glass Control Library & Showcase
 status: completed
-stopped_at: Completed 21-01-PLAN.md
-last_updated: "2026-03-25T05:32:32.568Z"
+stopped_at: Completed 21-02-PLAN.md
+last_updated: "2026-03-25T05:36:45.445Z"
 last_activity: 2026-03-25 — Completed 22-02 (GlassInput + barrel exports)
 progress:
   total_phases: 6
-  completed_phases: 2
-  total_plans: 6
-  completed_plans: 5
+  completed_phases: 3
+  total_plans: 10
+  completed_plans: 6
   percent: 86
 ---
 
@@ -42,6 +42,7 @@ Progress: [█████████░] 86%
 | v2.0 Visual Parity | 6 | 13 | 2026-03-24 |
 | v3.0 Architecture Redesign | 5 | 14 | 2026-03-25 |
 | v4.0 Glass Control Library | 6 | TBD | In progress |
+| Phase 21 P02 | 2min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -62,6 +63,7 @@ Research completed for v4.0:
 - Focus-driven glass params pattern: track focused state, pass increased specular/rim as GlassPanel props (22-02)
 - [Phase 21]: GlassSlider thumb uses GlassPanel not GlassButton -- Radix handles pointer capture
 - [Phase 21]: No motion animation on slider thumb to avoid double-transform with Radix CSS positioning
+- [Phase 21]: SegmentedControl container is NOT glass; only indicator thumb uses GlassPanel
 
 ### Pending Todos
 
@@ -73,6 +75,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-25T05:32:32.565Z
-Stopped at: Completed 21-01-PLAN.md
+Last session: 2026-03-25T05:36:45.441Z
+Stopped at: Completed 21-02-PLAN.md
 Resume file: None
