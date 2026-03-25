@@ -119,6 +119,12 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
     let refractPixels = surfaceNormal * edgeShift * glassThickness * 3.0;
     let refractOffset = refractPixels / glass.resolution;
 
+    // --- Reflection UV: mirror of refraction, extended reach ---
+    // Reflection bends opposite to refraction; scale > 1 samples beyond panel bounds
+    // (Apple samples content from area larger than the glass element)
+    let reflectionScale = 2.5;
+    let reflectUV = uv - refractOffset * reflectionScale;
+
     // Chromatic aberration: different IOR per channel (dispersion)
     let aberrationNorm = glass.aberration * 0.002 * aberrationMul;
     let rUV = uv + refractOffset * (1.0 + aberrationNorm);
@@ -196,10 +202,32 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
     let warmSpec = broadGlow * (1.0 - topLeftFactor) * glass.specularIntensity * 0.5 * specularMul;
     let warmColor = vec3f(0.95, 1.0, 0.75);
 
-    // Fresnel edge reflection (IOR-based)
-    let fresnelBase = 1.0 - clamp(abs(lightDot), 0.0, 1.0);
-    let fresnelTerm = pow(fresnelBase, glass.fresnelExponent);
-    let envRef = fresnelTerm * glass.envReflectionStrength;
+    // --- Physically-based Fresnel reflection (Schlick's approximation) ---
+    // cosTheta ≈ normalizedDepth in our dome model (1=center/head-on, 0=edge/grazing)
+    let cosTheta = clamp(normalizedDepth, 0.0, 1.0);
+    let r0 = pow((1.0 - glass.fresnelIOR) / (1.0 + glass.fresnelIOR), 2.0);
+    let fresnelTerm = r0 + (1.0 - r0) * pow(1.0 - cosTheta, glass.fresnelExponent);
+
+    // --- Soft environment reflection (9-tap disc blur at reflected UV) ---
+    // Samples actual scene content at reflected position — not flat white.
+    // Disc pattern: center + 8 neighbors at 45° intervals for soft/frosted look.
+    let reflBlurRad = 5.0; // texels — wider than refraction for softer reflection
+    let rt = texelSize;    // reuse from blur section
+    let rc = reflectUV;
+    let reflectionColor = (
+        textureSample(texBackground, texSampler, rc).rgb
+      + textureSample(texBackground, texSampler, rc + vec2f( reflBlurRad, 0.0) * rt).rgb
+      + textureSample(texBackground, texSampler, rc + vec2f(-reflBlurRad, 0.0) * rt).rgb
+      + textureSample(texBackground, texSampler, rc + vec2f(0.0,  reflBlurRad) * rt).rgb
+      + textureSample(texBackground, texSampler, rc + vec2f(0.0, -reflBlurRad) * rt).rgb
+      + textureSample(texBackground, texSampler, rc + vec2f( 0.707, 0.707) * reflBlurRad * rt).rgb
+      + textureSample(texBackground, texSampler, rc + vec2f(-0.707, 0.707) * reflBlurRad * rt).rgb
+      + textureSample(texBackground, texSampler, rc + vec2f( 0.707,-0.707) * reflBlurRad * rt).rgb
+      + textureSample(texBackground, texSampler, rc + vec2f(-0.707,-0.707) * reflBlurRad * rt).rgb
+    ) / 9.0;
+
+    // Environment reflection: Fresnel-weighted background sample
+    let envRef = reflectionColor * fresnelTerm * glass.envReflectionStrength;
 
     // Sharp rim at glass boundary
     let rimGlow = exp(-cssDist * cssDist / rimSpread) * glass.rimIntensity;
@@ -209,8 +237,6 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
     // --- Final composite ---
     // Glass regions: output glass color with alpha=mask so alpha blending
     // composites only the glass area over the previously drawn background.
-    var glassColor = tinted + specular;
-    glassColor += envRef;
-    let glassRgb = clamp(glassColor, vec3f(0.0), vec3f(1.0));
+    let glassRgb = clamp(tinted + specular + envRef, vec3f(0.0), vec3f(1.0));
     return vec4f(glassRgb, mask);
 }

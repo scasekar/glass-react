@@ -106,8 +106,8 @@ export function useGlassRegion(
       handle.updateContrast(props.contrast ?? 1.24);
       handle.updateSaturation(props.saturation ?? 1.05);
       handle.updateFresnelIOR(props.fresnelIOR ?? 1.5);
-      handle.updateFresnelExponent(props.fresnelExponent ?? 0.5);
-      handle.updateEnvReflectionStrength(props.envReflectionStrength ?? 0.0);
+      handle.updateFresnelExponent(props.fresnelExponent ?? 5.0);
+      handle.updateEnvReflectionStrength(props.envReflectionStrength ?? 0.15);
       // glareDirection prop is degrees; convert to radians for shader
       handle.updateGlareAngle((props.glareDirection ?? 420) * Math.PI / 180);
       // blurRadius (pixels) takes precedence; falls back to blur (normalized) * 30

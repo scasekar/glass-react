@@ -306,7 +306,7 @@ export class GlassRenderer {
     // avoiding full-screen 81-tap blur for a 100x40px button.
     for (let i = 0; i < regionCount; i++) {
       const cr = activeRegions[i].cachedRect;
-      const pad = 20; // pixels of padding for blur bleed + AA
+      const pad = 40; // pixels of padding for blur bleed + reflection reach + AA
 
       // Compute pixel-space rect, clamped to canvas bounds
       // When panel is partially off-screen, x0/y0 clamp to 0 and
