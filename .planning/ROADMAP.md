@@ -118,7 +118,10 @@ Plans:
   3. GlassToolbar renders a row of icon buttons with glass background, each button triggers its callback on click
   4. GlassSearchBar renders a glass capsule input that expands on focus, accepts text input, and has working clear/cancel actions
   5. All navigation controls render correctly when composed together in a single viewport (no region conflicts)
-**Plans**: TBD
+**Plans**: 2 plans
+Plans:
+- [ ] 23-01-PLAN.md — Navigation types, GlassNavigationBar, and GlassToolbar with tests
+- [ ] 23-02-PLAN.md — GlassSearchBar, GlassTabBar, and barrel exports
 
 ### Phase 24: Overlay Controls
 **Goal**: Users can trigger and dismiss modal overlays (action sheets, alerts, sheets, popovers) that render with glass backgrounds above page content
@@ -157,6 +160,6 @@ Plans:
 | 20. Foundation & Safety Rails | 2/2 | Complete   | 2026-03-25 | - |
 | 21. Core Interactive Controls | 1/2 | In Progress|  | - |
 | 22. Core Discrete Controls | 2/2 | Complete   | 2026-03-25 | - |
-| 23. Navigation Controls | v4.0 | 0/TBD | Not started | - |
+| 23. Navigation Controls | v4.0 | 0/2 | Planning complete | - |
 | 24. Overlay Controls | v4.0 | 0/2 | Planning complete | - |
 | 25. Showcase Page | v4.0 | 0/TBD | Not started | - |
