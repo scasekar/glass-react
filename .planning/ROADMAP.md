@@ -47,7 +47,7 @@ Full details: [milestones/v2.0-ROADMAP.md](milestones/v2.0-ROADMAP.md)
 - [x] **Phase 15: WASM Thinning** — Slim C++ engine to background-only renderer; JS creates and owns GPUDevice (completed 2026-03-24)
 - [x] **Phase 16: JS Glass Renderer** — Build the JS/WebGPU glass pipeline in isolation against a synthetic texture (completed 2026-03-24)
 - [x] **Phase 17: React Integration** — Wire GlassProvider to connect thinned WASM + JS GlassRenderer; preserve public API (completed 2026-03-24)
-- [ ] **Phase 18: Visual Validation** — Re-tune presets and confirm visual parity against iOS reference
+- [x] **Phase 18: Visual Validation** — Re-tune presets and confirm visual parity against iOS reference (completed 2026-03-25)
 - [x] **Phase 19: Tuning Page Redesign** — Redesign dev tuning page with frontend-design + ui-ux-pro-max skills (completed 2026-03-24)
 
 ## Phase Details
@@ -148,5 +148,5 @@ Phases 15 and 16 can execute in parallel. Phase 17 requires both. Phases 18 and 
 | 15. WASM Thinning | 3/3 | Complete    | 2026-03-24 | - |
 | 16. JS Glass Renderer | 3/3 | Complete    | 2026-03-24 | - |
 | 17. React Integration | 3/3 | Complete    | 2026-03-24 | - |
-| 18. Visual Validation | 1/2 | In Progress|  | - |
+| 18. Visual Validation | 2/2 | Complete    | 2026-03-25 | - |
 | 19. Tuning Page Redesign | 3/3 | Complete    | 2026-03-24 | - |
