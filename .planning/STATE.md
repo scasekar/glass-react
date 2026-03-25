@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v4.0
 milestone_name: Glass Control Library & Showcase
 status: completed
-stopped_at: Completed 24-01-PLAN.md
-last_updated: "2026-03-25T05:42:32.231Z"
+stopped_at: Completed 24-02-PLAN.md
+last_updated: "2026-03-25T05:47:29.508Z"
 last_activity: 2026-03-25 — Completed 22-02 (GlassInput + barrel exports)
 progress:
   total_phases: 6
-  completed_phases: 3
-  total_plans: 10
-  completed_plans: 8
+  completed_phases: 4
+  total_plans: 13
+  completed_plans: 9
   percent: 86
 ---
 
@@ -45,6 +45,7 @@ Progress: [█████████░] 86%
 | Phase 21 P02 | 2min | 2 tasks | 4 files |
 | Phase 23 P01 | 3min | 2 tasks | 5 files |
 | Phase 24 P01 | 3min | 2 tasks | 5 files |
+| Phase 24 P02 | 3min | 3 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -69,6 +70,8 @@ Research completed for v4.0:
 - [Phase 23]: Bar composition pattern: semantic role wrapper > GlassPanel surface > GlassEffectContainer groups > GlassButton items
 - [Phase 24]: motion.div as Dialog.Content asChild target with GlassPanel inside -- avoids forwardRef requirement
 - [Phase 24]: Radix Dialog forceMount + AnimatePresence pattern for smooth overlay enter/exit animations
+- [Phase 24]: Drag handle separate from scrollable content to avoid drag/scroll conflict (Pitfall 5)
+- [Phase 24]: Fade-only animation on GlassPopover to avoid glass region miscalculation (Pitfall 6)
 
 ### Pending Todos
 
@@ -80,6 +83,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-25T05:42:32.227Z
-Stopped at: Completed 24-01-PLAN.md
+Last session: 2026-03-25T05:47:29.500Z
+Stopped at: Completed 24-02-PLAN.md
 Resume file: None
