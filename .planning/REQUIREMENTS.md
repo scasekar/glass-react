@@ -16,8 +16,8 @@
 - [ ] **CTRL-01**: GlassToggle renders as a switch with spring-animated glass thumb matching Apple's 51x31px dimensions
 - [ ] **CTRL-02**: GlassSlider renders continuous value control with glass track fill and glass thumb
 - [ ] **CTRL-03**: GlassSegmentedControl renders segments with a glass thumb capsule that slides between options via spring animation
-- [ ] **CTRL-04**: GlassChip renders as a selectable tag/filter pill with glass background
-- [ ] **CTRL-05**: GlassStepper renders +/- increment control with glass button surfaces
+- [x] **CTRL-04**: GlassChip renders as a selectable tag/filter pill with glass background
+- [x] **CTRL-05**: GlassStepper renders +/- increment control with glass button surfaces
 - [ ] **CTRL-06**: GlassInput renders text field with glass border and focus state
 
 ### Navigation Controls
@@ -73,8 +73,8 @@
 | CTRL-01 | Phase 21 | Pending |
 | CTRL-02 | Phase 21 | Pending |
 | CTRL-03 | Phase 21 | Pending |
-| CTRL-04 | Phase 22 | Pending |
-| CTRL-05 | Phase 22 | Pending |
+| CTRL-04 | Phase 22 | Complete |
+| CTRL-05 | Phase 22 | Complete |
 | CTRL-06 | Phase 22 | Pending |
 | NAV-01 | Phase 23 | Pending |
 | NAV-02 | Phase 23 | Pending |

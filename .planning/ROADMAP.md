@@ -153,7 +153,7 @@ Plans:
 | 15-19 | v3.0 | 14/14 | Complete | 2026-03-25 |
 | 20. Foundation & Safety Rails | 2/2 | Complete   | 2026-03-25 | - |
 | 21. Core Interactive Controls | v4.0 | 0/2 | Planning complete | - |
-| 22. Core Discrete Controls | v4.0 | 0/2 | Planning complete | - |
+| 22. Core Discrete Controls | 1/2 | In Progress|  | - |
 | 23. Navigation Controls | v4.0 | 0/TBD | Not started | - |
 | 24. Overlay Controls | v4.0 | 0/TBD | Not started | - |
 | 25. Showcase Page | v4.0 | 0/TBD | Not started | - |
