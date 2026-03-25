@@ -85,13 +85,11 @@ export interface GlassPanelProps extends GlassStyleProps {
 }
 
 /** Props for GlassButton (<button> wrapper) */
-export interface GlassButtonProps extends GlassStyleProps {
+export interface GlassButtonProps extends GlassStyleProps, Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, 'style' | 'className' | 'ref' | 'type'> {
   children?: React.ReactNode;
   className?: string;
   style?: React.CSSProperties;
   ref?: React.Ref<HTMLButtonElement>;
-  onClick?: React.MouseEventHandler<HTMLButtonElement>;
-  disabled?: boolean;
   type?: 'button' | 'submit' | 'reset';
 }
 

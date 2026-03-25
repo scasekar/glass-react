@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { GlassButton } from '../GlassButton';
 import { APPLE_RADII, APPLE_SPACING, APPLE_CONTROL_SIZES } from '../../tokens/apple';
 import type { GlassChipProps } from '../types';
@@ -24,12 +23,9 @@ export function GlassChip({
   className,
   style,
 }: GlassChipProps) {
-  const [hovered, setHovered] = useState(false);
-
   // Selected state: increase opacity, specular, and rim for visual prominence
-  // Hovered (unselected): subtle specular increase for feedback
   const effectiveOpacity = selected ? 0.18 : undefined;
-  const effectiveSpecular = selected ? 0.2 : (hovered ? 0.16 : undefined);
+  const effectiveSpecular = selected ? 0.2 : undefined;
   const effectiveRim = selected ? 0.2 : undefined;
 
   return (
@@ -42,8 +38,6 @@ export function GlassChip({
       onClick={() => onToggle(!selected)}
       disabled={disabled}
       className={className}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
       style={{
         paddingInline: APPLE_SPACING.sm,
         paddingBlock: APPLE_SPACING.xs,
