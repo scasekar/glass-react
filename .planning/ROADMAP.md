@@ -130,7 +130,10 @@ Plans:
   3. GlassSheet renders as a half-height or full-height modal with glass background and can be dismissed by dragging down
   4. GlassPopover renders anchored to its trigger element with glass background and dismisses on outside click
   5. All overlay controls trap focus while open, return focus to trigger on dismiss, and close on Escape key
-**Plans**: TBD
+**Plans**: 2 plans
+Plans:
+- [ ] 24-01-PLAN.md — Overlay types, GlassAlert, and GlassActionSheet with tests
+- [ ] 24-02-PLAN.md — GlassSheet, GlassPopover, and barrel export wiring
 
 ### Phase 25: Showcase Page
 **Goal**: A polished product landing page replaces the tuning page as the default route, demonstrating all controls in context with professional design quality
@@ -155,5 +158,5 @@ Plans:
 | 21. Core Interactive Controls | 1/2 | In Progress|  | - |
 | 22. Core Discrete Controls | 2/2 | Complete   | 2026-03-25 | - |
 | 23. Navigation Controls | v4.0 | 0/TBD | Not started | - |
-| 24. Overlay Controls | v4.0 | 0/TBD | Not started | - |
+| 24. Overlay Controls | v4.0 | 0/2 | Planning complete | - |
 | 25. Showcase Page | v4.0 | 0/TBD | Not started | - |
