@@ -22,6 +22,7 @@ export class GlassRenderer {
   private canvasFormat!: GPUTextureFormat;
 
   private regions = new Map<number, GlassRegionState>();
+  private _debugLogged = false;
   private nextId = 1;
 
   /**
@@ -286,6 +287,7 @@ export class GlassRenderer {
       region.current.rect.h = rect.height / canvasH * dpr;
 
       const data = buildGlassUniformData(region.current);
+      // DEBUG: log refraction value on first frame
       device.queue.writeBuffer(
         this.uniformBuffer,
         (i + 1) * UNIFORM_STRIDE,

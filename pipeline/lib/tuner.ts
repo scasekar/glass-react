@@ -96,7 +96,9 @@ export const TUNING_PHASES: TuningPhase[] = [
   {
     name: 'distortion',
     params: [
-      { key: 'refraction',  min: 0,   max: 0.3,  step: 0.04, minStep: 0.005 },
+      // refraction is LOCKED — pixelmatch penalizes displacement, so tuner would zero it.
+      // Set visually via manual comparison with iOS reference.
+      // { key: 'refraction',  min: 0,   max: 1.0,  step: 0.1,  minStep: 0.02 },
       { key: 'aberration',  min: 0,   max: 8,    step: 0.8,  minStep: 0.1 },
       { key: 'fresnelIOR',  min: 1.0, max: 2.5,  step: 0.15, minStep: 0.03 },
     ],
