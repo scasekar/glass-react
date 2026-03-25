@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v4.0
 milestone_name: Glass Control Library & Showcase
 status: completed
-stopped_at: Completed 23-01-PLAN.md
-last_updated: "2026-03-25T05:41:24.810Z"
+stopped_at: Completed 24-01-PLAN.md
+last_updated: "2026-03-25T05:42:32.231Z"
 last_activity: 2026-03-25 — Completed 22-02 (GlassInput + barrel exports)
 progress:
   total_phases: 6
   completed_phases: 3
   total_plans: 10
-  completed_plans: 7
+  completed_plans: 8
   percent: 86
 ---
 
@@ -44,6 +44,7 @@ Progress: [█████████░] 86%
 | v4.0 Glass Control Library | 6 | TBD | In progress |
 | Phase 21 P02 | 2min | 2 tasks | 4 files |
 | Phase 23 P01 | 3min | 2 tasks | 5 files |
+| Phase 24 P01 | 3min | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -66,6 +67,8 @@ Research completed for v4.0:
 - [Phase 21]: No motion animation on slider thumb to avoid double-transform with Radix CSS positioning
 - [Phase 21]: SegmentedControl container is NOT glass; only indicator thumb uses GlassPanel
 - [Phase 23]: Bar composition pattern: semantic role wrapper > GlassPanel surface > GlassEffectContainer groups > GlassButton items
+- [Phase 24]: motion.div as Dialog.Content asChild target with GlassPanel inside -- avoids forwardRef requirement
+- [Phase 24]: Radix Dialog forceMount + AnimatePresence pattern for smooth overlay enter/exit animations
 
 ### Pending Todos
 
@@ -77,6 +80,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-25T05:41:24.808Z
-Stopped at: Completed 23-01-PLAN.md
+Last session: 2026-03-25T05:42:32.227Z
+Stopped at: Completed 24-01-PLAN.md
 Resume file: None

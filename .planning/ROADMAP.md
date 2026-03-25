@@ -161,5 +161,5 @@ Plans:
 | 21. Core Interactive Controls | 2/2 | Complete   | 2026-03-25 | - |
 | 22. Core Discrete Controls | 2/2 | Complete   | 2026-03-25 | - |
 | 23. Navigation Controls | 1/2 | In Progress|  | - |
-| 24. Overlay Controls | v4.0 | 0/2 | Planning complete | - |
+| 24. Overlay Controls | 1/2 | In Progress|  | - |
 | 25. Showcase Page | v4.0 | 0/TBD | Not started | - |

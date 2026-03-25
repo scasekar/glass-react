@@ -29,8 +29,8 @@
 
 ### Overlay Controls
 
-- [ ] **OVR-01**: GlassActionSheet renders bottom action sheet with glass option rows and cancel button
-- [ ] **OVR-02**: GlassAlert renders centered dialog with glass background, title, message, and action buttons
+- [x] **OVR-01**: GlassActionSheet renders bottom action sheet with glass option rows and cancel button
+- [x] **OVR-02**: GlassAlert renders centered dialog with glass background, title, message, and action buttons
 - [ ] **OVR-03**: GlassSheet renders half/full modal sheet with glass background and drag-to-dismiss
 - [ ] **OVR-04**: GlassPopover renders contextual popover with glass background anchored to trigger element
 
@@ -80,8 +80,8 @@
 | NAV-02 | Phase 23 | Complete |
 | NAV-03 | Phase 23 | Complete |
 | NAV-04 | Phase 23 | Pending |
-| OVR-01 | Phase 24 | Pending |
-| OVR-02 | Phase 24 | Pending |
+| OVR-01 | Phase 24 | Complete |
+| OVR-02 | Phase 24 | Complete |
 | OVR-03 | Phase 24 | Pending |
 | OVR-04 | Phase 24 | Pending |
 | SHOW-01 | Phase 25 | Pending |
