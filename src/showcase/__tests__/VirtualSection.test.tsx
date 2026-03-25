@@ -15,18 +15,18 @@ beforeEach(() => {
   lastObserverCallback = null;
   lastObserverInstance = null;
 
-  const MockIO = vi.fn((callback: IOCallback) => {
-    lastObserverCallback = callback;
-    const instance = {
-      observe: vi.fn(),
-      unobserve: vi.fn(),
-      disconnect: vi.fn(),
-    };
-    lastObserverInstance = instance;
-    return instance;
-  });
+  class MockIntersectionObserver {
+    observe = vi.fn();
+    unobserve = vi.fn();
+    disconnect = vi.fn();
+    constructor(callback: IOCallback) {
+      lastObserverCallback = callback;
+      // eslint-disable-next-line @typescript-eslint/no-this-alias
+      lastObserverInstance = this;
+    }
+  }
 
-  vi.stubGlobal('IntersectionObserver', MockIO);
+  vi.stubGlobal('IntersectionObserver', MockIntersectionObserver);
 });
 
 afterEach(() => {
