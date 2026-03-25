@@ -23,3 +23,6 @@ export type { GlassContextValue, GlassRegionHandle } from './context/GlassContex
 
 // Engine module type (for engineRef usage)
 export type { EngineModule } from './wasm/loader';
+
+// Design tokens
+export { APPLE_SPACING, APPLE_RADII, APPLE_CONTROL_SIZES } from './tokens/apple';
