@@ -90,23 +90,24 @@ export function useGlassRegion(
       // Normal mode: dark/light defaults for unset props
       const defaults = prefs.darkMode ? DARK_DEFAULTS : LIGHT_DEFAULTS;
 
+      // Defaults match tuned Clear Light preset (v3.0)
       effectiveBlur = props.blur ?? 0.3;
       effectiveOpacity = props.opacity ?? defaults.opacity;
       effectiveTint = props.tint ?? defaults.tint;
-      effectiveRefraction = props.refraction ?? 0.06;
+      effectiveRefraction = props.refraction ?? 0.5;
 
-      // Sync new visual effect props
-      handle.updateAberration(props.aberration ?? 0.0);
-      handle.updateSpecular(props.specular ?? 0.075);
-      handle.updateRim(props.rim ?? 0.50);
+      // Sync visual effect props — defaults match tuned presets
+      handle.updateAberration(props.aberration ?? 7.2);
+      handle.updateSpecular(props.specular ?? 0.15);
+      handle.updateRim(props.rim ?? 0.45);
       handle.updateMode(props.refractionMode === 'prominent' ? 1.0 : 0.0);
-      handle.updateContrast(props.contrast ?? 1.22);
+      handle.updateContrast(props.contrast ?? 1.24);
       handle.updateSaturation(props.saturation ?? 1.05);
       handle.updateFresnelIOR(props.fresnelIOR ?? 1.5);
       handle.updateFresnelExponent(props.fresnelExponent ?? 0.5);
-      handle.updateEnvReflectionStrength(props.envReflectionStrength ?? 0.02);
+      handle.updateEnvReflectionStrength(props.envReflectionStrength ?? 0.0);
       // glareDirection prop is degrees; convert to radians for shader
-      handle.updateGlareAngle((props.glareDirection ?? 360) * Math.PI / 180);
+      handle.updateGlareAngle((props.glareDirection ?? 420) * Math.PI / 180);
       // blurRadius (pixels) takes precedence; falls back to blur (normalized) * 30
       handle.updateBlurRadius(props.blurRadius ?? (props.blur ?? 0.3) * 30);
     }

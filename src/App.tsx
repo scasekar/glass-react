@@ -19,8 +19,6 @@ export default function App() {
       }}>
         <GlassPanel
           style={{ width: 340, padding: '32px', textAlign: 'center' }}
-          blur={0.6}
-          opacity={0.08}
           cornerRadius={28}
         >
           <h2 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 600 }}>
@@ -33,30 +31,18 @@ export default function App() {
         </GlassPanel>
 
         <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', justifyContent: 'center' }}>
-          {/* Standard mode button (hover to see morph) */}
           <GlassButton
             style={{ padding: '14px 36px', fontSize: '1rem', fontWeight: 500 }}
-            blur={0.5}
-            opacity={0.06}
             cornerRadius={16}
-            aberration={3}
-            specular={0.2}
-            rim={0.15}
             onClick={() => console.log('Standard glass clicked')}
           >
             Standard Glass
           </GlassButton>
 
-          {/* Prominent mode button (hover to see morph) */}
           <GlassButton
             style={{ padding: '14px 36px', fontSize: '1rem', fontWeight: 500 }}
-            blur={0.6}
-            opacity={0.08}
             cornerRadius={16}
             refractionMode="prominent"
-            aberration={5}
-            specular={0.35}
-            rim={0.25}
             onClick={() => console.log('Prominent glass clicked')}
           >
             Prominent Glass
@@ -65,13 +51,8 @@ export default function App() {
 
         <GlassCard
           style={{ width: 340, padding: '24px' }}
-          blur={0.7}
-          opacity={0.04}
           cornerRadius={20}
           tint={[0.8, 0.85, 1.0]}
-          aberration={4}
-          specular={0.3}
-          rim={0.2}
         >
           <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600 }}>
             Glass Card (Custom Tint)
