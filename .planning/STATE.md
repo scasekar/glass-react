@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v4.0
 milestone_name: Glass Control Library & Showcase
-status: executing
-stopped_at: Completed 22-01-PLAN.md
-last_updated: "2026-03-25T05:29:15Z"
-last_activity: 2026-03-25 — Completed 22-01 (GlassChip + GlassStepper controls)
+status: completed
+stopped_at: Completed 22-02-PLAN.md (Phase 22 complete)
+last_updated: "2026-03-25T05:32:24.778Z"
+last_activity: 2026-03-25 — Completed 22-02 (GlassInput + barrel exports)
 progress:
   total_phases: 6
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 6
-  completed_plans: 3
-  percent: 17
+  completed_plans: 5
+  percent: 86
 ---
 
 # Project State
@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-03-25)
 
 ## Current Position
 
-Phase: 22 of 25 (Core Discrete Controls)
-Plan: 1 of 2 complete
-Status: 22-01 complete (GlassChip + GlassStepper), 22-02 pending (GlassInput)
-Last activity: 2026-03-25 — Completed 22-01 (GlassChip + GlassStepper controls)
+Phase: 22 of 25 (Core Discrete Controls) -- COMPLETE
+Plan: 2 of 2 complete
+Status: Phase 22 complete, ready for Phase 23
+Last activity: 2026-03-25 — Completed 22-02 (GlassInput + barrel exports)
 
 Progress: [█████████░] 86%
 
@@ -58,6 +58,9 @@ Research completed for v4.0:
 - GlassChip: native aria-pressed on button, no Radix toggle needed (22-01)
 - GlassStepper: <output> element for value announcements, role="group" container (22-01)
 - Glass controls compose GlassButton/GlassPanel primitives, never call useGlassRegion directly (22-01)
+- GlassInput: CSS outline focus ring for WCAG SC 1.4.11, not shader rim alone (22-02)
+- Focus-driven glass params pattern: track focused state, pass increased specular/rim as GlassPanel props (22-02)
+- [Phase 21]: GlassSlider thumb uses GlassPanel not GlassButton -- Radix handles pointer capture
 
 ### Pending Todos
 
@@ -69,6 +72,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-25T05:29:15Z
-Stopped at: Completed 22-01-PLAN.md
-Resume file: .planning/phases/22-core-discrete-controls/22-01-SUMMARY.md
+Last session: 2026-03-25T05:30:18Z
+Stopped at: Completed 22-02-PLAN.md (Phase 22 complete)
+Resume file: .planning/phases/22-core-discrete-controls/22-02-SUMMARY.md
