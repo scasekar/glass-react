@@ -108,14 +108,17 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
     let bUV = localPos * bScale + glassCenter;
 
     // --- 81-tap (9x9) Gaussian blur at green UV + 2 aberration samples ---
-    // The loop covers the same spatial extent as the old 5x5 kernel (±2*blurRadius
-    // texels from center) but with 2x denser sampling. On Retina displays the DPR-
-    // scaled blurRadius makes the old 5-tap spacing too coarse (visible grid).
-    // 9 taps per axis with step = blurRadius/2 keeps gaps ≤ ~4.5 texels even at
-    // the highest supported blur, which bilinear filtering smooths out.
-    let texelSize = 1.0 / glass.resolution;
-    let blurRadius = glass.blurRadius * dpr;
-    let sampleStep = blurRadius * 0.5;  // half spacing, same total extent
+    // Sample spacing is derived from the background texture's actual dimensions
+    // (via textureDimensions), NOT glass.resolution. When the scene texture is
+    // lower-res than the glass canvas (e.g. renderer at CSS pixels, glass at
+    // device pixels), using glass.resolution would make samples land within the
+    // same source texel, producing blocky blur.
+    // blurRadius is in CSS pixels which matches source texture texels (no DPR
+    // multiplier needed). Step = blurRadius/4 so the outermost tap (index ±4)
+    // lands exactly ±blurRadius source texels from center.
+    let bgDims = vec2f(textureDimensions(texBackground));
+    let texelSize = 1.0 / bgDims;
+    let sampleStep = glass.blurRadius / 4.0;
 
     var blurColor = vec4f(0.0);
     var totalWeight = 0.0;

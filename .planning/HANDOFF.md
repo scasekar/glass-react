@@ -1,78 +1,61 @@
 # Visual Parity Tuning — Handoff
 
-**Date:** 2026-02-27
-**Status:** Light mode converged (3.52%), Dark mode needs iOS dark capture fix
+**Date:** 2026-03-01
+**Status:** Light mode 3.01%, Dark mode 14.90% (needs tuning), DPR fix applied
 
 ## Current Scores
-- **Light: 3.52%** — strong match, remaining diff at borders/edges only
-- **Dark: 34.48%** — iOS light/dark captures are identical (dark mode bug)
+- **Light: 3.01%** pixelmatch — strong match, diff only at glass circle edges
+- **Dark: 14.90%** pixelmatch — real captures now working, preset needs tuning
 
 ## What Changed This Session
 
-### Pipeline Fixes
-1. **Capture mode**: Glass panel now 70% viewport with cornerRadius=24 (was 100% + cornerRadius=0)
-   - Allows testing edge highlights, rim glow, refraction at borders
-   - Both web (`demo/App.tsx`) and iOS (`ContentView.swift`) updated to match
-2. **ROI**: Full 800x800 image (was 50,50,700,700 — missing edges)
-3. **Diff threshold**: 0.05 (was 0.1)
+### 1. iOS Dark Mode Capture Fix
+**Root cause:** `GlassReferenceApp.swift` hardcoded `@State var colorScheme = .light` with `.preferredColorScheme()`, overriding the system appearance set by `simctl`.
 
-### Tuner Rewrite
-- **Phased descent**: interior → edges → distortion (coupled params tuned together)
-- **Line search**: When direction helps, keeps going (was: test ±1 step only)
-- **Per-param step halving**: Only shrinks the stuck param (was: global halve)
-- **Hybrid scoring**: `fraction_mismatching × mean_error_magnitude` (not pixelmatch binary count or MSE)
-- See `pipeline/lib/tuner.ts` for full implementation
+**Fix:**
+- `GlassReferenceApp.swift`: Removed manual colorScheme override — app now follows system appearance
+- `ContentView.swift`: Changed `@Binding var colorScheme` → `@Environment(\.colorScheme) var colorScheme`
+- `capture-ios.ts`: Set appearance BEFORE launching app, terminate + relaunch between modes
 
-### Tuned Apple Clear Light Params (major changes from pre-tuning)
-| Param | Before | After | Insight |
-|-------|--------|-------|---------|
-| contrast | 0.88 | 1.28 | iOS BOOSTS contrast, doesn't reduce |
-| opacity | 0.08 | 0.17 | iOS tint more visible than assumed |
-| rim | 0.10 | 0.40 | iOS has strong bright border rim |
-| blurRadius | 8 | 3.5 | iOS barely blurs background |
-| saturation | 1.2 | 0.9 | iOS slightly desaturates |
-| specular | 0.15 | 0.05 | iOS specular subtle, rim does heavy lifting |
-| refraction | 0.08 | 0.0 | iOS Clear = no lens distortion |
-| envReflection | 0.10 | 0.02 | iOS minimal env reflection |
-| fresnelExp | 3.0 | 0.5 | Very broad falloff |
+### 2. Shader cornerRadius Clamping Fix
+**Root cause:** Capture mode uses `cornerRadius={9999}` for circles. The SDF function `sdRoundedBox` produces invalid results when `r > min(b.x, b.y)`, causing the mask to be 0 everywhere (fully transparent — glass effect invisible).
 
-## Known Issues
+**Fix:** `glass.wgsl.h` — clamp cornerRadius: `min(glass.cornerRadius * dpr, min(rectHalf.x, rectHalf.y))`
 
-### iOS Dark Mode Capture
-`pipeline/lib/capture-ios.ts` uses `simctl ui booted appearance dark` but iOS light and dark screenshots are byte-identical. Either:
-1. The app's `@Binding var colorScheme` isn't responding to system appearance changes
-2. `.glassEffect(.clear)` looks identical in light/dark mode (unlikely)
-3. The app needs to be terminated and relaunched after appearance change
+### 3. DPR (Device Pixel Ratio) Scaling Fix
+**Root cause:** Shader operates in physical pixel space (canvas resolution includes DPR from ResizeObserver), but `cornerRadius`, `blurRadius`, and hardcoded rim/specular constants assumed 1x DPR. On Retina displays: blocky blur, tight corners, thin rim.
 
-**Fix attempt needed**: Try `simctl terminate booted com.glassreference.app` before `simctl launch` when switching modes.
+**Fix:**
+- Added `dpr` field to `GlassUniforms` (repurposed `_pad7` at offset 108)
+- C++ `BackgroundEngine::setDpr(float)` stores DPR, applied per-region in render loop
+- Shader scales `cornerRadius * dpr`, `blurRadius * dpr`
+- Shader normalizes dist for effects: `cssDist = dist / dpr` for rim and specular falloff
+- JS calls `engine.setDpr(devicePixelRatio)` from ResizeObserver
+
+### 4. StrictMode Engine Cleanup
+Added `module.destroyEngine()` on cancelled init to stop orphaned rAF render loops.
 
 ## IMMEDIATE Next Steps
 
-### 1. Fix iOS dark mode capture
-Edit `pipeline/lib/capture-ios.ts` — terminate and relaunch app between light/dark:
-```typescript
-simctl('terminate booted com.glassreference.app');
-// wait...
-simctl('launch booted com.glassreference.app');
-```
-
-### 2. Tune Dark preset
-Once dark capture works, run:
+### 1. Tune Dark preset
+The iOS dark `.glassEffect(.clear)` is surprisingly similar to light — very subtle. Current web "Clear Dark" preset is too aggressive (heavy blur, dark tint, strong env reflection).
 ```bash
 npm run tune -- --mode dark
 ```
 
+### 2. Verify DPR fix visually
+The DPR fix was committed but needs manual testing on a Retina display. Check that glass effects look identical at 1x and 2x DPR (consistent blur width, corner radius, rim thickness).
+
 ### 3. Further light refinement (optional)
-The remaining 3.52% is at edges. Could try:
-- Tighter step sizes in edges phase
-- Separate edge-only ROI scoring
+Light is at 3.01% — remaining diff at circle edges (rim highlights). Could tune further.
 
 ## Commands
 ```bash
-npm run dev               # Dev server
+npm run dev               # Dev server (demo mode)
 npm run diff              # Capture + compare both modes
 npm run tune -- --mode light   # Tune light preset
 npm run tune -- --mode dark    # Tune dark preset
+npm run build:wasm        # Rebuild C++ engine
 
 # Rebuild iOS app:
 DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild \
@@ -85,11 +68,10 @@ DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcrun simctl install bo
 ```
 
 ## Key Files
-- `demo/controls/presets.ts` — Apple Clear Light/Dark presets (TUNED)
+- `engine/src/shaders/glass.wgsl.h` — WGSL shader (DPR scaling, SDF mask)
+- `engine/src/background_engine.h` — GlassUniforms struct (dpr field at offset 108)
+- `demo/controls/presets.ts` — Clear Light/Dark presets (TUNED light, dark needs work)
 - `pipeline/lib/tuner.ts` — Phased descent optimizer
-- `pipeline/lib/scorer.ts` — Hybrid MSE scorer
-- `pipeline/lib/config.ts` — crop, ROI, threshold
-- `pipeline/tune.ts` — Tuner entry point
-- `demo/App.tsx` — capture mode layout (70% panel, cornerRadius=24)
-- `ios-reference/GlassReference/ContentView.swift` — capture mode (70% panel, RoundedRectangle)
-- `engine/src/shaders/glass.wgsl.h` — WGSL shader
+- `pipeline/lib/capture-ios.ts` — iOS capture with terminate+relaunch
+- `ios-reference/GlassReference/ContentView.swift` — Follows system appearance
+- `src/components/GlassProvider.tsx` — setDpr() call in ResizeObserver
