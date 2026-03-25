@@ -26,6 +26,10 @@ export interface GlassRegionState {
   current: GlassUniforms;
   target: GlassUniforms;
   morphSpeed: number;
+  /** Cached DOM rect — updated only on scroll/resize, not every frame */
+  cachedRect: { left: number; top: number; width: number; height: number };
+  /** True when cachedRect needs refresh (new region, element moved) */
+  rectDirty: boolean;
 }
 
 export const DEFAULT_GLASS_UNIFORMS: GlassUniforms = {
@@ -51,12 +55,14 @@ export const DEFAULT_GLASS_UNIFORMS: GlassUniforms = {
 };
 
 /**
- * Build a 28-element Float32Array (112 bytes) matching the C++ GlassUniforms struct layout.
+ * Build uniform data into a pre-allocated Float32Array (112 bytes / 28 floats).
  * Uses EXPLICIT index assignments keyed to documented byte offsets.
- * NEVER use positional fill — one off-by-one shifts all subsequent fields silently.
+ *
+ * @param u - The uniforms to serialize
+ * @param out - Pre-allocated Float32Array(28) to write into (avoids per-frame GC)
  */
-export function buildGlassUniformData(u: GlassUniforms): Float32Array {
-  const data = new Float32Array(28); // 28 x 4 = 112 bytes
+export function buildGlassUniformData(u: GlassUniforms, out?: Float32Array): Float32Array {
+  const data = out ?? new Float32Array(28);
 
   // rect: vec4f — indices 0-3 (bytes 0-15)
   data[0] = u.rect.x;
@@ -71,12 +77,10 @@ export function buildGlassUniformData(u: GlassUniforms): Float32Array {
   data[7] = u.refractionStrength;
 
   // tint: vec3f padded to 16 bytes — indices 8-11 (bytes 32-47)
-  // WGSL vec3f alignment: tint occupies slots 8,9,10; aberration occupies slot 11
-  // (the 4th float of the 16-byte aligned vec3f slot)
   data[8]  = u.tint.r;
   data[9]  = u.tint.g;
   data[10] = u.tint.b;
-  data[11] = u.aberration; // aberration follows tint's padding slot
+  data[11] = u.aberration;
 
   // resolution: vec2f — indices 12-13 (bytes 48-55)
   data[12] = u.resolution.x;
@@ -88,9 +92,9 @@ export function buildGlassUniformData(u: GlassUniforms): Float32Array {
   data[16] = u.mode;
 
   // explicit padding — indices 17-19 (bytes 68-79) — MUST be zero
-  data[17] = 0; // _pad4
-  data[18] = 0; // _pad5
-  data[19] = 0; // _pad6
+  data[17] = 0;
+  data[18] = 0;
+  data[19] = 0;
 
   // new block — indices 20-27 (bytes 80-111)
   data[20] = u.contrast;
@@ -108,34 +112,51 @@ export function buildGlassUniformData(u: GlassUniforms): Float32Array {
 /**
  * Exponential decay lerp for smooth glass transitions.
  * Updates `current` in place toward `target`.
- * speed: 0 = instant snap, 1 = very slow
+ * speed: 0 = instant snap, >0 = animation speed
  */
 export function morphLerp(current: GlassUniforms, target: GlassUniforms, dt: number, morphSpeed: number): void {
   // morphSpeed=0 means instant snap (no animation)
   if (morphSpeed === 0 || dt === 0) {
-    Object.assign(current, { ...target, resolution: current.resolution, rect: current.rect, dpr: current.dpr });
+    current.cornerRadius = target.cornerRadius;
+    current.blurIntensity = target.blurIntensity;
+    current.opacity = target.opacity;
+    current.refractionStrength = target.refractionStrength;
+    current.tint.r = target.tint.r;
+    current.tint.g = target.tint.g;
+    current.tint.b = target.tint.b;
+    current.aberration = target.aberration;
+    current.specularIntensity = target.specularIntensity;
+    current.rimIntensity = target.rimIntensity;
+    current.mode = target.mode;
+    current.contrast = target.contrast;
+    current.saturation = target.saturation;
+    current.fresnelIOR = target.fresnelIOR;
+    current.fresnelExponent = target.fresnelExponent;
+    current.envReflectionStrength = target.envReflectionStrength;
+    current.glareAngle = target.glareAngle;
+    current.blurRadius = target.blurRadius;
     return;
   }
-  const decay = Math.exp(-morphSpeed * dt);
-  const lerp = (a: number, b: number) => a + (b - a) * (1 - decay);
 
-  current.cornerRadius = lerp(current.cornerRadius, target.cornerRadius);
-  current.blurIntensity = lerp(current.blurIntensity, target.blurIntensity);
-  current.opacity = lerp(current.opacity, target.opacity);
-  current.refractionStrength = lerp(current.refractionStrength, target.refractionStrength);
-  current.tint.r = lerp(current.tint.r, target.tint.r);
-  current.tint.g = lerp(current.tint.g, target.tint.g);
-  current.tint.b = lerp(current.tint.b, target.tint.b);
-  current.aberration = lerp(current.aberration, target.aberration);
-  current.specularIntensity = lerp(current.specularIntensity, target.specularIntensity);
-  current.rimIntensity = lerp(current.rimIntensity, target.rimIntensity);
-  current.mode = lerp(current.mode, target.mode);
-  current.contrast = lerp(current.contrast, target.contrast);
-  current.saturation = lerp(current.saturation, target.saturation);
-  current.fresnelIOR = lerp(current.fresnelIOR, target.fresnelIOR);
-  current.fresnelExponent = lerp(current.fresnelExponent, target.fresnelExponent);
-  current.envReflectionStrength = lerp(current.envReflectionStrength, target.envReflectionStrength);
-  current.glareAngle = lerp(current.glareAngle, target.glareAngle);
-  current.blurRadius = lerp(current.blurRadius, target.blurRadius);
-  // rect and resolution are set directly per frame (not lerped)
+  const decay = Math.exp(-morphSpeed * dt);
+  const t = 1 - decay;
+
+  current.cornerRadius += (target.cornerRadius - current.cornerRadius) * t;
+  current.blurIntensity += (target.blurIntensity - current.blurIntensity) * t;
+  current.opacity += (target.opacity - current.opacity) * t;
+  current.refractionStrength += (target.refractionStrength - current.refractionStrength) * t;
+  current.tint.r += (target.tint.r - current.tint.r) * t;
+  current.tint.g += (target.tint.g - current.tint.g) * t;
+  current.tint.b += (target.tint.b - current.tint.b) * t;
+  current.aberration += (target.aberration - current.aberration) * t;
+  current.specularIntensity += (target.specularIntensity - current.specularIntensity) * t;
+  current.rimIntensity += (target.rimIntensity - current.rimIntensity) * t;
+  current.mode += (target.mode - current.mode) * t;
+  current.contrast += (target.contrast - current.contrast) * t;
+  current.saturation += (target.saturation - current.saturation) * t;
+  current.fresnelIOR += (target.fresnelIOR - current.fresnelIOR) * t;
+  current.fresnelExponent += (target.fresnelExponent - current.fresnelExponent) * t;
+  current.envReflectionStrength += (target.envReflectionStrength - current.envReflectionStrength) * t;
+  current.glareAngle += (target.glareAngle - current.glareAngle) * t;
+  current.blurRadius += (target.blurRadius - current.blurRadius) * t;
 }

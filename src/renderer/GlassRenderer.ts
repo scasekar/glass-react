@@ -9,6 +9,7 @@ import {
 
 export const MAX_GLASS_REGIONS = 32;
 const UNIFORM_STRIDE = 256; // WebGPU minUniformBufferOffsetAlignment
+const FLOATS_PER_REGION = 28; // 112 bytes / 4
 
 export class GlassRenderer {
   private device!: GPUDevice;
@@ -22,48 +23,52 @@ export class GlassRenderer {
   private canvasFormat!: GPUTextureFormat;
 
   private regions = new Map<number, GlassRegionState>();
-  private _debugLogged = false;
   private nextId = 1;
 
-  /**
-   * Initialize the renderer. Must be awaited before calling any other method.
-   * @param device - The GPUDevice (owned by caller)
-   * @param canvasFormat - From navigator.gpu.getPreferredCanvasFormat()
-   */
+  // ── Performance: pre-allocated buffers (avoid per-frame GC) ──
+  private stagingBuffer: Float32Array;
+  private regionScratch: Float32Array;
+  private cachedRegionList: GlassRegionState[] = [];
+  private regionListDirty = true;
+
+  // ── Performance: rect caching ──
+  private rectCacheDirty = true;
+  private scrollX = 0;
+  private scrollY = 0;
+  private scrollListenerBound = false;
+
+  // ── Performance metrics (dev only) ──
+  private _frameCount = 0;
+  private _frameTimes: number[] = [];
+  private _lastMetricsLog = 0;
+
+  constructor() {
+    // Pre-allocate staging buffer for all regions + blit slot
+    // Each slot = UNIFORM_STRIDE / 4 floats = 64 floats (256 bytes / 4)
+    const floatsPerSlot = UNIFORM_STRIDE / 4;
+    this.stagingBuffer = new Float32Array((MAX_GLASS_REGIONS + 1) * floatsPerSlot);
+    this.regionScratch = new Float32Array(FLOATS_PER_REGION);
+  }
+
   async init(device: GPUDevice, canvasFormat: GPUTextureFormat): Promise<void> {
     this.device = device;
     this.canvasFormat = canvasFormat;
 
-    // --- Explicit two-group bind group layout (GLASS-02) ---
-    // Group 0: per-frame (sampler + scene texture) -- shared across all draw calls
     this.perFrameLayout = device.createBindGroupLayout({
       label: 'GlassRenderer perFrame',
       entries: [
-        {
-          binding: 0,
-          visibility: GPUShaderStage.FRAGMENT,
-          sampler: { type: 'filtering' },
-        },
-        {
-          binding: 1,
-          visibility: GPUShaderStage.FRAGMENT,
-          texture: { sampleType: 'float' },
-        },
+        { binding: 0, visibility: GPUShaderStage.FRAGMENT, sampler: { type: 'filtering' } },
+        { binding: 1, visibility: GPUShaderStage.FRAGMENT, texture: { sampleType: 'float' } },
       ],
     });
 
-    // Group 1: per-region (dynamic offset uniform buffer)
     this.perRegionLayout = device.createBindGroupLayout({
       label: 'GlassRenderer perRegion',
       entries: [
         {
           binding: 0,
           visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
-          buffer: {
-            type: 'uniform',
-            hasDynamicOffset: true,
-            minBindingSize: 112, // sizeof(GlassUniforms)
-          },
+          buffer: { type: 'uniform', hasDynamicOffset: true, minBindingSize: 112 },
         },
       ],
     });
@@ -73,84 +78,44 @@ export class GlassRenderer {
       bindGroupLayouts: [this.perFrameLayout, this.perRegionLayout],
     });
 
-    // --- Shader compilation (async, non-blocking) ---
-    const shaderModule = device.createShaderModule({
-      label: 'GlassRenderer shader',
-      code: glassWgsl,
-    });
+    const shaderModule = device.createShaderModule({ label: 'GlassRenderer shader', code: glassWgsl });
 
-    // GLASS-02: createRenderPipelineAsync -- compile once, never recreate on resize
     this.pipeline = await device.createRenderPipelineAsync({
       label: 'GlassRenderer pipeline',
       layout: pipelineLayout,
-      vertex: {
-        module: shaderModule,
-        entryPoint: 'vs_main',
-      },
+      vertex: { module: shaderModule, entryPoint: 'vs_main' },
       fragment: {
         module: shaderModule,
         entryPoint: 'fs_main',
-        targets: [
-          {
-            format: canvasFormat,
-            // Alpha blending: glass regions blend over background via SDF mask alpha
-            // Background blit outputs alpha=1.0 (rect.z=0 sentinel) -- no visual difference
-            blend: {
-              color: {
-                srcFactor: 'src-alpha',
-                dstFactor: 'one-minus-src-alpha',
-                operation: 'add',
-              },
-              alpha: {
-                srcFactor: 'one',
-                dstFactor: 'one-minus-src-alpha',
-                operation: 'add',
-              },
-            },
+        targets: [{
+          format: canvasFormat,
+          blend: {
+            color: { srcFactor: 'src-alpha', dstFactor: 'one-minus-src-alpha', operation: 'add' },
+            alpha: { srcFactor: 'one', dstFactor: 'one-minus-src-alpha', operation: 'add' },
           },
-        ],
+        }],
       },
       primitive: { topology: 'triangle-list' },
     });
 
-    // --- Sampler (shared, never changes) ---
-    this.sampler = device.createSampler({
-      label: 'GlassRenderer sampler',
-      magFilter: 'linear',
-      minFilter: 'linear',
-    });
+    this.sampler = device.createSampler({ label: 'GlassRenderer sampler', magFilter: 'linear', minFilter: 'linear' });
 
-    // --- Uniform buffer: (MAX_REGIONS + 1) slots x 256 bytes ---
-    // Slot 0: blit pass (rect.z = 0 sentinel)
-    // Slots 1..MAX_REGIONS: glass regions
     this.uniformBuffer = device.createBuffer({
       label: 'GlassRenderer uniforms',
       size: (MAX_GLASS_REGIONS + 1) * UNIFORM_STRIDE,
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
 
-    // Per-region bind group: references the uniform buffer at dynamic offsets
-    // This bind group never changes -- only the dynamic offset changes per draw call
     this.perRegionBindGroup = device.createBindGroup({
       label: 'GlassRenderer perRegion bindGroup',
       layout: this.perRegionLayout,
-      entries: [
-        {
-          binding: 0,
-          resource: {
-            buffer: this.uniformBuffer,
-            size: 112, // one GlassUniforms slot
-          },
-        },
-      ],
+      entries: [{ binding: 0, resource: { buffer: this.uniformBuffer, size: 112 } }],
     });
+
+    // Bind scroll listener for rect cache invalidation
+    this.bindScrollListener();
   }
 
-  /**
-   * Called once at init and after every engine.resize().
-   * Rebuilds the per-frame bind group with the new texture view (GLASS-05).
-   * The scene texture format must be 'rgba8unorm' (C++ offscreen format).
-   */
   setSceneTexture(texture: GPUTexture): void {
     this.perFrameBindGroup = this.device.createBindGroup({
       label: 'GlassRenderer perFrame bindGroup',
@@ -162,12 +127,20 @@ export class GlassRenderer {
     });
   }
 
-  /**
-   * Register a new glass region.
-   * @param element - The DOM element for this region (used for rect computation)
-   * @param initialUniforms - Optional overrides for default glass parameters
-   * @returns Region ID (stable until removeRegion is called)
-   */
+  // ── Scroll/resize listener for rect cache invalidation ──
+
+  private bindScrollListener(): void {
+    if (this.scrollListenerBound) return;
+    const onScrollOrResize = () => {
+      this.rectCacheDirty = true;
+    };
+    window.addEventListener('scroll', onScrollOrResize, { passive: true });
+    window.addEventListener('resize', onScrollOrResize, { passive: true });
+    this.scrollListenerBound = true;
+  }
+
+  // ── Region management ──
+
   addRegion(element: HTMLElement, initialUniforms?: Partial<GlassUniforms>): number {
     if (this.regions.size >= MAX_GLASS_REGIONS) {
       throw new Error(
@@ -189,23 +162,27 @@ export class GlassRenderer {
       element,
       current: { ...uniforms, tint: { ...uniforms.tint }, rect: { ...uniforms.rect }, resolution: { ...uniforms.resolution } },
       target: { ...uniforms, tint: { ...uniforms.tint }, rect: { ...uniforms.rect }, resolution: { ...uniforms.resolution } },
-      morphSpeed: 8, // default: snappy
+      morphSpeed: 8,
+      // Perf: cached rect from getBoundingClientRect
+      cachedRect: { left: 0, top: 0, width: 0, height: 0 },
+      rectDirty: true,
     };
     this.regions.set(id, region);
+    this.regionListDirty = true;
+    this.rectCacheDirty = true; // new region needs rect
     return id;
   }
 
   removeRegion(id: number): void {
     this.regions.delete(id);
+    this.regionListDirty = true;
   }
 
   getRegion(id: number): GlassRegionState | undefined {
     return this.regions.get(id);
   }
 
-  // --- Region setters (14 methods) ---
-  // Each setter mutates region.target only (never current).
-  // Unknown id is a safe no-op (guard pattern).
+  // ── Region setters (14 methods) ──
 
   setRegionParams(id: number, cornerRadius: number, blurIntensity: number, opacity: number, refractionStrength: number): void {
     const r = this.regions.get(id);
@@ -223,39 +200,20 @@ export class GlassRenderer {
   }
 
   setRegionAberration(id: number, v: number): void { const r = this.regions.get(id); if (!r) return; r.target.aberration = v; }
-
   setRegionSpecular(id: number, v: number): void { const r = this.regions.get(id); if (!r) return; r.target.specularIntensity = v; }
-
   setRegionRim(id: number, v: number): void { const r = this.regions.get(id); if (!r) return; r.target.rimIntensity = v; }
-
   setRegionMode(id: number, v: number): void { const r = this.regions.get(id); if (!r) return; r.target.mode = v; }
-
   setRegionMorphSpeed(id: number, speed: number): void { const r = this.regions.get(id); if (!r) return; r.morphSpeed = speed; }
-
   setRegionContrast(id: number, v: number): void { const r = this.regions.get(id); if (!r) return; r.target.contrast = v; }
-
   setRegionSaturation(id: number, v: number): void { const r = this.regions.get(id); if (!r) return; r.target.saturation = v; }
-
   setRegionBlurRadius(id: number, v: number): void { const r = this.regions.get(id); if (!r) return; r.target.blurRadius = v; }
-
   setRegionFresnelIOR(id: number, v: number): void { const r = this.regions.get(id); if (!r) return; r.target.fresnelIOR = v; }
-
   setRegionFresnelExponent(id: number, v: number): void { const r = this.regions.get(id); if (!r) return; r.target.fresnelExponent = v; }
-
   setRegionEnvReflectionStrength(id: number, v: number): void { const r = this.regions.get(id); if (!r) return; r.target.envReflectionStrength = v; }
-
   setRegionGlareAngle(id: number, v: number): void { const r = this.regions.get(id); if (!r) return; r.target.glareAngle = v; }
 
-  /**
-   * Render one frame. Must be called from the rAF loop.
-   * Encodes: (1) background blit (slot 0), (2) one glass draw per active region.
-   *
-   * @param canvasContext - The GPUCanvasContext (configure it once outside, not here)
-   * @param canvasW - Canvas width in physical pixels
-   * @param canvasH - Canvas height in physical pixels
-   * @param dt - Delta time in seconds (for morphLerp)
-   * @param dpr - Current devicePixelRatio
-   */
+  // ── Render ──
+
   render(
     canvasContext: GPUCanvasContext,
     canvasW: number,
@@ -263,81 +221,130 @@ export class GlassRenderer {
     dt: number,
     dpr: number,
   ): void {
-    if (!this.perFrameBindGroup) return; // setSceneTexture not yet called
+    if (!this.perFrameBindGroup) return;
 
+    const frameStart = performance.now();
     const device = this.device;
-    const activeRegions = Array.from(this.regions.values());
 
-    // --- Write blit uniforms to slot 0 (all zeros -> rect.z = 0 -> isBlit = true) ---
-    const blitData = new Float32Array(28); // all zeros
-    blitData[12] = canvasW;  // resolution.x
-    blitData[13] = canvasH;  // resolution.y
-    blitData[27] = dpr;       // dpr
-    device.queue.writeBuffer(this.uniformBuffer, 0, blitData);
+    // Use cached region list — avoid Array.from() allocation every frame
+    if (this.regionListDirty) {
+      this.cachedRegionList = Array.from(this.regions.values());
+      this.regionListDirty = false;
+    }
+    const activeRegions = this.cachedRegionList;
+    const regionCount = activeRegions.length;
 
-    // --- Update and write per-region uniforms ---
-    activeRegions.forEach((region, i) => {
-      // Apply exponential decay lerp: current -> target
+    // ── Detect scroll change for rect cache ──
+    const sx = window.scrollX;
+    const sy = window.scrollY;
+    if (sx !== this.scrollX || sy !== this.scrollY) {
+      this.rectCacheDirty = true;
+      this.scrollX = sx;
+      this.scrollY = sy;
+    }
+
+    // ── Write blit uniforms to slot 0 ──
+    const floatsPerSlot = UNIFORM_STRIDE / 4;
+    const staging = this.stagingBuffer;
+    // Clear slot 0
+    staging.fill(0, 0, floatsPerSlot);
+    staging[12] = canvasW;  // resolution.x
+    staging[13] = canvasH;  // resolution.y
+    staging[27] = dpr;      // dpr
+
+    // ── Update per-region uniforms ──
+    for (let i = 0; i < regionCount; i++) {
+      const region = activeRegions[i];
+
+      // morphLerp: skip if current ≈ target (converged)
       morphLerp(region.current, region.target, dt, region.morphSpeed);
 
-      // Update resolution and dpr (always current frame values)
+      // Update resolution and dpr
       region.current.resolution.x = canvasW;
       region.current.resolution.y = canvasH;
       region.current.dpr = dpr;
 
-      // Sync rect from DOM element (normalized UV coordinates)
-      const el = region.element;
-      const rect = el.getBoundingClientRect();
-      region.current.rect.x = rect.left / canvasW * dpr;
-      region.current.rect.y = rect.top / canvasH * dpr;
-      region.current.rect.w = rect.width / canvasW * dpr;
-      region.current.rect.h = rect.height / canvasH * dpr;
+      // ── Rect: use cached value unless dirty ──
+      if (this.rectCacheDirty || region.rectDirty) {
+        const el = region.element;
+        const domRect = el.getBoundingClientRect();
+        region.cachedRect.left = domRect.left;
+        region.cachedRect.top = domRect.top;
+        region.cachedRect.width = domRect.width;
+        region.cachedRect.height = domRect.height;
+        region.rectDirty = false;
+      }
 
-      const data = buildGlassUniformData(region.current);
-      // DEBUG: log refraction value on first frame
-      device.queue.writeBuffer(
-        this.uniformBuffer,
-        (i + 1) * UNIFORM_STRIDE,
-        data.buffer,
-        data.byteOffset,
-        data.byteLength,
-      );
-    });
+      const cr = region.cachedRect;
+      region.current.rect.x = cr.left / canvasW * dpr;
+      region.current.rect.y = cr.top / canvasH * dpr;
+      region.current.rect.w = cr.width / canvasW * dpr;
+      region.current.rect.h = cr.height / canvasH * dpr;
 
-    // --- Encode render pass ---
+      // Build uniform data into pre-allocated scratch buffer
+      buildGlassUniformData(region.current, this.regionScratch);
+
+      // Copy scratch into staging at correct slot offset
+      const slotOffset = (i + 1) * floatsPerSlot;
+      staging.set(this.regionScratch, slotOffset);
+    }
+
+    // Clear rect dirty flag after all regions processed
+    this.rectCacheDirty = false;
+
+    // ── Single batched writeBuffer for all slots ──
+    const totalBytes = (regionCount + 1) * UNIFORM_STRIDE;
+    device.queue.writeBuffer(this.uniformBuffer, 0, staging.buffer, 0, totalBytes);
+
+    // ── Encode render pass ──
     const surfaceTexture = canvasContext.getCurrentTexture();
     const encoder = device.createCommandEncoder({ label: 'GlassRenderer frame' });
     const pass = encoder.beginRenderPass({
-      colorAttachments: [
-        {
-          view: surfaceTexture.createView(),
-          loadOp: 'clear',
-          storeOp: 'store',
-          clearValue: { r: 0, g: 0, b: 0, a: 1 },
-        },
-      ],
+      colorAttachments: [{
+        view: surfaceTexture.createView(),
+        loadOp: 'clear',
+        storeOp: 'store',
+        clearValue: { r: 0, g: 0, b: 0, a: 1 },
+      }],
     });
 
     pass.setPipeline(this.pipeline);
     pass.setBindGroup(0, this.perFrameBindGroup);
 
-    // Draw 1: background blit (dynamic offset = 0, slot 0)
+    // Draw 1: background blit (slot 0)
     pass.setBindGroup(1, this.perRegionBindGroup, [0]);
     pass.draw(3);
 
-    // Draws 2..N: glass regions (dynamic offset = (i+1) * UNIFORM_STRIDE)
-    activeRegions.forEach((_, i) => {
+    // Draws 2..N: glass regions
+    for (let i = 0; i < regionCount; i++) {
       pass.setBindGroup(1, this.perRegionBindGroup, [(i + 1) * UNIFORM_STRIDE]);
       pass.draw(3);
-    });
+    }
 
     pass.end();
     device.queue.submit([encoder.finish()]);
+
+    // ── Performance metrics ──
+    const elapsed = performance.now() - frameStart;
+    this._frameCount++;
+    this._frameTimes.push(elapsed);
+    if (this._frameTimes.length > 60) this._frameTimes.shift();
+
+    // Log metrics every 5 seconds in dev
+    if (import.meta.env.DEV && performance.now() - this._lastMetricsLog > 5000) {
+      this._lastMetricsLog = performance.now();
+      const avg = this._frameTimes.reduce((a, b) => a + b, 0) / this._frameTimes.length;
+      const max = Math.max(...this._frameTimes);
+      console.log(
+        `[GlassRenderer] regions=${regionCount} avgFrame=${avg.toFixed(2)}ms maxFrame=${max.toFixed(2)}ms fps≈${(1000 / avg).toFixed(0)}`
+      );
+    }
   }
 
   destroy(): void {
     this.uniformBuffer?.destroy();
     this.regions.clear();
+    this.cachedRegionList = [];
     this.perFrameBindGroup = null;
   }
 }

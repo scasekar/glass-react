@@ -26,6 +26,8 @@ function makeRenderer(): { renderer: GlassRenderer; region: GlassRegionState } {
       resolution: { ...DEFAULT_GLASS_UNIFORMS.resolution },
     },
     morphSpeed: 8,
+    cachedRect: { left: 0, top: 0, width: 0, height: 0 },
+    rectDirty: true,
   };
   (renderer as any)['regions'].set(id, region);
   return { renderer, region };
@@ -173,6 +175,8 @@ describe('addRegion overflow guard', () => {
         current: { ...DEFAULT_GLASS_UNIFORMS, tint: { ...DEFAULT_GLASS_UNIFORMS.tint }, rect: { ...DEFAULT_GLASS_UNIFORMS.rect }, resolution: { ...DEFAULT_GLASS_UNIFORMS.resolution } },
         target: { ...DEFAULT_GLASS_UNIFORMS, tint: { ...DEFAULT_GLASS_UNIFORMS.tint }, rect: { ...DEFAULT_GLASS_UNIFORMS.rect }, resolution: { ...DEFAULT_GLASS_UNIFORMS.resolution } },
         morphSpeed: 8,
+        cachedRect: { left: 0, top: 0, width: 0, height: 0 },
+        rectDirty: true,
       });
     }
 
@@ -192,6 +196,8 @@ describe('addRegion overflow guard', () => {
         current: { ...DEFAULT_GLASS_UNIFORMS, tint: { ...DEFAULT_GLASS_UNIFORMS.tint }, rect: { ...DEFAULT_GLASS_UNIFORMS.rect }, resolution: { ...DEFAULT_GLASS_UNIFORMS.resolution } },
         target: { ...DEFAULT_GLASS_UNIFORMS, tint: { ...DEFAULT_GLASS_UNIFORMS.tint }, rect: { ...DEFAULT_GLASS_UNIFORMS.rect }, resolution: { ...DEFAULT_GLASS_UNIFORMS.resolution } },
         morphSpeed: 8,
+        cachedRect: { left: 0, top: 0, width: 0, height: 0 },
+        rectDirty: true,
       });
     }
 
@@ -212,6 +218,8 @@ describe('addRegion overflow guard', () => {
         current: { ...DEFAULT_GLASS_UNIFORMS, tint: { ...DEFAULT_GLASS_UNIFORMS.tint }, rect: { ...DEFAULT_GLASS_UNIFORMS.rect }, resolution: { ...DEFAULT_GLASS_UNIFORMS.resolution } },
         target: { ...DEFAULT_GLASS_UNIFORMS, tint: { ...DEFAULT_GLASS_UNIFORMS.tint }, rect: { ...DEFAULT_GLASS_UNIFORMS.rect }, resolution: { ...DEFAULT_GLASS_UNIFORMS.resolution } },
         morphSpeed: 8,
+        cachedRect: { left: 0, top: 0, width: 0, height: 0 },
+        rectDirty: true,
       });
     }
 
