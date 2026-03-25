@@ -8,36 +8,29 @@ export interface VirtualSectionProps {
 
 /**
  * IntersectionObserver-gated section wrapper.
- * Children are only mounted when the section is near the viewport (within rootMargin).
- * When children unmount, useGlassRegion cleanup releases GPU regions automatically.
+ * Children are only mounted when the section element itself intersects the
+ * expanded viewport (rootMargin). Observes the section element directly
+ * (not a sentinel) so content stays mounted while ANY part is visible.
+ * When children unmount, useGlassRegion cleanup releases GPU regions.
  */
 export function VirtualSection({ children, id, minHeight = 400 }: VirtualSectionProps) {
   const [isNear, setIsNear] = useState(false);
-  const sentinelRef = useRef<HTMLDivElement>(null);
+  const sectionRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
-    const sentinel = sentinelRef.current;
-    if (!sentinel) return;
+    const section = sectionRef.current;
+    if (!section) return;
     const observer = new IntersectionObserver(
       ([entry]) => setIsNear(entry.isIntersecting),
-      { rootMargin: '100% 0px' }
+      { rootMargin: '200px 0px' }
     );
-    observer.observe(sentinel);
+    observer.observe(section);
     return () => observer.disconnect();
   }, []);
 
   return (
-    <section id={id} style={{ scrollMarginTop: 72 }}>
-      <div ref={sentinelRef} aria-hidden="true" style={{ height: 1 }} />
-      {isNear ? (
-        children
-      ) : (
-        <div
-          data-testid="virtual-placeholder"
-          style={{ minHeight }}
-          aria-hidden="true"
-        />
-      )}
+    <section id={id} ref={sectionRef} style={{ scrollMarginTop: 72, minHeight }}>
+      {isNear ? children : null}
     </section>
   );
 }

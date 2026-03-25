@@ -62,18 +62,16 @@ describe('VirtualSection', () => {
     expect(screen.getByTestId('child-content').textContent).toBe('Hello');
   });
 
-  it('shows placeholder div with minHeight when children are not mounted', () => {
+  it('section has minHeight when children are not mounted', () => {
     const { container } = render(
       <VirtualSection id="test-section" minHeight={600}>
         <div data-testid="child-content">Hello</div>
       </VirtualSection>
     );
-    // Children should not be rendered
     expect(screen.queryByTestId('child-content')).toBeNull();
-    // Placeholder should have minHeight
-    const placeholder = container.querySelector('[data-testid="virtual-placeholder"]');
-    expect(placeholder).not.toBeNull();
-    expect((placeholder as HTMLElement).style.minHeight).toBe('600px');
+    const section = container.querySelector('section');
+    expect(section).not.toBeNull();
+    expect((section as HTMLElement).style.minHeight).toBe('600px');
   });
 
   it('uses default minHeight of 400px', () => {
@@ -82,9 +80,9 @@ describe('VirtualSection', () => {
         <div>Content</div>
       </VirtualSection>
     );
-    const placeholder = container.querySelector('[data-testid="virtual-placeholder"]');
-    expect(placeholder).not.toBeNull();
-    expect((placeholder as HTMLElement).style.minHeight).toBe('400px');
+    const section = container.querySelector('section');
+    expect(section).not.toBeNull();
+    expect((section as HTMLElement).style.minHeight).toBe('400px');
   });
 
   it('section element has the provided id attribute', () => {
