@@ -89,7 +89,10 @@ Plans:
   3. GlassSegmentedControl displays a glass thumb capsule that spring-animates between segments when selection changes
   4. All three controls respect reduced-motion (no spring overshoot) and reduced-transparency (solid fallback) preferences
   5. Keyboard navigation works for all three controls (Tab to focus, Space/Arrow to operate)
-**Plans**: TBD
+**Plans**: 2 plans
+Plans:
+- [ ] 21-01-PLAN.md — GlassToggle and GlassSlider with types, tests, and library exports
+- [ ] 21-02-PLAN.md — GlassSegmentedControl with layoutId animation and visual verification
 
 ### Phase 22: Core Discrete Controls
 **Goal**: Users can interact with chip, stepper, and input controls that complete the core control palette
@@ -149,7 +152,7 @@ Plans:
 | 9-14 | v2.0 | 13/13 | Complete | 2026-03-24 |
 | 15-19 | v3.0 | 14/14 | Complete | 2026-03-25 |
 | 20. Foundation & Safety Rails | 2/2 | Complete   | 2026-03-25 | - |
-| 21. Core Interactive Controls | v4.0 | 0/TBD | Not started | - |
+| 21. Core Interactive Controls | v4.0 | 0/2 | Planning complete | - |
 | 22. Core Discrete Controls | v4.0 | 0/2 | Planning complete | - |
 | 23. Navigation Controls | v4.0 | 0/TBD | Not started | - |
 | 24. Overlay Controls | v4.0 | 0/TBD | Not started | - |
